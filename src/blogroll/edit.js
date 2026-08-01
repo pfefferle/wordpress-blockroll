@@ -84,7 +84,7 @@ export default function Edit( { attributes, setAttributes } ) {
 								value: 'added',
 							},
 							{
-								label: __( 'Custom order', 'blockroll' ),
+								label: __( 'List order', 'blockroll' ),
 								value: 'manual',
 							},
 						] }
