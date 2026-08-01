@@ -87,15 +87,21 @@ class Test_Opml extends WP_UnitTestCase {
 	public function test_opml_404_without_blogroll() {
 		$id = self::factory()->post->create( array( 'post_content' => 'plain' ) );
 		$this->go_to( add_query_arg( 'feed', 'opml', get_permalink( $id ) ) );
-		\Blockroll\Opml::maybe_404();
+		$this->assertTrue( \Blockroll\Opml::pre_handle_404( false, $GLOBALS['wp_query'] ) );
 		$this->assertTrue( is_404() );
+		$this->assertFalse( is_feed() );
 	}
 
 	public function test_opml_not_404_with_blogroll() {
 		$id = self::factory()->post->create( array( 'post_content' => self::BLOCK ) );
 		$this->go_to( add_query_arg( 'feed', 'opml', get_permalink( $id ) ) );
-		\Blockroll\Opml::maybe_404();
+		$this->assertFalse( \Blockroll\Opml::pre_handle_404( false, $GLOBALS['wp_query'] ) );
 		$this->assertFalse( is_404() );
+	}
+
+	public function test_opml_content_type() {
+		$this->assertSame( 'text/xml', \Blockroll\Opml::content_type( 'application/octet-stream', 'opml' ) );
+		$this->assertSame( 'application/rss+xml', \Blockroll\Opml::content_type( 'application/rss+xml', 'rss2' ) );
 	}
 
 	public function test_singular_without_block_has_no_discovery_link() {

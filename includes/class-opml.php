@@ -16,15 +16,8 @@ class Opml {
 	 */
 	public static function register() {
 		\add_feed( 'opml', array( self::class, 'render' ) );
-		\add_filter(
-			'feed_content_type',
-			function ( $content_type, $type ) {
-				return 'opml' === $type ? 'text/xml' : $content_type;
-			},
-			10,
-			2
-		);
-		\add_action( 'template_redirect', array( self::class, 'maybe_404' ) );
+		\add_filter( 'feed_content_type', array( self::class, 'content_type' ), 10, 2 );
+		\add_filter( 'pre_handle_404', array( self::class, 'pre_handle_404' ), 10, 2 );
 		\add_action( 'wp_head', array( self::class, 'discovery_link' ) );
 		foreach ( array( 'rss2', 'atom' ) as $feed ) {
 			\add_action( $feed . '_ns', 'ob_start', 1 );
@@ -124,9 +117,11 @@ class Opml {
 
 	/**
 	 * Feed callback for /feed/opml.
+	 *
+	 * The Content-Type is sent by WP::send_headers(), based on the
+	 * feed_content_type filter.
 	 */
 	public static function render() {
-		\header( 'Content-Type: text/xml; charset=' . \get_option( 'blog_charset' ) );
 		if ( \is_singular() ) {
 			echo self::for_post( \get_queried_object() ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		} else {
@@ -135,31 +130,56 @@ class Opml {
 	}
 
 	/**
-	 * Show the theme's 404 page for OPML requests without a blogroll.
+	 * Content type of the opml feed.
+	 *
+	 * @param string $content_type Current content type.
+	 * @param string $type         Feed type.
+	 * @return string Content type.
 	 */
-	public static function maybe_404() {
+	public static function content_type( $content_type, $type ) {
+		return 'opml' === $type ? 'text/xml' : $content_type;
+	}
+
+	/**
+	 * Turn OPML requests without a blogroll into a regular 404.
+	 *
+	 * Runs on pre_handle_404, before WP::send_headers(), so the request
+	 * gets the theme's 404 page with normal 404 headers instead of feed
+	 * headers, and conditional requests are not answered with a 304.
+	 *
+	 * @param bool      $handled  Whether the 404 was already handled.
+	 * @param \WP_Query $wp_query The main query.
+	 * @return bool True when this request was turned into a 404.
+	 */
+	public static function pre_handle_404( $handled, $wp_query ) {
 		if ( ! \is_feed( 'opml' ) ) {
-			return;
+			return $handled;
 		}
 
 		if ( \is_singular() ) {
 			$post = \get_queried_object();
 			if ( $post && \has_block( 'blockroll/blogroll', $post ) ) {
-				return;
+				return $handled;
 			}
 		} elseif ( Index::get_posts() ) {
-			return;
+			return $handled;
 		}
 
-		global $wp_query;
+		global $wp;
 		$wp_query->set_404();
-		// set_404() keeps the feed flag, but this request should render
-		// the theme's 404 page, not a feed.
+		// The theme's 404 page should render, not a feed: clear the flag
+		// for the template loader and the query var for WP::send_headers(),
+		// which would otherwise send feed headers and answer conditional
+		// requests with a 304.
 		$wp_query->is_feed = false;
+		unset( $wp->query_vars['feed'] );
+		// Without the feed query var, redirect_canonical() would guess a
+		// permalink for the 404 and redirect to the page itself.
+		\add_filter( 'do_redirect_guess_404_permalink', '__return_false' );
 		\status_header( 404 );
 		\nocache_headers();
-		// send_headers already sent the feed content type.
-		\header( 'Content-Type: ' . \get_option( 'html_type' ) . '; charset=' . \get_option( 'blog_charset' ) );
+
+		return true;
 	}
 
 	/**
