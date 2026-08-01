@@ -1,0 +1,63 @@
+.wp-block-blockroll-blogroll {
+
+	.blockroll-controls {
+		display: flex;
+		align-items: center;
+		gap: 1em;
+		margin-bottom: 1em;
+		font-size: 0.875em;
+
+		select {
+			margin-left: 0.5em;
+		}
+	}
+
+	.blockroll-pager {
+		display: inline-flex;
+		gap: 0.5em;
+	}
+
+	.blockroll-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	.h-card {
+		display: grid;
+		grid-template-columns: auto 1fr;
+		column-gap: 0.75em;
+		align-items: center;
+		margin-bottom: 1em;
+
+		.u-photo {
+			grid-row: 1 / span 2;
+			width: 2.5em;
+			height: 2.5em;
+			border-radius: 50%;
+			object-fit: cover;
+		}
+
+		// Without an image everything moves to the first column.
+		> :first-child:not(.u-photo) {
+			grid-column: 2;
+		}
+
+		.u-url {
+			grid-column: 2;
+			font-weight: 600;
+		}
+
+		.p-note {
+			grid-column: 2;
+			margin: 0;
+			opacity: 0.75;
+			font-size: 0.875em;
+		}
+
+		.u-feed {
+			grid-column: 2;
+			font-size: 0.75em;
+		}
+	}
+}

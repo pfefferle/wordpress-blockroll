@@ -1,0 +1,42 @@
+.wp-block-blockroll-blogroll {
+
+	.blockroll-editor-list {
+		list-style: none;
+		margin: 0 0 1em;
+		padding: 0;
+
+		> li {
+			padding: 0.5em 0;
+			border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+
+			img {
+				border-radius: 50%;
+				object-fit: cover;
+			}
+		}
+	}
+
+	.blockroll-link-form {
+		display: grid;
+		gap: 1em;
+		padding: 1em;
+		border: 1px solid rgba(0, 0, 0, 0.1);
+		border-radius: 2px;
+	}
+
+	.blockroll-xfn-control {
+		display: grid;
+		gap: 0.5em;
+
+		fieldset {
+			border: 0;
+			margin: 0;
+			padding: 0;
+		}
+
+		legend {
+			font-weight: 600;
+			margin-bottom: 0.25em;
+		}
+	}
+}

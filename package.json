@@ -5,6 +5,7 @@
 		"dev": "wp-scripts start --experimental-modules",
 		"build": "rm -rf build && wp-scripts build --experimental-modules",
 		"lint:js": "wp-scripts lint-js",
+		"lint:css": "wp-scripts lint-style",
 		"test:unit": "wp-scripts test-unit-js",
 		"env-start": "wp-env start",
 		"env-stop": "wp-env stop"
