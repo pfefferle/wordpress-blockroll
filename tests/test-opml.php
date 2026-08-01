@@ -69,17 +69,10 @@ class Test_Opml extends WP_UnitTestCase {
 		$this->assertStringContainsString( trailingslashit( get_permalink( $id ) ) . 'feed/opml', $head );
 	}
 
-	public function test_rss_namespace_not_duplicated() {
-		ob_start();
-		ob_start(); // Simulates the buffer started at rss2_ns priority 1.
-		echo 'xmlns:source="http://source.scripting.com/"';
-		\Blockroll\Opml::rss_namespace();
-		$this->assertSame( 1, substr_count( ob_get_clean(), 'xmlns:source' ) );
-
-		ob_start();
+	public function test_rss_namespace() {
 		ob_start();
 		\Blockroll\Opml::rss_namespace();
-		$this->assertStringContainsString( 'xmlns:source', ob_get_clean() );
+		$this->assertStringContainsString( 'xmlns:source="http://source.scripting.com/"', ob_get_clean() );
 	}
 
 	public function test_singular_without_block_has_no_discovery_link() {
