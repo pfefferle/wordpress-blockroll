@@ -44,6 +44,13 @@ function init() {
 }
 \add_action( 'init', __NAMESPACE__ . '\init' );
 
+\add_action(
+	'rest_api_init',
+	function () {
+		Discovery::register_routes();
+	}
+);
+
 \register_activation_hook(
 	__FILE__,
 	function () {
