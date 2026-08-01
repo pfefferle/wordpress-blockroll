@@ -145,6 +145,9 @@ class Opml {
 
 		global $wp_query;
 		$wp_query->set_404();
+		// set_404() keeps the feed flag, but this request should render
+		// the theme's 404 page, not a feed.
+		$wp_query->is_feed = false;
 		\status_header( 404 );
 		\nocache_headers();
 	}
