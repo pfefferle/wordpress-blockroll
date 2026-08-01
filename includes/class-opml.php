@@ -105,7 +105,9 @@ class Opml {
 	}
 
 	/**
-	 * Title of a blogroll page, with a fallback for untitled posts.
+	 * Title of a blogroll page: page title plus author.
+	 *
+	 * Falls back to the site name for untitled posts.
 	 *
 	 * @param \WP_Post $post Post object.
 	 * @return string Title.
@@ -116,6 +118,13 @@ class Opml {
 			/* translators: %s: site name */
 			$title = \sprintf( \__( 'Blogroll of %s', 'blockroll' ), \get_bloginfo( 'name' ) );
 		}
+
+		$author = \get_the_author_meta( 'display_name', $post->post_author );
+		if ( $author ) {
+			/* translators: 1: page title, 2: author name */
+			$title = \sprintf( \__( '%1$s by %2$s', 'blockroll' ), $title, $author );
+		}
+
 		return $title;
 	}
 

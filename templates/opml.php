@@ -20,7 +20,7 @@ echo '<?xml version="1.0" encoding="' . esc_attr( get_option( 'blog_charset' ) )
 	<head>
 		<title><?php echo esc_xml( \Blockroll\Opml::title( $args['post'] ) ); ?></title>
 		<dateModified><?php echo esc_xml( get_post_modified_time( 'r', true, $args['post'] ) ); ?></dateModified>
-		<ownerName><?php echo esc_xml( get_bloginfo( 'name' ) ); ?></ownerName>
+		<ownerName><?php echo esc_xml( get_the_author_meta( 'display_name', $args['post']->post_author ) ); ?></ownerName>
 	</head>
 	<body>
 <?php foreach ( $args['links'] as $blockroll_link ) : ?>
