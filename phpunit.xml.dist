@@ -1,0 +1,16 @@
+<phpunit
+	bootstrap="tests/bootstrap.php"
+	backupGlobals="false"
+	colors="true"
+	>
+	<testsuites>
+		<testsuite name="Blockroll">
+			<directory prefix="test-" suffix=".php">./tests</directory>
+		</testsuite>
+	</testsuites>
+	<coverage>
+		<include>
+			<directory suffix=".php">./includes</directory>
+		</include>
+	</coverage>
+</phpunit>

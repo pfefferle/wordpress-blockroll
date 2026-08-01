@@ -1,0 +1,27 @@
+{
+	"name": "pfefferle/wordpress-blockroll",
+	"description": "A blogroll block with XFN, h-cards, OPML import/export, and blogroll discovery.",
+	"type": "wordpress-plugin",
+	"keywords": [ "wordpress", "plugin", "blogroll", "opml", "xfn", "microformats", "indieweb" ],
+	"homepage": "https://github.com/pfefferle/wordpress-blockroll",
+	"license": "GPL-2.0-or-later",
+	"authors": [ { "name": "Matthias Pfefferle", "email": "pfefferle@gmail.com" } ],
+	"support": { "issues": "https://github.com/pfefferle/wordpress-blockroll/issues" },
+	"extra": { "installer-name": "blockroll" },
+	"require": { "php": ">=7.4", "composer/installers": "^1.0 || ^2.0" },
+	"require-dev": {
+		"phpunit/phpunit": "^9.6",
+		"yoast/phpunit-polyfills": "^4.0",
+		"squizlabs/php_codesniffer": "3.*",
+		"wp-coding-standards/wpcs": "^3.0",
+		"phpcsstandards/phpcsextra": "^1.1.0",
+		"dealerdirect/phpcodesniffer-composer-installer": "^1.0.0"
+	},
+	"scripts": {
+		"test": [ "composer install", "bin/install-wp-tests.sh blockroll-test root blockroll-test test-db latest true", "vendor/bin/phpunit" ],
+		"test:wp-env": [ "wp-env run tests-cli --env-cwd=\"wp-content/plugins/blockroll\" vendor/bin/phpunit" ],
+		"lint": [ "vendor/bin/phpcs" ],
+		"lint:fix": [ "vendor/bin/phpcbf" ]
+	},
+	"config": { "allow-plugins": { "dealerdirect/phpcodesniffer-composer-installer": true, "composer/installers": true } }
+}

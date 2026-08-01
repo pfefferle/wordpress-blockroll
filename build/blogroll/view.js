@@ -1,0 +1,1 @@
+import{store as r}from"@wordpress/interactivity";r("blockroll",{});

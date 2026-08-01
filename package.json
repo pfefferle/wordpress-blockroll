@@ -1,0 +1,15 @@
+{
+	"name": "wordpress-blockroll",
+	"version": "0.1.0",
+	"scripts": {
+		"dev": "wp-scripts start --experimental-modules",
+		"build": "rm -rf build && wp-scripts build --experimental-modules",
+		"lint:js": "wp-scripts lint-js",
+		"test:unit": "wp-scripts test-unit-js",
+		"env-start": "wp-env start",
+		"env-stop": "wp-env stop"
+	},
+	"devDependencies": {
+		"@wordpress/scripts": "^30.0.0"
+	}
+}

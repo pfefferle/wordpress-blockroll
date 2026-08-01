@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<ruleset name="WordPress Blockroll">
+	<description>WordPress Blockroll Standards</description>
+
+	<file>.</file>
+	<exclude-pattern>.(git|github|vscode|idea|wordpress-org)</exclude-pattern>
+	<exclude-pattern>*\.(inc|css|js|svg)</exclude-pattern>
+	<exclude-pattern>*/vendor/*</exclude-pattern>
+	<exclude-pattern>*/node_modules/*</exclude-pattern>
+	<exclude-pattern>*/build/*</exclude-pattern>
+	<exclude-pattern>*.asset.php</exclude-pattern>
+
+	<arg value="ps"/>
+	<arg name="basepath" value="."/><!-- Strip the file paths down to the relevant bit -->
+	<arg name="colors"/>
+	<arg name="parallel" value="50"/>
+
+	<config name="minimum_supported_wp_version" value="6.5"/>
+	<config name="text_domain" value="blockroll,default"/>
+
+	<rule ref="WordPress">
+		<exclude name="Universal.Operators.DisallowShortTernary" />
+		<!-- $class is the idiomatic parameter name for spl_autoload_register() callbacks. -->
+		<exclude name="Universal.NamingConventions.NoReservedKeywordParameterNames.classFound" />
+	</rule>
+
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="blockroll"/>
+				<element value="Blockroll"/>
+				<element value="BLOCKROLL"/>
+			</property>
+		</properties>
+		<!-- tests/bootstrap.php follows the WP core test-suite boilerplate conventions ($_tests_dir, _manually_load_plugin()), not plugin globals. -->
+		<exclude-pattern>tests/bootstrap\.php</exclude-pattern>
+	</rule>
+</ruleset>

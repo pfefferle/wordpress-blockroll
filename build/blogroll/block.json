@@ -1,0 +1,49 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "blockroll/blogroll",
+  "title": "Blogroll",
+  "category": "widgets",
+  "icon": "admin-links",
+  "description": "A blogroll with XFN relationships, h-cards, and OPML.",
+  "textdomain": "blockroll",
+  "keywords": [
+    "blogroll",
+    "links",
+    "opml",
+    "xfn"
+  ],
+  "supports": {
+    "html": false,
+    "interactivity": true,
+    "align": true
+  },
+  "attributes": {
+    "links": {
+      "type": "array",
+      "default": []
+    },
+    "sortBy": {
+      "type": "string",
+      "default": "name",
+      "enum": [
+        "name",
+        "added",
+        "manual"
+      ]
+    },
+    "perPage": {
+      "type": "number",
+      "default": 0
+    },
+    "showAvatars": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "editorScript": "file:./index.js",
+  "editorStyle": "file:./index.css",
+  "style": "file:./style-index.css",
+  "viewScriptModule": "file:./view.js",
+  "render": "file:./render.php"
+}
