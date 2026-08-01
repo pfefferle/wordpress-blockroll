@@ -86,9 +86,16 @@ class Test_Opml extends WP_UnitTestCase {
 
 	public function test_opml_404_without_blogroll() {
 		$id = self::factory()->post->create( array( 'post_content' => 'plain' ) );
-		$this->go_to( get_permalink( $id ) );
-		$this->expectException( 'WPDieException' );
-		\Blockroll\Opml::render();
+		$this->go_to( add_query_arg( 'feed', 'opml', get_permalink( $id ) ) );
+		\Blockroll\Opml::maybe_404();
+		$this->assertTrue( is_404() );
+	}
+
+	public function test_opml_not_404_with_blogroll() {
+		$id = self::factory()->post->create( array( 'post_content' => self::BLOCK ) );
+		$this->go_to( add_query_arg( 'feed', 'opml', get_permalink( $id ) ) );
+		\Blockroll\Opml::maybe_404();
+		$this->assertFalse( is_404() );
 	}
 
 	public function test_singular_without_block_has_no_discovery_link() {

@@ -16,6 +16,7 @@ class Opml {
 	 */
 	public static function register() {
 		\add_feed( 'opml', array( self::class, 'render' ) );
+		\add_action( 'template_redirect', array( self::class, 'maybe_404' ) );
 		\add_action( 'wp_head', array( self::class, 'discovery_link' ) );
 		foreach ( array( 'rss2', 'atom' ) as $feed ) {
 			\add_action( $feed . '_ns', 'ob_start', 1 );
@@ -117,32 +118,35 @@ class Opml {
 	 * Feed callback for /feed/opml.
 	 */
 	public static function render() {
-		if ( \is_singular() ) {
-			$post = \get_queried_object();
-			if ( ! $post || ! \has_block( 'blockroll/blogroll', $post ) ) {
-				self::not_found();
-			}
-			\header( 'Content-Type: text/xml; charset=' . \get_option( 'blog_charset' ) );
-			echo self::for_post( $post ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-			return;
-		}
-
-		if ( ! Index::get_posts() ) {
-			self::not_found();
-		}
 		\header( 'Content-Type: text/xml; charset=' . \get_option( 'blog_charset' ) );
-		echo self::directory(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		if ( \is_singular() ) {
+			echo self::for_post( \get_queried_object() ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		} else {
+			echo self::directory(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		}
 	}
 
 	/**
-	 * Send a 404 for OPML requests without a blogroll.
+	 * Show the theme's 404 page for OPML requests without a blogroll.
 	 */
-	private static function not_found() {
-		\wp_die(
-			\esc_html__( 'There is no blogroll here.', 'blockroll' ),
-			'',
-			array( 'response' => 404 )
-		);
+	public static function maybe_404() {
+		if ( ! \is_feed( 'opml' ) ) {
+			return;
+		}
+
+		if ( \is_singular() ) {
+			$post = \get_queried_object();
+			if ( $post && \has_block( 'blockroll/blogroll', $post ) ) {
+				return;
+			}
+		} elseif ( Index::get_posts() ) {
+			return;
+		}
+
+		global $wp_query;
+		$wp_query->set_404();
+		\status_header( 404 );
+		\nocache_headers();
 	}
 
 	/**
