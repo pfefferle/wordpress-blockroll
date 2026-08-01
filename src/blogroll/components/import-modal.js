@@ -18,6 +18,11 @@ import {
 } from '@wordpress/components';
 
 /**
+ * Internal dependencies
+ */
+import { mergeDiscovered } from '../utils';
+
+/**
  * Fetch details for imported links, one after the other.
  *
  * @param {Array}    links      Imported links.
@@ -33,13 +38,7 @@ async function enrich( links, onProgress ) {
 				method: 'POST',
 				data: { url: link.url },
 			} );
-			result.push( {
-				...link,
-				name: link.name || found.name,
-				description: link.description || found.description,
-				feedUrl: link.feedUrl || found.feedUrl,
-				photo: link.photo || found.photo,
-			} );
+			result.push( mergeDiscovered( link, found ) );
 		} catch {
 			result.push( link );
 		}

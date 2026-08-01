@@ -19,8 +19,10 @@ class Test_Opml extends WP_UnitTestCase {
 	}
 
 	public function test_page_opml_contains_outline() {
-		$post    = self::factory()->post->create_and_get( array( 'post_content' => self::BLOCK ) );
-		$xml     = \Blockroll\Opml::for_post( $post );
+		$post = self::factory()->post->create_and_get( array( 'post_content' => self::BLOCK ) );
+		ob_start();
+		\Blockroll\Opml::for_post( $post );
+		$xml     = ob_get_clean();
 		$doc     = new SimpleXMLElement( $xml );
 		$outline = $doc->body->outline[0];
 		$this->assertSame( 'A', (string) $outline['text'] );
@@ -31,7 +33,9 @@ class Test_Opml extends WP_UnitTestCase {
 
 	public function test_directory_lists_pages_not_links() {
 		self::factory()->post->create( array( 'post_content' => self::BLOCK ) );
-		$xml     = \Blockroll\Opml::directory();
+		ob_start();
+		\Blockroll\Opml::directory();
+		$xml     = ob_get_clean();
 		$doc     = new SimpleXMLElement( $xml );
 		$outline = $doc->body->outline[0];
 		$this->assertSame( 'link', (string) $outline['type'] );

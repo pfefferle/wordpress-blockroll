@@ -53,13 +53,7 @@ class Discovery {
 		}
 
 		// The first h-card on the page.
-		$hcard = null;
-		foreach ( $xpath->query( '//*[@class]' ) as $node ) {
-			if ( self::has_token( $node->getAttribute( 'class' ), 'h-card' ) ) {
-				$hcard = $node;
-				break;
-			}
-		}
+		$hcard = self::find_by_class( $xpath, null, 'h-card' );
 
 		if ( $hcard ) {
 			$result['name']        = self::hcard_text( $xpath, $hcard, 'p-name' );
@@ -102,6 +96,23 @@ class Discovery {
 	}
 
 	/**
+	 * First element carrying a class token, inside a scope.
+	 *
+	 * @param \DOMXPath $xpath XPath helper.
+	 * @param \DOMNode  $scope Scope node, or null for the whole document.
+	 * @param string    $class Class token.
+	 * @return \DOMNode|null Matched element.
+	 */
+	private static function find_by_class( $xpath, $scope, $class ) {
+		foreach ( $xpath->query( 'descendant-or-self::*[@class]', $scope ) as $node ) {
+			if ( self::has_token( $node->getAttribute( 'class' ), $class ) ) {
+				return $node;
+			}
+		}
+		return null;
+	}
+
+	/**
 	 * First text value of a microformats property inside an h-card.
 	 *
 	 * @param \DOMXPath $xpath XPath helper.
@@ -110,12 +121,8 @@ class Discovery {
 	 * @return string Text value.
 	 */
 	private static function hcard_text( $xpath, $hcard, $class ) {
-		foreach ( $xpath->query( 'descendant-or-self::*[@class]', $hcard ) as $node ) {
-			if ( self::has_token( $node->getAttribute( 'class' ), $class ) ) {
-				return \sanitize_text_field( $node->textContent ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-			}
-		}
-		return '';
+		$node = self::find_by_class( $xpath, $hcard, $class );
+		return $node ? \sanitize_text_field( $node->textContent ) : ''; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 	}
 
 	/**
@@ -128,18 +135,12 @@ class Discovery {
 	 * @return string Absolute URL.
 	 */
 	private static function hcard_url( $xpath, $hcard, $class, $base_url ) {
-		foreach ( $xpath->query( 'descendant-or-self::*[@class]', $hcard ) as $node ) {
-			if ( self::has_token( $node->getAttribute( 'class' ), $class ) ) {
-				$url = $node->getAttribute( 'src' );
-				if ( ! $url ) {
-					$url = $node->getAttribute( 'href' );
-				}
-				if ( $url ) {
-					return self::absolute( $url, $base_url );
-				}
-			}
+		$node = self::find_by_class( $xpath, $hcard, $class );
+		if ( ! $node ) {
+			return '';
 		}
-		return '';
+		$url = $node->getAttribute( 'src' ) ? $node->getAttribute( 'src' ) : $node->getAttribute( 'href' );
+		return $url ? self::absolute( $url, $base_url ) : '';
 	}
 
 	/**

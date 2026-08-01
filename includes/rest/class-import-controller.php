@@ -13,6 +13,8 @@ use Blockroll\Import;
  * REST endpoint that turns an OPML document into blogroll links.
  */
 class Import_Controller extends \WP_REST_Controller {
+	use Helpers;
+
 	/**
 	 * Namespace of the route.
 	 *
@@ -44,36 +46,12 @@ class Import_Controller extends \WP_REST_Controller {
 							'description' => \__( 'An OPML document.', 'blockroll' ),
 							'type'        => 'string',
 						),
-						'url'  => array(
-							'description'       => \__( 'A URL to an OPML document.', 'blockroll' ),
-							'type'              => 'string',
-							'format'            => 'uri',
-							'validate_callback' => function ( $url ) {
-								return (bool) \wp_http_validate_url( $url );
-							},
-						),
+						'url'  => $this->url_arg( \__( 'A URL to an OPML document.', 'blockroll' ) ),
 					),
 				),
 				'schema' => array( $this, 'get_public_item_schema' ),
 			)
 		);
-	}
-
-	/**
-	 * Whether the current user may use the endpoint.
-	 *
-	 * @param \WP_REST_Request $request Request.
-	 * @return true|\WP_Error True when allowed.
-	 */
-	public function create_item_permissions_check( $request ) {
-		if ( ! \current_user_can( 'edit_posts' ) ) {
-			return new \WP_Error(
-				'rest_forbidden',
-				\__( 'Sorry, you are not allowed to do that.', 'blockroll' ),
-				array( 'status' => \rest_authorization_required_code() )
-			);
-		}
-		return true;
 	}
 
 	/**
@@ -86,21 +64,13 @@ class Import_Controller extends \WP_REST_Controller {
 		$opml = $request->get_param( 'opml' );
 
 		if ( ! $opml && $request->get_param( 'url' ) ) {
-			$response = \wp_safe_remote_get(
+			$opml = $this->fetch_url(
 				$request->get_param( 'url' ),
-				array(
-					'timeout'             => 10,
-					'limit_response_size' => MB_IN_BYTES,
-				)
+				\__( 'The OPML file could not be fetched.', 'blockroll' )
 			);
-			if ( \is_wp_error( $response ) || 200 !== \wp_remote_retrieve_response_code( $response ) ) {
-				return new \WP_Error(
-					'blockroll_fetch_failed',
-					\__( 'The OPML file could not be fetched.', 'blockroll' ),
-					array( 'status' => 502 )
-				);
+			if ( \is_wp_error( $opml ) ) {
+				return $opml;
 			}
-			$opml = \wp_remote_retrieve_body( $response );
 		}
 
 		if ( ! $opml ) {

@@ -24,10 +24,12 @@ define( 'BLOCKROLL_PLUGIN_FILE', __FILE__ );
 		}
 		$parts = \explode( '\\', \strtolower( \str_replace( array( 'Blockroll\\', '_' ), array( '', '-' ), $class ) ) );
 		$name  = \array_pop( $parts );
-		$path  = $parts ? \implode( '/', $parts ) . '/' : '';
-		$file  = __DIR__ . '/includes/' . $path . 'class-' . $name . '.php';
-		if ( \file_exists( $file ) ) {
-			require $file;
+		$path  = __DIR__ . '/includes/' . ( $parts ? \implode( '/', $parts ) . '/' : '' );
+		foreach ( array( 'class-', 'trait-' ) as $prefix ) {
+			if ( \file_exists( $path . $prefix . $name . '.php' ) ) {
+				require $path . $prefix . $name . '.php';
+				return;
+			}
 		}
 	}
 );

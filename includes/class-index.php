@@ -44,11 +44,13 @@ class Index {
 		if ( \wp_is_post_revision( $post_id ) || ! \is_object_in_taxonomy( $post->post_type, self::TAXONOMY ) ) {
 			return;
 		}
-		if ( \has_block( 'blockroll/blogroll', $post ) ) {
-			\wp_set_object_terms( $post_id, self::TERM, self::TAXONOMY );
-		} else {
-			\wp_set_object_terms( $post_id, array(), self::TAXONOMY );
+
+		$has_block = \has_block( 'blockroll/blogroll', $post );
+		if ( \has_term( self::TERM, self::TAXONOMY, $post_id ) === $has_block ) {
+			return;
 		}
+
+		\wp_set_object_terms( $post_id, $has_block ? self::TERM : array(), self::TAXONOMY );
 	}
 
 	/**

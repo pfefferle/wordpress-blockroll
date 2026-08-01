@@ -16,6 +16,8 @@ use Blockroll\Discovery;
  * this endpoint to do it.
  */
 class Discovery_Controller extends \WP_REST_Controller {
+	use Helpers;
+
 	/**
 	 * Namespace of the route.
 	 *
@@ -43,14 +45,9 @@ class Discovery_Controller extends \WP_REST_Controller {
 					'callback'            => array( $this, 'create_item' ),
 					'permission_callback' => array( $this, 'create_item_permissions_check' ),
 					'args'                => array(
-						'url' => array(
-							'description'       => \__( 'The URL to inspect.', 'blockroll' ),
-							'type'              => 'string',
-							'format'            => 'uri',
-							'required'          => true,
-							'validate_callback' => function ( $url ) {
-								return (bool) \wp_http_validate_url( $url );
-							},
+						'url' => \array_merge(
+							$this->url_arg( \__( 'The URL to inspect.', 'blockroll' ) ),
+							array( 'required' => true )
 						),
 					),
 				),
@@ -60,48 +57,21 @@ class Discovery_Controller extends \WP_REST_Controller {
 	}
 
 	/**
-	 * Whether the current user may use the endpoint.
-	 *
-	 * @param \WP_REST_Request $request Request.
-	 * @return true|\WP_Error True when allowed.
-	 */
-	public function create_item_permissions_check( $request ) {
-		if ( ! \current_user_can( 'edit_posts' ) ) {
-			return new \WP_Error(
-				'rest_forbidden',
-				\__( 'Sorry, you are not allowed to do that.', 'blockroll' ),
-				array( 'status' => \rest_authorization_required_code() )
-			);
-		}
-		return true;
-	}
-
-	/**
 	 * Fetch the URL and extract link details.
 	 *
 	 * @param \WP_REST_Request $request Request.
 	 * @return \WP_REST_Response|\WP_Error Extracted link data.
 	 */
 	public function create_item( $request ) {
-		$url      = $request->get_param( 'url' );
-		$response = \wp_safe_remote_get(
-			$url,
-			array(
-				'timeout'             => 10,
-				'limit_response_size' => MB_IN_BYTES,
-			)
-		);
-		if ( \is_wp_error( $response ) || 200 !== \wp_remote_retrieve_response_code( $response ) ) {
-			return new \WP_Error(
-				'blockroll_fetch_failed',
-				\__( 'The site could not be reached.', 'blockroll' ),
-				array( 'status' => 502 )
-			);
+		$url  = $request->get_param( 'url' );
+		$body = $this->fetch_url( $url, \__( 'The site could not be reached.', 'blockroll' ) );
+		if ( \is_wp_error( $body ) ) {
+			return $body;
 		}
 
 		return \rest_ensure_response(
 			\array_merge(
-				Discovery::from_html( \wp_remote_retrieve_body( $response ), $url ),
+				Discovery::from_html( $body, $url ),
 				array( 'url' => \esc_url_raw( $url ) )
 			)
 		);

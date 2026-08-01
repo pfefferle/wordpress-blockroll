@@ -16,6 +16,7 @@ import {
  * Internal dependencies
  */
 import XfnControl from './xfn-control';
+import { mergeDiscovered } from '../utils';
 
 const EMPTY = {
 	url: '',
@@ -52,13 +53,7 @@ export default function LinkForm( { link, onSave, onCancel } ) {
 			data: { url: draft.url },
 		} )
 			.then( ( found ) =>
-				setDraft( ( current ) => ( {
-					...current,
-					name: current.name || found.name,
-					description: current.description || found.description,
-					feedUrl: current.feedUrl || found.feedUrl,
-					photo: current.photo || found.photo,
-				} ) )
+				setDraft( ( current ) => mergeDiscovered( current, found ) )
 			)
 			.catch( ( fetchError ) =>
 				setError(

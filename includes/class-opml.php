@@ -80,13 +80,11 @@ class Opml {
 	}
 
 	/**
-	 * OPML for a single post's blogroll.
+	 * Print the OPML for a single post's blogroll.
 	 *
 	 * @param \WP_Post $post Post object.
-	 * @return string OPML document.
 	 */
 	public static function for_post( $post ) {
-		\ob_start();
 		\load_template(
 			\dirname( BLOCKROLL_PLUGIN_FILE ) . '/templates/opml.php',
 			false,
@@ -95,24 +93,28 @@ class Opml {
 				'links' => self::extract_links( $post ),
 			)
 		);
-		return \ob_get_clean();
 	}
 
 	/**
-	 * Directory OPML listing every blogroll page's own OPML.
-	 *
-	 * @return string OPML document.
+	 * Print the directory OPML listing every blogroll page's own OPML.
 	 */
 	public static function directory() {
-		\ob_start();
 		\load_template(
 			\dirname( BLOCKROLL_PLUGIN_FILE ) . '/templates/opml-directory.php',
 			false,
-			array(
-				'posts' => Index::get_posts(),
-			)
+			array( 'posts' => Index::get_posts() )
 		);
-		return \ob_get_clean();
+	}
+
+	/**
+	 * Print the XML prolog and stylesheet line of an OPML document.
+	 */
+	public static function prolog() {
+		echo '<?xml version="1.0" encoding="' . \esc_attr( \get_option( 'blog_charset' ) ) . '"?>' . "\n";
+		\printf(
+			'<?xml-stylesheet type="text/xsl" href="%s"?>' . "\n",
+			\esc_url( \plugins_url( 'templates/opml.xsl', BLOCKROLL_PLUGIN_FILE ) )
+		);
 	}
 
 	/**
@@ -123,9 +125,9 @@ class Opml {
 	 */
 	public static function render() {
 		if ( \is_singular() ) {
-			echo self::for_post( \get_queried_object() ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			self::for_post( \get_queried_object() );
 		} else {
-			echo self::directory(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			self::directory();
 		}
 	}
 
@@ -158,7 +160,7 @@ class Opml {
 
 		if ( \is_singular() ) {
 			$post = \get_queried_object();
-			if ( $post && \has_block( 'blockroll/blogroll', $post ) ) {
+			if ( $post && \has_term( Index::TERM, Index::TAXONOMY, $post ) ) {
 				return $handled;
 			}
 		} elseif ( Index::get_posts() ) {
@@ -226,7 +228,7 @@ class Opml {
 	public static function discovery_link() {
 		if ( \is_singular() ) {
 			$post = \get_queried_object();
-			if ( $post && \has_block( 'blockroll/blogroll', $post ) ) {
+			if ( $post && \has_term( Index::TERM, Index::TAXONOMY, $post ) ) {
 				self::print_discovery_link( $post );
 			}
 			return;

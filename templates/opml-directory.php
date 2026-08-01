@@ -13,8 +13,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-echo '<?xml version="1.0" encoding="' . esc_attr( get_option( 'blog_charset' ) ) . '"?>' . "\n";
-printf( '<?xml-stylesheet type="text/xsl" href="%s"?>' . "\n", esc_url( plugins_url( 'templates/opml.xsl', BLOCKROLL_PLUGIN_FILE ) ) );
+\Blockroll\Opml::prolog();
 ?>
 <opml version="2.0">
 	<head>

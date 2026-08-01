@@ -11,9 +11,8 @@
  */
 
 use Blockroll\Links;
-use Blockroll\Xfn;
 
-$blockroll_links = array_map( array( Links::class, 'normalize' ), (array) ( $attributes['links'] ?? array() ) );
+$blockroll_links = array_map( array( Links::class, 'normalize' ), $attributes['links'] );
 $blockroll_links = array_filter(
 	$blockroll_links,
 	function ( $link ) {
@@ -21,16 +20,16 @@ $blockroll_links = array_filter(
 	}
 );
 
-$blockroll_sortable = ! isset( $attributes['showSort'] ) || $attributes['showSort'];
+$blockroll_sortable = $attributes['showSort'];
 
 $blockroll_sort = $blockroll_sortable ? get_query_var( 'blockroll-sort' ) : '';
 if ( ! in_array( $blockroll_sort, array( 'name', 'added', 'manual' ), true ) ) {
-	$blockroll_sort = $attributes['sortBy'] ?? 'name';
+	$blockroll_sort = $attributes['sortBy'];
 }
 
 $blockroll_links = Links::sort( array_values( $blockroll_links ), $blockroll_sort );
-$blockroll_show  = ! empty( $attributes['showAvatars'] );
-$blockroll_per   = (int) ( $attributes['perPage'] ?? 0 );
+$blockroll_show  = $attributes['showAvatars'];
+$blockroll_per   = (int) $attributes['perPage'];
 $blockroll_total = count( $blockroll_links );
 $blockroll_pages = $blockroll_per > 0 ? max( 1, (int) ceil( $blockroll_total / $blockroll_per ) ) : 1;
 $blockroll_page  = min( max( 1, (int) get_query_var( 'blockroll-page', 1 ) ), $blockroll_pages );
@@ -50,7 +49,7 @@ $blockroll_sorts = array(
 if ( $blockroll_dated ) {
 	$blockroll_sorts['added'] = __( 'Newest first', 'blockroll' );
 }
-if ( 'manual' === ( $attributes['sortBy'] ?? 'name' ) ) {
+if ( 'manual' === $attributes['sortBy'] ) {
 	$blockroll_sorts['manual'] = __( 'Default', 'blockroll' );
 }
 ?>
@@ -79,7 +78,7 @@ if ( 'manual' === ( $attributes['sortBy'] ?? 'name' ) ) {
 	<?php endif; ?>
 	<ul class="blockroll-list">
 		<?php foreach ( $blockroll_links as $blockroll_link ) : ?>
-			<?php $blockroll_rel = Xfn::rel_string( $blockroll_link['xfn'] ); ?>
+			<?php $blockroll_rel = trim( implode( ' ', $blockroll_link['xfn'] ) . ' noopener' ); // Already sanitized by Links::normalize(). ?>
 			<li class="h-card">
 				<?php if ( $blockroll_show ) : ?>
 					<?php if ( $blockroll_link['photo'] ) : ?>
@@ -88,7 +87,7 @@ if ( 'manual' === ( $attributes['sortBy'] ?? 'name' ) ) {
 						<span class="blockroll-no-photo"></span>
 					<?php endif; ?>
 				<?php endif; ?>
-				<a class="u-url p-name" rel="<?php echo esc_attr( trim( $blockroll_rel . ' noopener' ) ); ?>" target="_blank" href="<?php echo esc_url( $blockroll_link['url'] ); ?>"><?php echo esc_html( $blockroll_link['name'] ? $blockroll_link['name'] : $blockroll_link['url'] ); ?></a>
+				<a class="u-url p-name" rel="<?php echo esc_attr( $blockroll_rel ); ?>" target="_blank" href="<?php echo esc_url( $blockroll_link['url'] ); ?>"><?php echo esc_html( $blockroll_link['name'] ? $blockroll_link['name'] : $blockroll_link['url'] ); ?></a>
 				<?php if ( $blockroll_link['description'] ) : ?>
 					<p class="p-note"><?php echo esc_html( $blockroll_link['description'] ); ?></p>
 				<?php endif; ?>
@@ -132,7 +131,7 @@ if ( 'manual' === ( $attributes['sortBy'] ?? 'name' ) ) {
 		</nav>
 	<?php endif; ?>
 	<?php $blockroll_post = get_post(); ?>
-	<?php if ( ! empty( $attributes['showOpml'] ) && $blockroll_post ) : ?>
+	<?php if ( $attributes['showOpml'] && $blockroll_post ) : ?>
 		<p class="blockroll-opml">
 			<?php
 			printf(
