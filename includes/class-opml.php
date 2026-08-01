@@ -16,6 +16,14 @@ class Opml {
 	 */
 	public static function register() {
 		\add_feed( 'opml', array( self::class, 'render' ) );
+		\add_filter(
+			'feed_content_type',
+			function ( $content_type, $type ) {
+				return 'opml' === $type ? 'text/xml' : $content_type;
+			},
+			10,
+			2
+		);
 		\add_action( 'template_redirect', array( self::class, 'maybe_404' ) );
 		\add_action( 'wp_head', array( self::class, 'discovery_link' ) );
 		foreach ( array( 'rss2', 'atom' ) as $feed ) {
@@ -150,6 +158,8 @@ class Opml {
 		$wp_query->is_feed = false;
 		\status_header( 404 );
 		\nocache_headers();
+		// send_headers already sent the feed content type.
+		\header( 'Content-Type: ' . \get_option( 'html_type' ) . '; charset=' . \get_option( 'blog_charset' ) );
 	}
 
 	/**
