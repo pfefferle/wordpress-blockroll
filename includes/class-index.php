@@ -45,12 +45,18 @@ class Index {
 			return;
 		}
 
-		$has_block = \has_block( 'blockroll/blogroll', $post );
-		if ( \has_term( self::TERM, self::TAXONOMY, $post_id ) === $has_block ) {
-			return;
-		}
+		\wp_set_object_terms( $post_id, self::has_blogroll( $post ) ? self::TERM : array(), self::TAXONOMY );
+	}
 
-		\wp_set_object_terms( $post_id, $has_block ? self::TERM : array(), self::TAXONOMY );
+	/**
+	 * Whether a post contains a blogroll block.
+	 *
+	 * @param \WP_Post|int $post Post.
+	 * @return bool True when it does.
+	 */
+	public static function has_blogroll( $post ) {
+		$post = \get_post( $post );
+		return $post && \has_block( 'blockroll/blogroll', $post );
 	}
 
 	/**

@@ -11,6 +11,7 @@
  */
 
 use Blockroll\Links;
+use Blockroll\Xfn;
 
 $blockroll_links = array_map( array( Links::class, 'normalize' ), $attributes['links'] );
 $blockroll_links = array_filter(
@@ -78,7 +79,7 @@ if ( 'manual' === $attributes['sortBy'] ) {
 	<?php endif; ?>
 	<ul class="blockroll-list">
 		<?php foreach ( $blockroll_links as $blockroll_link ) : ?>
-			<?php $blockroll_rel = trim( implode( ' ', $blockroll_link['xfn'] ) . ' noopener' ); // Already sanitized by Links::normalize(). ?>
+			<?php $blockroll_rel = trim( Xfn::rel_string( $blockroll_link['xfn'] ) . ' noopener' ); ?>
 			<li class="h-card">
 				<?php if ( $blockroll_show ) : ?>
 					<?php if ( $blockroll_link['photo'] ) : ?>

@@ -160,7 +160,7 @@ class Opml {
 
 		if ( \is_singular() ) {
 			$post = \get_queried_object();
-			if ( $post && \has_term( Index::TERM, Index::TAXONOMY, $post ) ) {
+			if ( Index::has_blogroll( $post ) ) {
 				return $handled;
 			}
 		} elseif ( Index::get_posts() ) {
@@ -228,7 +228,7 @@ class Opml {
 	public static function discovery_link() {
 		if ( \is_singular() ) {
 			$post = \get_queried_object();
-			if ( $post && \has_term( Index::TERM, Index::TAXONOMY, $post ) ) {
+			if ( Index::has_blogroll( $post ) ) {
 				self::print_discovery_link( $post );
 			}
 			return;

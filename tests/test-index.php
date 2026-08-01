@@ -40,6 +40,14 @@ class Test_Index extends WP_UnitTestCase {
 		$this->assertSame( array( $id ), $found );
 	}
 
+	public function test_has_blogroll_reads_the_content() {
+		$id = self::factory()->post->create( array( 'post_content' => self::BLOCK ) );
+		// Simulate content that was never synced: drop the term.
+		wp_set_object_terms( $id, array(), \Blockroll\Index::TAXONOMY );
+		$this->assertTrue( \Blockroll\Index::has_blogroll( $id ) );
+		$this->assertFalse( \Blockroll\Index::has_blogroll( self::factory()->post->create() ) );
+	}
+
 	public function test_taxonomy_not_public() {
 		$tax = get_taxonomy( \Blockroll\Index::TAXONOMY );
 		$this->assertFalse( $tax->public );

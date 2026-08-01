@@ -135,12 +135,18 @@ class Discovery {
 	 * @return string Absolute URL.
 	 */
 	private static function hcard_url( $xpath, $hcard, $class, $base_url ) {
-		$node = self::find_by_class( $xpath, $hcard, $class );
-		if ( ! $node ) {
-			return '';
+		// Not find_by_class(): a matched element without src/href, like a
+		// wrapper span, must not end the search.
+		foreach ( $xpath->query( 'descendant-or-self::*[@class]', $hcard ) as $node ) {
+			if ( ! self::has_token( $node->getAttribute( 'class' ), $class ) ) {
+				continue;
+			}
+			$url = $node->getAttribute( 'src' ) ? $node->getAttribute( 'src' ) : $node->getAttribute( 'href' );
+			if ( $url ) {
+				return self::absolute( $url, $base_url );
+			}
 		}
-		$url = $node->getAttribute( 'src' ) ? $node->getAttribute( 'src' ) : $node->getAttribute( 'href' );
-		return $url ? self::absolute( $url, $base_url ) : '';
+		return '';
 	}
 
 	/**
