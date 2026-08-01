@@ -70,9 +70,8 @@
 		}
 
 		// Divider, only when the feed link and the list are both there.
-		.u-feed + .blockroll-xfn {
-			border-left: 1px solid currentcolor;
-			padding-left: 0.75em;
+		.u-feed + .blockroll-xfn::before {
+			content: "\00b7"; // ·
 		}
 
 		.u-feed {
