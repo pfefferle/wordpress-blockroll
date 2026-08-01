@@ -18,7 +18,7 @@ echo '<?xml version="1.0" encoding="' . esc_attr( get_option( 'blog_charset' ) )
 ?>
 <opml version="2.0">
 	<head>
-		<title><?php echo esc_xml( get_the_title( $args['post'] ) ); ?></title>
+		<title><?php echo esc_xml( \Blockroll\Opml::title( $args['post'] ) ); ?></title>
 		<dateModified><?php echo esc_xml( get_post_modified_time( 'r', true, $args['post'] ) ); ?></dateModified>
 		<ownerName><?php echo esc_xml( get_bloginfo( 'name' ) ); ?></ownerName>
 	</head>

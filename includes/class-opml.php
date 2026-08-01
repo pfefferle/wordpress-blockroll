@@ -105,6 +105,21 @@ class Opml {
 	}
 
 	/**
+	 * Title of a blogroll page, with a fallback for untitled posts.
+	 *
+	 * @param \WP_Post $post Post object.
+	 * @return string Title.
+	 */
+	public static function title( $post ) {
+		$title = \get_the_title( $post );
+		if ( '' === $title ) {
+			/* translators: %s: site name */
+			$title = \sprintf( \__( 'Blogroll of %s', 'blockroll' ), \get_bloginfo( 'name' ) );
+		}
+		return $title;
+	}
+
+	/**
 	 * Print the rel="blogroll" link on singular pages that contain the block.
 	 *
 	 * The root directory is a list of OPMLs, not a blogroll, so it is
@@ -121,8 +136,7 @@ class Opml {
 		\printf(
 			'<link rel="blogroll" type="text/xml" href="%s" title="%s" />' . "\n",
 			\esc_url( self::feed_url( $post ) ),
-			/* translators: %s: post title */
-			\esc_attr( \sprintf( \__( 'Blogroll: %s', 'blockroll' ), \get_the_title( $post ) ) )
+			\esc_attr( self::title( $post ) )
 		);
 	}
 }
