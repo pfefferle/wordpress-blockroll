@@ -120,19 +120,35 @@ class Opml {
 	}
 
 	/**
-	 * Print the rel="blogroll" link on singular pages that contain the block.
+	 * Print rel="blogroll" discovery links.
 	 *
-	 * The root directory is a list of OPMLs, not a blogroll, so it is
-	 * never advertised this way.
+	 * A page that contains the block advertises its own OPML. The front
+	 * page advertises the OPML of every blogroll page, so readers can
+	 * find the blogroll from the homepage. The root directory OPML is a
+	 * list of OPMLs, not a blogroll, so it is never advertised.
 	 */
 	public static function discovery_link() {
-		if ( ! \is_singular() ) {
+		if ( \is_singular() ) {
+			$post = \get_queried_object();
+			if ( $post && \has_block( 'blockroll/blogroll', $post ) ) {
+				self::print_discovery_link( $post );
+			}
 			return;
 		}
-		$post = \get_queried_object();
-		if ( ! $post || ! \has_block( 'blockroll/blogroll', $post ) ) {
-			return;
+
+		if ( \is_front_page() || \is_home() ) {
+			foreach ( Index::get_posts() as $post ) {
+				self::print_discovery_link( $post );
+			}
 		}
+	}
+
+	/**
+	 * Print one rel="blogroll" link.
+	 *
+	 * @param \WP_Post $post Post with a blogroll block.
+	 */
+	private static function print_discovery_link( $post ) {
 		\printf(
 			'<link rel="blogroll" type="text/xml" href="%s" title="%s" />' . "\n",
 			\esc_url( self::feed_url( $post ) ),

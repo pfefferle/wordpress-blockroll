@@ -39,7 +39,7 @@ class Test_Opml extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'a.example', $xml ); // No inlined links.
 	}
 
-	public function test_discovery_link_only_on_singular_with_block() {
+	public function test_discovery_link_on_singular_with_block() {
 		$id = self::factory()->post->create( array( 'post_content' => self::BLOCK ) );
 		$this->go_to( get_permalink( $id ) );
 		ob_start();
@@ -47,10 +47,24 @@ class Test_Opml extends WP_UnitTestCase {
 		$head = ob_get_clean();
 		$this->assertStringContainsString( 'rel="blogroll"', $head );
 		$this->assertStringContainsString( 'feed/opml', $head );
+	}
 
+	public function test_front_page_advertises_blogroll_pages() {
+		$id = self::factory()->post->create( array( 'post_content' => self::BLOCK ) );
 		$this->go_to( home_url( '/' ) );
 		ob_start();
 		\Blockroll\Opml::discovery_link();
-		$this->assertSame( '', ob_get_clean() ); // Never on the root.
+		$head = ob_get_clean();
+		// The front page points at the blogroll page's own OPML, not the directory.
+		$this->assertStringContainsString( 'rel="blogroll"', $head );
+		$this->assertStringContainsString( trailingslashit( get_permalink( $id ) ) . 'feed/opml', $head );
+	}
+
+	public function test_singular_without_block_has_no_discovery_link() {
+		$id = self::factory()->post->create( array( 'post_content' => 'plain' ) );
+		$this->go_to( get_permalink( $id ) );
+		ob_start();
+		\Blockroll\Opml::discovery_link();
+		$this->assertSame( '', ob_get_clean() );
 	}
 }
