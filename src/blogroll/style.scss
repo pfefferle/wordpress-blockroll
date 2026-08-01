@@ -44,6 +44,7 @@
 		.u-photo,
 		.blockroll-no-photo {
 			grid-row: 1 / span 2;
+			align-self: start;
 			width: 2.5em;
 			height: 2.5em;
 			margin-right: 0.75em;
