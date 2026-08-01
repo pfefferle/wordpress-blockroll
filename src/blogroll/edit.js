@@ -29,7 +29,7 @@ import { move } from './utils';
  * @param {Function} props.setAttributes Attribute setter.
  */
 export default function Edit( { attributes, setAttributes } ) {
-	const { links, sortBy, perPage, showAvatars } = attributes;
+	const { links, sortBy, perPage, showAvatars, showSort } = attributes;
 	const [ editing, setEditing ] = useState( null ); // Index, 'new', or null.
 	const [ isImporting, setIsImporting ] = useState( false );
 
@@ -113,6 +113,17 @@ export default function Edit( { attributes, setAttributes } ) {
 						checked={ showAvatars }
 						onChange={ ( value ) =>
 							setAttributes( { showAvatars: value } )
+						}
+					/>
+					<ToggleControl
+						__nextHasNoMarginBottom
+						label={ __(
+							'Let visitors sort the list',
+							'blockroll'
+						) }
+						checked={ showSort }
+						onChange={ ( value ) =>
+							setAttributes( { showSort: value } )
 						}
 					/>
 				</PanelBody>

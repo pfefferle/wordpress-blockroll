@@ -98,7 +98,54 @@ class Test_Render extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( '<script>', $html );
 	}
 
+	const TWO_DATED_LINKS = array(
+		array(
+			'url'   => 'https://a.example/',
+			'name'  => 'A',
+			'added' => '2026-01-01',
+		),
+		array(
+			'url'   => 'https://b.example/',
+			'name'  => 'B',
+			'added' => '2026-06-01',
+		),
+	);
+
 	public function test_sort_links_rendered() {
+		$html = $this->render_block_html( array( 'links' => self::TWO_DATED_LINKS ) );
+		$this->assertStringContainsString( 'blockroll-sort', $html );
+		$this->assertStringContainsString( 'blockroll-sort=added', $html );
+	}
+
+	public function test_manual_sort_only_offered_when_default() {
+		$html = $this->render_block_html( array( 'links' => self::TWO_DATED_LINKS ) );
+		$this->assertStringNotContainsString( 'blockroll-sort=manual', $html );
+
+		$html = $this->render_block_html(
+			array(
+				'sortBy' => 'manual',
+				'links'  => self::TWO_DATED_LINKS,
+			)
+		);
+		$this->assertStringContainsString( 'aria-current="true">Default', $html );
+	}
+
+	public function test_sort_can_be_disabled() {
+		set_query_var( 'blockroll-sort', 'added' );
+		$html = $this->render_block_html(
+			array(
+				'showSort' => false,
+				'links'    => self::TWO_DATED_LINKS,
+			)
+		);
+		set_query_var( 'blockroll-sort', null );
+		$this->assertStringNotContainsString( 'blockroll-sort', $html );
+		// The query var is ignored, the default name order stays.
+		$this->assertLessThan( strpos( $html, 'b.example' ), strpos( $html, 'a.example' ) );
+	}
+
+	public function test_no_sort_ui_for_single_option() {
+		// No dates, default name sort: only one option, so no controls at all.
 		$html = $this->render_block_html(
 			array(
 				'links' => array(
@@ -113,8 +160,7 @@ class Test_Render extends WP_UnitTestCase {
 				),
 			)
 		);
-		$this->assertStringContainsString( 'blockroll-sort', $html );
-		$this->assertStringContainsString( 'blockroll-sort=manual', $html );
+		$this->assertStringNotContainsString( 'blockroll-controls', $html );
 	}
 
 	public function test_paging_slices_the_list() {

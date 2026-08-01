@@ -21,7 +21,9 @@ $blockroll_links = array_filter(
 	}
 );
 
-$blockroll_sort = get_query_var( 'blockroll-sort' );
+$blockroll_sortable = ! isset( $attributes['showSort'] ) || $attributes['showSort'];
+
+$blockroll_sort = $blockroll_sortable ? get_query_var( 'blockroll-sort' ) : '';
 if ( ! in_array( $blockroll_sort, array( 'name', 'added', 'manual' ), true ) ) {
 	$blockroll_sort = $attributes['sortBy'] ?? 'name';
 }
@@ -45,14 +47,18 @@ if ( $blockroll_per > 0 ) {
 $blockroll_sorts = array(
 	'name'   => __( 'By name', 'blockroll' ),
 	'added'  => __( 'Newest first', 'blockroll' ),
-	'manual' => __( 'Custom order', 'blockroll' ),
+	'manual' => __( 'Default', 'blockroll' ),
 );
 if ( ! $blockroll_dated ) {
 	unset( $blockroll_sorts['added'] );
 }
+// The manual order is only meaningful when it is the block's own default.
+if ( 'manual' !== ( $attributes['sortBy'] ?? 'name' ) ) {
+	unset( $blockroll_sorts['manual'] );
+}
 ?>
 <div <?php echo wp_kses_data( get_block_wrapper_attributes() ); ?>>
-	<?php if ( $blockroll_total > 1 ) : ?>
+	<?php if ( $blockroll_sortable && $blockroll_total > 1 && count( $blockroll_sorts ) > 1 ) : ?>
 		<nav class="blockroll-controls">
 			<span class="blockroll-sort">
 				<?php esc_html_e( 'Sort:', 'blockroll' ); ?>

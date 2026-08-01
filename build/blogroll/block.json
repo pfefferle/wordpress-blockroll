@@ -38,6 +38,10 @@
     "showAvatars": {
       "type": "boolean",
       "default": true
+    },
+    "showSort": {
+      "type": "boolean",
+      "default": true
     }
   },
   "editorScript": "file:./index.js",

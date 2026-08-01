@@ -13,7 +13,8 @@
 		"links": { "type": "array", "default": [] },
 		"sortBy": { "type": "string", "default": "name", "enum": [ "name", "added", "manual" ] },
 		"perPage": { "type": "number", "default": 0 },
-		"showAvatars": { "type": "boolean", "default": true }
+		"showAvatars": { "type": "boolean", "default": true },
+		"showSort": { "type": "boolean", "default": true }
 	},
 	"editorScript": "file:./index.js",
 	"editorStyle": "file:./index.css",
