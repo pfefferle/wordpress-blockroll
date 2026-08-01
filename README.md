@@ -19,8 +19,8 @@ The name is a bad pun: a Gutenberg *block* that renders a *blogroll*.
 - **Sorting and paging on the frontend.** The list is rendered in PHP, and a small
   script sorts and pages it in place without a reload. With JavaScript off you still
   get the full list, just unsorted and unpaged.
-- **OPML out.** The block exposes its links as OPML at `{page}/feed/opml`, and the
-  site root aggregates every blogroll on the site at `/feed/opml`.
+- **OPML out.** The block exposes its links as OPML at `{page}/feed/opml`. The site
+  root, `/feed/opml`, is a directory that lists all of those per-page OPMLs.
 - **Blogroll discovery.** Pages with a blogroll advertise their OPML in the head with
   `<link rel="blogroll">`, following
   [Dave Winer's proposal](https://danq.me/2024/05/03/23615/), so readers can find it
@@ -76,8 +76,14 @@ script handles the sorting and paging on top of that.
 ### OPML and discovery
 
 The plugin registers an `opml` feed. On a single post or page it emits the OPML for
-that page's blogroll; at the site root it walks every post that contains the block and
-merges them. Pages that have a blogroll also add the discovery link to their head:
+that page's blogroll. At the site root it emits a directory OPML that lists each
+per-page OPML with `<outline type="link">`, so a reader gets one entry per blogroll
+page rather than one big merged list.
+
+To find those pages cheaply, the plugin keeps a private taxonomy up to date on save: a
+post gets the term when it contains the block and loses it when it does not. The link
+data still lives in the block, the taxonomy is only an index. Pages that have a
+blogroll also add the discovery link to their head:
 
 ```html
 <link rel="blogroll" type="text/xml" href="https://example.com/links/feed/opml"
@@ -95,6 +101,7 @@ wordpress-blockroll/
 │   ├── class-discovery.php    # REST /discover
 │   ├── class-import.php       # REST /import (OPML parsing)
 │   ├── class-opml.php         # opml feed + head discovery link
+│   ├── class-index.php        # private taxonomy, kept in sync on save
 │   └── class-xfn.php          # XFN vocabulary and rel helper
 ├── src/
 │   ├── index.js               # registerBlockType
@@ -125,8 +132,6 @@ composer lint      # PHP CodeSniffer (WPCS)
 
 Early. The design is written up in
 [`docs/superpowers/specs/2026-08-01-blockroll-design.md`](docs/superpowers/specs/2026-08-01-blockroll-design.md).
-The site-wide `/feed/opml` walks posts with a `WP_Query`, which is fine for a normal
-site but I have not looked at what it does on a very large one yet.
 
 ## License
 

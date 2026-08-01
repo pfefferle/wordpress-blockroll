@@ -132,13 +132,25 @@ A small store handles **sort** (name / added / manual) and **paging** client-sid
 the already-rendered list — no reload. First page shown; remaining pages hidden via
 CSS when JS is active (progressive enhancement — no JS ⇒ full list visible, unpaged).
 
-### 6. OPML output + discovery link — `includes/class-opml.php`
+### 6. Blogroll index — private taxonomy `blockroll_has`
+
+To find posts that contain a blogroll without scanning `post_content`, a **private
+taxonomy** (`public => false`, `show_ui => false`, `rewrite => false`) is registered
+against the block's post types. On `save_post`, `has_block( 'blockroll/blogroll', $post )`
+decides whether the post gets the term or has it removed. This is an index only; the
+link data still lives in block attributes. The taxonomy join is indexed, so the root
+directory is a cheap `get_posts()` term query at any scale. A public `/blogrolls/`
+archive can be exposed later by flipping the taxonomy public — not now (YAGNI).
+
+### 7. OPML output + discovery link — `includes/class-opml.php`
 
 - `add_feed( 'opml', … )` registers the feed handler.
-  - `{page}/feed/opml` (singular) → parse that post's blockroll block(s) → OPML.
-  - `/feed/opml` (site root) → aggregate every blogroll block site-wide via a
-    `WP_Query` over posts whose `post_content` contains the block; parsed with
-    `parse_blocks()`. A `log()`/notice documents any truncation if a cap is applied.
+  - `{page}/feed/opml` (singular) → parse that post's blockroll block(s) → a full OPML
+    of that page's links.
+  - `/feed/opml` (site root) → a **directory OPML that lists the per-page OPMLs**, one
+    `<outline type="link" url="{page}feed/opml">` per post carrying the `blockroll_has`
+    term. It does not inline every link; readers that don't follow the links still see
+    a clean list of blogroll pages. Built from the taxonomy query above.
 - On `wp_head` for singular views containing the block, emit the discovery link:
   ```html
   <link rel="blogroll" type="text/xml" href="{page}feed/opml" title="…'s blogroll">
@@ -155,7 +167,8 @@ wordpress-blockroll/
 ├── includes/
 │   ├── class-discovery.php    # REST: /discover  (feed + h-card + favicon extraction)
 │   ├── class-import.php       # REST: /import    (OPML parse)
-│   ├── class-opml.php         # add_feed handler + wp_head discovery link
+│   ├── class-opml.php         # add_feed handler (page OPML + root directory OPML)
+│   ├── class-index.php        # blockroll_has taxonomy, maintained on save_post
 │   └── class-xfn.php          # XFN token vocabulary + rel rendering helper
 ├── src/
 │   ├── index.js               # registerBlockType
@@ -183,7 +196,8 @@ wordpress-blockroll/
 - **PHP (PHPUnit):** OPML generation from block attributes (per-page + aggregate),
   OPML import parsing (well-formed, malformed, missing attrs), discovery extraction
   against fixture HTML (h-card present / feed-only / bare `<title>`), XFN whitelist,
-  `wp_head` discovery-link output.
+  `wp_head` discovery-link output, root directory OPML lists exactly the tagged posts,
+  `blockroll_has` term added/removed as the block is added/removed on save.
 - **JS (Jest):** attribute reducers, XFN group exclusivity, view.js sort/paging store.
 - **Manual:** editor add/import/reorder; frontend sort/page with and without JS;
   validate output h-cards with a microformats parser and OPML with an OPML validator.
@@ -191,5 +205,6 @@ wordpress-blockroll/
 ## Open defaults (chosen, changeable)
 
 - `perPage` default `0` (no paging until set).
-- Aggregate `/feed/opml` scans posts via `WP_Query`; if performance ever matters, an
-  index can be added later — not now.
+- Root `/feed/opml` is a directory of per-page OPMLs, built from the `blockroll_has`
+  taxonomy (indexed). A public `/blogrolls/` archive is possible later by making the
+  taxonomy public; deferred.
