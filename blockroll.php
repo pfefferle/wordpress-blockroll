@@ -48,6 +48,7 @@ function init() {
 	'rest_api_init',
 	function () {
 		Discovery::register_routes();
+		Import::register_routes();
 	}
 );
 

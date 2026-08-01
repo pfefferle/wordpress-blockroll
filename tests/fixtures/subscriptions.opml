@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+	<head>
+		<title>Subscriptions</title>
+	</head>
+	<body>
+		<outline text="Blogs">
+			<outline text="Ann" xmlUrl="https://a.example/feed/" htmlUrl="https://a.example/" description="Ann writes."/>
+			<outline text="Ben" xmlUrl="https://b.example/atom.xml" htmlUrl="https://b.example/"/>
+		</outline>
+		<outline text="Carla" xmlUrl="https://c.example/feed.xml" htmlUrl="https://c.example/" description="Carla's site"/>
+		<outline text="Feed without site" xmlUrl="https://d.example/rss"/>
+		<outline text="Just a folder label"/>
+	</body>
+</opml>
