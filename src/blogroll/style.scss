@@ -1,5 +1,10 @@
 .wp-block-blockroll-blogroll {
 
+	// Our display rules would beat the browser's [hidden] handling.
+	[hidden] {
+		display: none !important;
+	}
+
 	.blockroll-controls {
 		display: flex;
 		align-items: center;
