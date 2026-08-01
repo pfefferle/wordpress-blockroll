@@ -107,7 +107,7 @@ class Opml {
 	/**
 	 * Title of a blogroll page: page title plus author.
 	 *
-	 * Falls back to the site name for untitled posts.
+	 * Falls back to "Blogroll" for untitled posts.
 	 *
 	 * @param \WP_Post $post Post object.
 	 * @return string Title.
@@ -115,8 +115,7 @@ class Opml {
 	public static function title( $post ) {
 		$title = \get_the_title( $post );
 		if ( '' === $title ) {
-			/* translators: %s: site name */
-			$title = \sprintf( \__( 'Blogroll of %s', 'blockroll' ), \get_bloginfo( 'name' ) );
+			$title = \__( 'Blogroll', 'blockroll' );
 		}
 
 		$author = \get_the_author_meta( 'display_name', $post->post_author );
