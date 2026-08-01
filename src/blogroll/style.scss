@@ -26,7 +26,6 @@
 	.h-card {
 		display: grid;
 		grid-template-columns: auto 1fr;
-		column-gap: 0.75em;
 		align-items: center;
 		margin-bottom: 1em;
 
@@ -34,13 +33,9 @@
 			grid-row: 1 / span 2;
 			width: 2.5em;
 			height: 2.5em;
+			margin-right: 0.75em;
 			border-radius: 50%;
 			object-fit: cover;
-		}
-
-		// Without an image everything moves to the first column.
-		> :first-child:not(.u-photo) {
-			grid-column: 2;
 		}
 
 		.u-url {
