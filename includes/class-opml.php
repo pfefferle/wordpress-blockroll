@@ -53,9 +53,15 @@ class Opml {
 	 * @return string OPML document.
 	 */
 	public static function for_post( $post ) {
-		$blockroll_links = self::extract_links( $post );
 		\ob_start();
-		require \dirname( BLOCKROLL_PLUGIN_FILE ) . '/templates/opml.php';
+		\load_template(
+			\dirname( BLOCKROLL_PLUGIN_FILE ) . '/templates/opml.php',
+			false,
+			array(
+				'post'  => $post,
+				'links' => self::extract_links( $post ),
+			)
+		);
 		return \ob_get_clean();
 	}
 
@@ -65,9 +71,14 @@ class Opml {
 	 * @return string OPML document.
 	 */
 	public static function directory() {
-		$blockroll_posts = Index::get_posts();
 		\ob_start();
-		require \dirname( BLOCKROLL_PLUGIN_FILE ) . '/templates/opml-directory.php';
+		\load_template(
+			\dirname( BLOCKROLL_PLUGIN_FILE ) . '/templates/opml-directory.php',
+			false,
+			array(
+				'posts' => Index::get_posts(),
+			)
+		);
 		return \ob_get_clean();
 	}
 

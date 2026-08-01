@@ -4,7 +4,11 @@
  *
  * @package Blockroll
  *
- * @var \WP_Post[] $blockroll_posts Posts that contain a blogroll block.
+ * @var array $args {
+ *     Template arguments.
+ *
+ *     @type \WP_Post[] $posts Posts that contain a blogroll block.
+ * }
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -21,7 +25,7 @@ echo '<?xml version="1.0" encoding="' . esc_attr( get_option( 'blog_charset' ) )
 		</title>
 	</head>
 	<body>
-<?php foreach ( $blockroll_posts as $blockroll_post ) : ?>
+<?php foreach ( $args['posts'] as $blockroll_post ) : ?>
 		<outline text="<?php echo esc_attr( get_the_title( $blockroll_post ) ); ?>" type="link" url="<?php echo esc_url( \Blockroll\Opml::feed_url( $blockroll_post ) ); ?>" />
 <?php endforeach; ?>
 	</body>
