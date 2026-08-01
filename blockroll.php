@@ -33,6 +33,7 @@ define( 'BLOCKROLL_PLUGIN_FILE', __FILE__ );
  * Initialize the plugin.
  */
 function init() {
+	Index::register();
 	\register_block_type( __DIR__ . '/build/blogroll' );
 }
 \add_action( 'init', __NAMESPACE__ . '\init' );
