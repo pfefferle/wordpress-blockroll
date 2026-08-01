@@ -133,8 +133,7 @@ composer lint      # PHP CodeSniffer (WPCS)
 
 ## Status
 
-Early. The design is written up in
-[`docs/superpowers/specs/2026-08-01-blockroll-design.md`](docs/superpowers/specs/2026-08-01-blockroll-design.md).
+Early.
 
 ## License
 
