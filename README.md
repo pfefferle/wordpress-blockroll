@@ -21,10 +21,11 @@ The name is a bad pun: a Gutenberg *block* that renders a *blogroll*.
   get the full list, just unsorted and unpaged.
 - **OPML out.** The block exposes its links as OPML at `{page}/feed/opml`. The site
   root, `/feed/opml`, is a directory that lists all of those per-page OPMLs.
-- **Blogroll discovery.** Pages with a blogroll advertise their OPML in the head with
-  `<link rel="blogroll">`, following
+- **Blogroll discovery.** Pages with a blogroll advertise their own OPML in the head
+  with `<link rel="blogroll">`, following
   [Dave Winer's proposal](https://danq.me/2024/05/03/23615/), so readers can find it
-  automatically.
+  automatically. The site-root directory is not advertised this way, since it is a list
+  of OPMLs rather than a blogroll.
 - **OPML in.** You can seed a block by importing an OPML file, for example the export
   from your feed reader.
 
@@ -82,8 +83,10 @@ page rather than one big merged list.
 
 To find those pages cheaply, the plugin keeps a private taxonomy up to date on save: a
 post gets the term when it contains the block and loses it when it does not. The link
-data still lives in the block, the taxonomy is only an index. Pages that have a
-blogroll also add the discovery link to their head:
+data still lives in the block, the taxonomy is only an index.
+
+Pages that have a blogroll add the discovery link to their head, pointing at their own
+OPML. The root directory is not advertised this way:
 
 ```html
 <link rel="blogroll" type="text/xml" href="https://example.com/links/feed/opml"

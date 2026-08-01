@@ -155,7 +155,9 @@ archive can be exposed later by flipping the taxonomy public — not now (YAGNI)
   ```html
   <link rel="blogroll" type="text/xml" href="{page}feed/opml" title="…'s blogroll">
   ```
-  The front page additionally advertises the site-wide `/feed/opml`.
+  Only these pages get the `rel="blogroll"` link. The root `/feed/opml` still exists as
+  an endpoint, but it is a directory of OPMLs rather than a blogroll, so it is **not**
+  advertised with `rel="blogroll"` anywhere.
 
 ## File layout
 
