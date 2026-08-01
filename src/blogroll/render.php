@@ -131,4 +131,10 @@ if ( 'manual' === ( $attributes['sortBy'] ?? 'name' ) ) {
 			<?php endif; ?>
 		</nav>
 	<?php endif; ?>
+	<?php $blockroll_post = get_post(); ?>
+	<?php if ( ! empty( $attributes['showOpml'] ) && $blockroll_post ) : ?>
+		<p class="blockroll-opml">
+			<a href="<?php echo esc_url( \Blockroll\Opml::feed_url( $blockroll_post ) ); ?>"><?php esc_html_e( 'Download this blogroll as an OPML file', 'blockroll' ); ?></a>
+		</p>
+	<?php endif; ?>
 </div>

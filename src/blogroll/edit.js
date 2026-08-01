@@ -29,7 +29,8 @@ import { move } from './utils';
  * @param {Function} props.setAttributes Attribute setter.
  */
 export default function Edit( { attributes, setAttributes } ) {
-	const { links, sortBy, perPage, showAvatars, showSort } = attributes;
+	const { links, sortBy, perPage, showAvatars, showSort, showOpml } =
+		attributes;
 	const [ editing, setEditing ] = useState( null ); // Index, 'new', or null.
 	const [ isImporting, setIsImporting ] = useState( false );
 
@@ -124,6 +125,18 @@ export default function Edit( { attributes, setAttributes } ) {
 						checked={ showSort }
 						onChange={ ( value ) =>
 							setAttributes( { showSort: value } )
+						}
+					/>
+					<ToggleControl
+						__nextHasNoMarginBottom
+						label={ __( 'Show download link', 'blockroll' ) }
+						help={ __(
+							'Links to the list as an OPML file.',
+							'blockroll'
+						) }
+						checked={ showOpml }
+						onChange={ ( value ) =>
+							setAttributes( { showOpml: value } )
 						}
 					/>
 				</PanelBody>

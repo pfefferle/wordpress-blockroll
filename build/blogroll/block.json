@@ -42,6 +42,10 @@
     "showSort": {
       "type": "boolean",
       "default": true
+    },
+    "showOpml": {
+      "type": "boolean",
+      "default": true
     }
   },
   "editorScript": "file:./index.js",

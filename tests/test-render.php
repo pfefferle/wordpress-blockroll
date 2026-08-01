@@ -144,6 +144,26 @@ class Test_Render extends WP_UnitTestCase {
 		$this->assertLessThan( strpos( $html, 'b.example' ), strpos( $html, 'a.example' ) );
 	}
 
+	public function test_opml_link_toggleable() {
+		global $post;
+		$post  = self::factory()->post->create_and_get(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		$attrs = array(
+			'links' => array(
+				array(
+					'url'  => 'https://a.example/',
+					'name' => 'A',
+				),
+			),
+		);
+
+		$html = $this->render_block_html( $attrs );
+		$this->assertStringContainsString( 'feed/opml', $html );
+
+		$attrs['showOpml'] = false;
+		$html              = $this->render_block_html( $attrs );
+		$this->assertStringNotContainsString( 'feed/opml', $html );
+	}
+
 	public function test_no_sort_ui_for_single_option() {
 		// No dates, default name sort: only one option, so no controls at all.
 		$html = $this->render_block_html(
