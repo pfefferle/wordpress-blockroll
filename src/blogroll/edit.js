@@ -12,7 +12,7 @@ import {
 	SelectControl,
 	ToggleControl,
 } from '@wordpress/components';
-import { arrowDown, arrowUp, edit, trash } from '@wordpress/icons';
+import { arrowDown, arrowUp, pencil, trash } from '@wordpress/icons';
 
 /**
  * Internal dependencies
@@ -201,7 +201,7 @@ export default function Edit( { attributes, setAttributes } ) {
 									/>
 									<Button
 										size="compact"
-										icon={ edit }
+										icon={ pencil }
 										label={ __( 'Edit', 'blockroll' ) }
 										onClick={ () => setEditing( index ) }
 									/>
