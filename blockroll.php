@@ -47,6 +47,16 @@ function init() {
 }
 \add_action( 'init', __NAMESPACE__ . '\init' );
 
+\add_filter(
+	'query_vars',
+	function ( $vars ) {
+		// Frontend sorting and paging of the blogroll block.
+		$vars[] = 'blockroll-sort';
+		$vars[] = 'blockroll-page';
+		return $vars;
+	}
+);
+
 \add_action(
 	'rest_api_init',
 	function () {

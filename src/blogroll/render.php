@@ -2,6 +2,9 @@
 /**
  * Frontend output of the blogroll block.
  *
+ * Sorting and paging are plain links with query parameters; there is
+ * no JavaScript on the frontend.
+ *
  * @package Blockroll
  *
  * @var array $attributes Block attributes.
@@ -17,59 +20,64 @@ $blockroll_links = array_filter(
 		return '' !== $link['url'];
 	}
 );
-$blockroll_sort  = $attributes['sortBy'] ?? 'name';
+
+$blockroll_sort = get_query_var( 'blockroll-sort' );
+if ( ! in_array( $blockroll_sort, array( 'name', 'added', 'manual' ), true ) ) {
+	$blockroll_sort = $attributes['sortBy'] ?? 'name';
+}
+
 $blockroll_links = Links::sort( array_values( $blockroll_links ), $blockroll_sort );
 $blockroll_show  = ! empty( $attributes['showAvatars'] );
 $blockroll_per   = (int) ( $attributes['perPage'] ?? 0 );
+$blockroll_total = count( $blockroll_links );
+$blockroll_pages = $blockroll_per > 0 ? max( 1, (int) ceil( $blockroll_total / $blockroll_per ) ) : 1;
+$blockroll_page  = min( max( 1, (int) get_query_var( 'blockroll-page', 1 ) ), $blockroll_pages );
 $blockroll_dated = (bool) array_filter( wp_list_pluck( $blockroll_links, 'added' ) );
 
 if ( ! $blockroll_links ) {
 	return;
 }
+
+if ( $blockroll_per > 0 ) {
+	$blockroll_links = array_slice( $blockroll_links, ( $blockroll_page - 1 ) * $blockroll_per, $blockroll_per );
+}
+
+$blockroll_sorts = array(
+	'name'   => __( 'By name', 'blockroll' ),
+	'added'  => __( 'Newest first', 'blockroll' ),
+	'manual' => __( 'Custom order', 'blockroll' ),
+);
+if ( ! $blockroll_dated ) {
+	unset( $blockroll_sorts['added'] );
+}
 ?>
-<div
-	<?php echo wp_kses_data( get_block_wrapper_attributes() ); ?>
-	data-wp-interactive="blockroll"
-	data-wp-init="callbacks.init"
-	<?php
-	echo wp_kses_data(
-		wp_interactivity_data_wp_context(
-			array(
-				'perPage' => $blockroll_per,
-				'sortBy'  => $blockroll_sort,
-				'page'    => 1,
-			)
-		)
-	);
-	?>
->
-	<div class="blockroll-controls" hidden>
-		<label>
-			<?php esc_html_e( 'Sort', 'blockroll' ); ?>
-			<select data-wp-on--change="actions.setSort">
-				<option value="name" <?php selected( 'name', $blockroll_sort ); ?>><?php esc_html_e( 'By name', 'blockroll' ); ?></option>
-				<?php if ( $blockroll_dated ) : ?>
-					<option value="added" <?php selected( 'added', $blockroll_sort ); ?>><?php esc_html_e( 'Newest first', 'blockroll' ); ?></option>
-				<?php endif; ?>
-				<option value="manual" <?php selected( 'manual', $blockroll_sort ); ?>><?php esc_html_e( 'Custom order', 'blockroll' ); ?></option>
-			</select>
-		</label>
-		<?php if ( $blockroll_per > 0 ) : ?>
-			<span class="blockroll-pager">
-				<button type="button" class="blockroll-prev" data-wp-on--click="actions.prevPage" disabled><?php esc_html_e( 'Previous', 'blockroll' ); ?></button>
-				<button type="button" class="blockroll-next" data-wp-on--click="actions.nextPage"><?php esc_html_e( 'Next', 'blockroll' ); ?></button>
+<div <?php echo wp_kses_data( get_block_wrapper_attributes() ); ?>>
+	<?php if ( $blockroll_total > 1 ) : ?>
+		<nav class="blockroll-controls">
+			<span class="blockroll-sort">
+				<?php esc_html_e( 'Sort:', 'blockroll' ); ?>
+				<?php foreach ( $blockroll_sorts as $blockroll_key => $blockroll_label ) : ?>
+					<?php
+					$blockroll_sort_url = add_query_arg(
+						array(
+							'blockroll-sort' => $blockroll_key,
+							'blockroll-page' => false,
+						)
+					);
+					?>
+					<?php if ( $blockroll_key === $blockroll_sort ) : ?>
+						<span aria-current="true"><?php echo esc_html( $blockroll_label ); ?></span>
+					<?php else : ?>
+						<a href="<?php echo esc_url( $blockroll_sort_url ); ?>"><?php echo esc_html( $blockroll_label ); ?></a>
+					<?php endif; ?>
+				<?php endforeach; ?>
 			</span>
-		<?php endif; ?>
-	</div>
+		</nav>
+	<?php endif; ?>
 	<ul class="blockroll-list">
-		<?php foreach ( $blockroll_links as $blockroll_i => $blockroll_link ) : ?>
+		<?php foreach ( $blockroll_links as $blockroll_link ) : ?>
 			<?php $blockroll_rel = Xfn::rel_string( $blockroll_link['xfn'] ); ?>
-			<li
-				class="h-card"
-				data-name="<?php echo esc_attr( $blockroll_link['name'] ? $blockroll_link['name'] : $blockroll_link['url'] ); ?>"
-				data-added="<?php echo esc_attr( $blockroll_link['added'] ); ?>"
-				data-index="<?php echo esc_attr( $blockroll_i ); ?>"
-			>
+			<li class="h-card">
 				<?php if ( $blockroll_show ) : ?>
 					<?php if ( $blockroll_link['photo'] ) : ?>
 						<img class="u-photo" src="<?php echo esc_url( $blockroll_link['photo'] ); ?>" alt="" loading="lazy" />
@@ -86,6 +94,9 @@ if ( ! $blockroll_links ) {
 						<?php if ( $blockroll_link['feedUrl'] ) : ?>
 							<a class="u-feed" rel="alternate noopener" target="_blank" type="application/rss+xml" href="<?php echo esc_url( $blockroll_link['feedUrl'] ); ?>"><svg class="blockroll-feed-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M5 10.2h-.8v1.5H5c1.9 0 3.8.8 5.1 2.1 1.4 1.4 2.1 3.2 2.1 5.1v.8h1.5V19c0-2.3-.9-4.5-2.6-6.2-1.6-1.6-3.8-2.6-6.1-2.6zm10.4-1.6C12.6 5.8 8.9 4.2 5 4.2h-.8v1.5H5c3.5 0 6.9 1.4 9.4 3.9s3.9 5.8 3.9 9.4v.8h1.5V19c0-3.9-1.6-7.6-4.4-10.4zM4 20h3v-3H4v3z"></path></svg><?php esc_html_e( 'feed', 'blockroll' ); ?></a>
 						<?php endif; ?>
+						<?php if ( $blockroll_link['feedUrl'] && $blockroll_link['xfn'] ) : ?>
+							<span class="blockroll-divider" aria-hidden="true">&#183;</span>
+						<?php endif; ?>
 						<?php if ( $blockroll_link['xfn'] ) : ?>
 							<ul class="blockroll-xfn">
 								<?php foreach ( $blockroll_link['xfn'] as $blockroll_token ) : ?>
@@ -98,4 +109,20 @@ if ( ! $blockroll_links ) {
 			</li>
 		<?php endforeach; ?>
 	</ul>
+	<?php if ( $blockroll_pages > 1 ) : ?>
+		<nav class="blockroll-pager">
+			<?php if ( $blockroll_page > 1 ) : ?>
+				<a href="<?php echo esc_url( add_query_arg( 'blockroll-page', $blockroll_page - 1 ) ); ?>"><?php esc_html_e( 'Previous', 'blockroll' ); ?></a>
+			<?php endif; ?>
+			<span>
+			<?php
+			/* translators: 1: current page, 2: number of pages */
+			echo esc_html( sprintf( __( 'Page %1$d of %2$d', 'blockroll' ), $blockroll_page, $blockroll_pages ) );
+			?>
+			</span>
+			<?php if ( $blockroll_page < $blockroll_pages ) : ?>
+				<a href="<?php echo esc_url( add_query_arg( 'blockroll-page', $blockroll_page + 1 ) ); ?>"><?php esc_html_e( 'Next', 'blockroll' ); ?></a>
+			<?php endif; ?>
+		</nav>
+	<?php endif; ?>
 </div>

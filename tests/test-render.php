@@ -98,7 +98,7 @@ class Test_Render extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( '<script>', $html );
 	}
 
-	public function test_controls_hidden_without_js() {
+	public function test_sort_links_rendered() {
 		$html = $this->render_block_html(
 			array(
 				'links' => array(
@@ -106,10 +106,69 @@ class Test_Render extends WP_UnitTestCase {
 						'url'  => 'https://a.example/',
 						'name' => 'A',
 					),
+					array(
+						'url'  => 'https://b.example/',
+						'name' => 'B',
+					),
 				),
 			)
 		);
-		$this->assertStringContainsString( 'class="blockroll-controls" hidden', $html );
+		$this->assertStringContainsString( 'blockroll-sort', $html );
+		$this->assertStringContainsString( 'blockroll-sort=manual', $html );
+	}
+
+	public function test_paging_slices_the_list() {
+		$attrs = array(
+			'perPage' => 1,
+			'links'   => array(
+				array(
+					'url'  => 'https://a.example/',
+					'name' => 'A',
+				),
+				array(
+					'url'  => 'https://b.example/',
+					'name' => 'B',
+				),
+			),
+		);
+
+		$html = $this->render_block_html( $attrs );
+		$this->assertSame( 1, substr_count( $html, 'class="h-card"' ) );
+		$this->assertStringContainsString( 'A', $html );
+		$this->assertStringNotContainsString( 'b.example', $html );
+		$this->assertStringContainsString( 'blockroll-page', $html ); // Next link.
+
+		set_query_var( 'blockroll-page', 2 );
+		$html = $this->render_block_html( $attrs );
+		set_query_var( 'blockroll-page', null );
+		$this->assertStringContainsString( 'b.example', $html );
+		$this->assertStringNotContainsString( 'a.example/"', $html );
+	}
+
+	public function test_sort_query_var_overrides_attribute() {
+		$attrs = array(
+			'sortBy' => 'manual',
+			'links'  => array(
+				array(
+					'url'   => 'https://b.example/',
+					'name'  => 'Beta',
+					'added' => '2026-01-01',
+				),
+				array(
+					'url'   => 'https://a.example/',
+					'name'  => 'alpha',
+					'added' => '2026-06-01',
+				),
+			),
+		);
+
+		$html = $this->render_block_html( $attrs );
+		$this->assertLessThan( strpos( $html, 'alpha' ), strpos( $html, 'Beta' ) ); // Manual order.
+
+		set_query_var( 'blockroll-sort', 'name' );
+		$html = $this->render_block_html( $attrs );
+		set_query_var( 'blockroll-sort', null );
+		$this->assertLessThan( strpos( $html, 'Beta' ), strpos( $html, 'alpha' ) ); // Sorted by name.
 	}
 
 	public function test_empty_links_renders_nothing() {

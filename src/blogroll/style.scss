@@ -1,31 +1,32 @@
 .wp-block-blockroll-blogroll {
 
-	// Our display rules would beat the browser's [hidden] handling.
-	[hidden] {
-		display: none !important;
-	}
-
 	.blockroll-controls {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
+		justify-content: space-between;
 		gap: 1em;
 		margin-bottom: 2em;
 		font-size: 0.875em;
+	}
 
-		label {
-			display: inline-flex;
-			align-items: center;
-			gap: 0.5em;
-		}
+	.blockroll-sort {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.75em;
+	}
 
-		select {
-			margin: 0;
-		}
+	.blockroll-sort [aria-current] {
+		font-weight: 600;
 	}
 
 	.blockroll-pager {
-		display: inline-flex;
-		gap: 0.5em;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.75em;
+		margin-top: 2em;
+		font-size: 0.875em;
 	}
 
 	.blockroll-list {
@@ -84,11 +85,6 @@
 			list-style: none;
 			margin: 0;
 			padding: 0;
-		}
-
-		// Divider, only when the feed link and the list are both there.
-		.u-feed + .blockroll-xfn::before {
-			content: "\00b7"; // ·
 		}
 
 		.u-feed {

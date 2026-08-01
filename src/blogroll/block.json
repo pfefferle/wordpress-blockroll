@@ -8,7 +8,7 @@
 	"description": "Share a list of the blogs and sites you follow.",
 	"textdomain": "blockroll",
 	"keywords": [ "blogroll", "links", "opml", "xfn" ],
-	"supports": { "html": false, "interactivity": true, "align": true },
+	"supports": { "html": false, "align": true },
 	"attributes": {
 		"links": { "type": "array", "default": [] },
 		"sortBy": { "type": "string", "default": "name", "enum": [ "name", "added", "manual" ] },
@@ -18,6 +18,5 @@
 	"editorScript": "file:./index.js",
 	"editorStyle": "file:./index.css",
 	"style": "file:./style-index.css",
-	"viewScriptModule": "file:./view.js",
 	"render": "file:./render.php"
 }
