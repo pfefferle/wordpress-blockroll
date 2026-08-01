@@ -17,6 +17,35 @@ class Opml {
 	public static function register() {
 		\add_feed( 'opml', array( self::class, 'render' ) );
 		\add_action( 'wp_head', array( self::class, 'discovery_link' ) );
+		\add_action( 'rss2_ns', 'ob_start', 1 );
+		\add_action( 'rss2_ns', array( self::class, 'rss_namespace' ), PHP_INT_MAX );
+		\add_action( 'rss2_head', array( self::class, 'rss_blogroll' ) );
+	}
+
+	/**
+	 * Add the source namespace to the RSS2 feed, unless another
+	 * plugin or theme already did.
+	 *
+	 * See https://source.scripting.com/
+	 */
+	public static function rss_namespace() {
+		$namespaces = \ob_get_clean();
+		if ( false === \strpos( $namespaces, 'xmlns:source' ) ) {
+			$namespaces .= ' xmlns:source="http://source.scripting.com/" ';
+		}
+		echo $namespaces; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	}
+
+	/**
+	 * Advertise the blogroll OPMLs in the RSS2 feed head.
+	 */
+	public static function rss_blogroll() {
+		foreach ( Index::get_posts() as $post ) {
+			\printf(
+				'<source:blogroll>%s</source:blogroll>' . PHP_EOL,
+				\esc_url( self::feed_url( $post ) )
+			);
+		}
 	}
 
 	/**
