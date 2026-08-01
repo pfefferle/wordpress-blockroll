@@ -1,42 +1,107 @@
 .wp-block-blockroll-blogroll {
 
+	.blockroll-editor-actions {
+		display: flex;
+		gap: 8px;
+	}
+
+	.blockroll-editor {
+		display: grid;
+		gap: 12px;
+	}
+
 	.blockroll-editor-list {
 		list-style: none;
-		margin: 0 0 1em;
+		margin: 0;
 		padding: 0;
+		border: 1px solid #ddd;
+		border-radius: 4px;
 
 		> li {
-			padding: 0.5em 0;
-			border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+			display: flex;
+			align-items: center;
+			gap: 12px;
+			padding: 8px 12px;
 
-			img {
+			&:not(:last-child) {
+				border-bottom: 1px solid #eee;
+			}
+
+			img,
+			.blockroll-editor-list__no-photo {
+				flex-shrink: 0;
+				width: 32px;
+				height: 32px;
 				border-radius: 50%;
 				object-fit: cover;
 			}
+
+			.blockroll-editor-list__no-photo {
+				background: #eee;
+			}
+
+			.blockroll-editor-list__text {
+				display: grid;
+				flex-grow: 1;
+				min-width: 0;
+
+				strong,
+				small {
+					overflow: hidden;
+					text-overflow: ellipsis;
+					white-space: nowrap;
+				}
+
+				small {
+					opacity: 0.7;
+				}
+			}
+
+			.blockroll-editor-list__actions {
+				display: flex;
+				flex-shrink: 0;
+			}
 		}
 	}
+}
 
-	.blockroll-link-form {
-		display: grid;
-		gap: 1em;
-		padding: 1em;
-		border: 1px solid rgba(0, 0, 0, 0.1);
-		border-radius: 2px;
+.blockroll-form {
+	display: grid;
+	gap: 16px;
+}
+
+.blockroll-form__row {
+	display: flex;
+	align-items: flex-end;
+	gap: 8px;
+
+	> :first-child {
+		flex-grow: 1;
 	}
+}
 
-	.blockroll-xfn-control {
-		display: grid;
-		gap: 0.5em;
+.blockroll-form__footer {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 8px;
+}
 
-		fieldset {
-			border: 0;
-			margin: 0;
-			padding: 0;
-		}
+.blockroll-import-intro {
+	margin: 0;
+}
 
-		legend {
-			font-weight: 600;
-			margin-bottom: 0.25em;
-		}
-	}
+.blockroll-import-tab {
+	padding: 16px 0;
+}
+
+.blockroll-import-upload {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 100px;
+	border: 1px dashed #949494;
+	border-radius: 4px;
 }

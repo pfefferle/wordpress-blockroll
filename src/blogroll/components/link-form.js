@@ -6,10 +6,8 @@ import { useState } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import {
 	Button,
-	Flex,
-	FlexItem,
+	Modal,
 	Notice,
-	Spinner,
 	TextControl,
 	TextareaControl,
 } from '@wordpress/components';
@@ -30,7 +28,7 @@ const EMPTY = {
 };
 
 /**
- * Form to add or edit a single link.
+ * Modal to add or edit a single link.
  *
  * @param {Object}   props          Component props.
  * @param {Object}   props.link     Link to edit, or undefined for a new one.
@@ -78,15 +76,24 @@ export default function LinkForm( { link, onSave, onCancel } ) {
 		} );
 
 	return (
-		<div className="blockroll-link-form">
-			{ error && (
-				<Notice status="error" isDismissible={ false }>
-					{ error }
-				</Notice>
-			) }
-			<Flex align="flex-end">
-				<FlexItem isBlock>
+		<Modal
+			title={
+				link
+					? __( 'Edit link', 'blockroll' )
+					: __( 'Add link', 'blockroll' )
+			}
+			size="medium"
+			onRequestClose={ onCancel }
+		>
+			<div className="blockroll-form">
+				{ error && (
+					<Notice status="error" isDismissible={ false }>
+						{ error }
+					</Notice>
+				) }
+				<div className="blockroll-form__row">
 					<TextControl
+						__next40pxDefaultSize
 						__nextHasNoMarginBottom
 						label={ __( 'Address', 'blockroll' ) }
 						placeholder="https://example.com/"
@@ -94,60 +101,65 @@ export default function LinkForm( { link, onSave, onCancel } ) {
 						value={ draft.url }
 						onChange={ set( 'url' ) }
 					/>
-				</FlexItem>
-				<FlexItem>
 					<Button
+						__next40pxDefaultSize
 						variant="secondary"
+						isBusy={ isFetching }
 						disabled={ ! draft.url || isFetching }
 						onClick={ fetchDetails }
 					>
-						{ isFetching ? (
-							<Spinner />
-						) : (
-							__( 'Fetch details', 'blockroll' )
-						) }
+						{ __( 'Fetch details', 'blockroll' ) }
 					</Button>
-				</FlexItem>
-			</Flex>
-			<TextControl
-				__nextHasNoMarginBottom
-				label={ __( 'Name', 'blockroll' ) }
-				value={ draft.name }
-				onChange={ set( 'name' ) }
-			/>
-			<TextareaControl
-				__nextHasNoMarginBottom
-				label={ __( 'Description', 'blockroll' ) }
-				value={ draft.description }
-				onChange={ set( 'description' ) }
-			/>
-			<TextControl
-				__nextHasNoMarginBottom
-				label={ __( 'Feed address', 'blockroll' ) }
-				type="url"
-				value={ draft.feedUrl }
-				onChange={ set( 'feedUrl' ) }
-			/>
-			<TextControl
-				__nextHasNoMarginBottom
-				label={ __( 'Image address', 'blockroll' ) }
-				type="url"
-				value={ draft.photo }
-				onChange={ set( 'photo' ) }
-			/>
-			<XfnControl value={ draft.xfn } onChange={ set( 'xfn' ) } />
-			<Flex justify="flex-start">
-				<Button
-					variant="primary"
-					disabled={ ! draft.url }
-					onClick={ save }
-				>
-					{ __( 'Save link', 'blockroll' ) }
-				</Button>
-				<Button variant="tertiary" onClick={ onCancel }>
-					{ __( 'Cancel', 'blockroll' ) }
-				</Button>
-			</Flex>
-		</div>
+				</div>
+				<TextControl
+					__next40pxDefaultSize
+					__nextHasNoMarginBottom
+					label={ __( 'Name', 'blockroll' ) }
+					value={ draft.name }
+					onChange={ set( 'name' ) }
+				/>
+				<TextareaControl
+					__nextHasNoMarginBottom
+					label={ __( 'Description', 'blockroll' ) }
+					rows={ 2 }
+					value={ draft.description }
+					onChange={ set( 'description' ) }
+				/>
+				<TextControl
+					__next40pxDefaultSize
+					__nextHasNoMarginBottom
+					label={ __( 'Feed address', 'blockroll' ) }
+					type="url"
+					value={ draft.feedUrl }
+					onChange={ set( 'feedUrl' ) }
+				/>
+				<TextControl
+					__next40pxDefaultSize
+					__nextHasNoMarginBottom
+					label={ __( 'Image address', 'blockroll' ) }
+					type="url"
+					value={ draft.photo }
+					onChange={ set( 'photo' ) }
+				/>
+				<XfnControl value={ draft.xfn } onChange={ set( 'xfn' ) } />
+				<div className="blockroll-form__footer">
+					<Button
+						__next40pxDefaultSize
+						variant="tertiary"
+						onClick={ onCancel }
+					>
+						{ __( 'Cancel', 'blockroll' ) }
+					</Button>
+					<Button
+						__next40pxDefaultSize
+						variant="primary"
+						disabled={ ! draft.url }
+						onClick={ save }
+					>
+						{ __( 'Save', 'blockroll' ) }
+					</Button>
+				</div>
+			</div>
+		</Modal>
 	);
 }

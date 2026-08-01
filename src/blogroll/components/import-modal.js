@@ -4,14 +4,15 @@
 import { __, sprintf } from '@wordpress/i18n';
 import { useState } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
+import { upload } from '@wordpress/icons';
 import {
 	Button,
 	CheckboxControl,
-	Flex,
+	DropZone,
 	FormFileUpload,
 	Modal,
 	Notice,
-	Spinner,
+	TabPanel,
 	TextControl,
 	TextareaControl,
 } from '@wordpress/components';
@@ -56,11 +57,19 @@ async function enrich( links, onProgress ) {
  */
 export default function ImportModal( { onImport, onClose } ) {
 	const [ text, setText ] = useState( '' );
+	const [ fileName, setFileName ] = useState( '' );
 	const [ url, setUrl ] = useState( '' );
 	const [ fetchDetails, setFetchDetails ] = useState( false );
 	const [ isBusy, setIsBusy ] = useState( false );
 	const [ progress, setProgress ] = useState( null );
 	const [ error, setError ] = useState( null );
+
+	const readFile = ( file ) => {
+		if ( file ) {
+			file.text().then( setText );
+			setFileName( file.name );
+		}
+	};
 
 	const runImport = async () => {
 		setIsBusy( true );
@@ -87,77 +96,131 @@ export default function ImportModal( { onImport, onClose } ) {
 		}
 	};
 
-	return (
-		<Modal
-			title={ __( 'Import links', 'blockroll' ) }
-			onRequestClose={ onClose }
-		>
-			{ error && (
-				<Notice status="error" isDismissible={ false }>
-					{ error }
-				</Notice>
-			) }
-			<p>
-				{ __(
-					'Import the subscription list of your feed reader (an OPML file).',
-					'blockroll'
-				) }
-			</p>
-			<FormFileUpload
-				accept=".opml,.xml,text/xml,text/x-opml"
-				variant="secondary"
-				onChange={ ( event ) => {
-					const file = event.target.files?.[ 0 ];
-					if ( file ) {
-						file.text().then( setText );
+	const tabs = {
+		file: (
+			<div className="blockroll-import-upload">
+				<DropZone onFilesDrop={ ( files ) => readFile( files[ 0 ] ) } />
+				<FormFileUpload
+					__next40pxDefaultSize
+					accept=".opml,.xml,text/xml,text/x-opml"
+					icon={ upload }
+					variant="secondary"
+					onChange={ ( event ) =>
+						readFile( event.target.files?.[ 0 ] )
 					}
-				} }
-			>
-				{ __( 'Choose a file', 'blockroll' ) }
-			</FormFileUpload>
+				>
+					{ fileName || __( 'Choose or drop a file', 'blockroll' ) }
+				</FormFileUpload>
+			</div>
+		),
+		paste: (
 			<TextareaControl
 				__nextHasNoMarginBottom
-				label={ __( 'Or paste the file content', 'blockroll' ) }
+				label={ __( 'File content', 'blockroll' ) }
+				hideLabelFromVision
+				rows={ 6 }
 				value={ text }
-				onChange={ setText }
+				onChange={ ( value ) => {
+					setText( value );
+					setFileName( '' );
+				} }
 			/>
+		),
+		url: (
 			<TextControl
+				__next40pxDefaultSize
 				__nextHasNoMarginBottom
-				label={ __( 'Or enter its address', 'blockroll' ) }
+				label={ __( 'Address', 'blockroll' ) }
+				hideLabelFromVision
 				type="url"
 				placeholder="https://example.com/subscriptions.opml"
 				value={ url }
 				onChange={ setUrl }
-				disabled={ !! text }
 			/>
-			<CheckboxControl
-				__nextHasNoMarginBottom
-				label={ __( 'Fetch details for imported links', 'blockroll' ) }
-				help={ __(
-					'Looks up names, descriptions, and images. Takes a moment for long lists.',
-					'blockroll'
+		),
+	};
+
+	return (
+		<Modal
+			title={ __( 'Import links', 'blockroll' ) }
+			size="medium"
+			onRequestClose={ onClose }
+		>
+			<div className="blockroll-form">
+				{ error && (
+					<Notice status="error" isDismissible={ false }>
+						{ error }
+					</Notice>
 				) }
-				checked={ fetchDetails }
-				onChange={ setFetchDetails }
-			/>
-			<Flex justify="flex-start">
-				<Button
-					variant="primary"
-					disabled={ ( ! text && ! url ) || isBusy }
-					onClick={ runImport }
+				<p className="blockroll-import-intro">
+					{ __(
+						'Import the subscription list of your feed reader (an OPML file).',
+						'blockroll'
+					) }
+				</p>
+				<TabPanel
+					tabs={ [
+						{
+							name: 'file',
+							title: __( 'Upload', 'blockroll' ),
+						},
+						{
+							name: 'paste',
+							title: __( 'Paste', 'blockroll' ),
+						},
+						{
+							name: 'url',
+							title: __( 'Address', 'blockroll' ),
+						},
+					] }
 				>
-					{ isBusy ? <Spinner /> : __( 'Import', 'blockroll' ) }
-				</Button>
-				{ null !== progress && (
-					<span>
-						{ sprintf(
-							/* translators: %d: number of links processed. */
-							__( '%d links processed…', 'blockroll' ),
-							progress
-						) }
-					</span>
-				) }
-			</Flex>
+					{ ( tab ) => (
+						<div className="blockroll-import-tab">
+							{ tabs[ tab.name ] }
+						</div>
+					) }
+				</TabPanel>
+				<CheckboxControl
+					__nextHasNoMarginBottom
+					label={ __(
+						'Fetch details for imported links',
+						'blockroll'
+					) }
+					help={ __(
+						'Looks up names, descriptions, and images. Takes a moment for long lists.',
+						'blockroll'
+					) }
+					checked={ fetchDetails }
+					onChange={ setFetchDetails }
+				/>
+				<div className="blockroll-form__footer">
+					{ null !== progress && (
+						<span>
+							{ sprintf(
+								/* translators: %d: number of links processed. */
+								__( '%d links processed…', 'blockroll' ),
+								progress
+							) }
+						</span>
+					) }
+					<Button
+						__next40pxDefaultSize
+						variant="tertiary"
+						onClick={ onClose }
+					>
+						{ __( 'Cancel', 'blockroll' ) }
+					</Button>
+					<Button
+						__next40pxDefaultSize
+						variant="primary"
+						isBusy={ isBusy }
+						disabled={ ( ! text && ! url ) || isBusy }
+						onClick={ runImport }
+					>
+						{ __( 'Import', 'blockroll' ) }
+					</Button>
+				</div>
+			</div>
 		</Modal>
 	);
 }

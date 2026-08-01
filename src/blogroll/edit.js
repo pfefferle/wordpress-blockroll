@@ -6,14 +6,13 @@ import { useState } from '@wordpress/element';
 import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
 import {
 	Button,
-	Flex,
-	FlexItem,
 	PanelBody,
 	Placeholder,
 	RangeControl,
 	SelectControl,
 	ToggleControl,
 } from '@wordpress/components';
+import { arrowDown, arrowUp, edit, trash } from '@wordpress/icons';
 
 /**
  * Internal dependencies
@@ -56,7 +55,7 @@ export default function Edit( { attributes, setAttributes } ) {
 	};
 
 	const actions = (
-		<Flex justify="flex-start">
+		<div className="blockroll-editor-actions">
 			<Button variant="primary" onClick={ () => setEditing( 'new' ) }>
 				{ __( 'Add link', 'blockroll' ) }
 			</Button>
@@ -66,7 +65,7 @@ export default function Edit( { attributes, setAttributes } ) {
 			>
 				{ __( 'Import links', 'blockroll' ) }
 			</Button>
-		</Flex>
+		</div>
 	);
 
 	return (
@@ -74,6 +73,7 @@ export default function Edit( { attributes, setAttributes } ) {
 			<InspectorControls>
 				<PanelBody title={ __( 'Blogroll settings', 'blockroll' ) }>
 					<SelectControl
+						__next40pxDefaultSize
 						__nextHasNoMarginBottom
 						label={ __( 'Sort by', 'blockroll' ) }
 						value={ sortBy }
@@ -93,6 +93,7 @@ export default function Edit( { attributes, setAttributes } ) {
 						}
 					/>
 					<RangeControl
+						__next40pxDefaultSize
 						__nextHasNoMarginBottom
 						label={ __( 'Links per page', 'blockroll' ) }
 						help={ __(
@@ -117,6 +118,14 @@ export default function Edit( { attributes, setAttributes } ) {
 				</PanelBody>
 			</InspectorControls>
 
+			{ null !== editing && (
+				<LinkForm
+					link={ 'new' === editing ? undefined : links[ editing ] }
+					onSave={ saveLink }
+					onCancel={ () => setEditing( null ) }
+				/>
+			) }
+
 			{ isImporting && (
 				<ImportModal
 					onImport={ importLinks }
@@ -124,7 +133,7 @@ export default function Edit( { attributes, setAttributes } ) {
 				/>
 			) }
 
-			{ ! links.length && null === editing ? (
+			{ ! links.length ? (
 				<Placeholder
 					icon="admin-links"
 					label={ __( 'Blogroll', 'blockroll' ) }
@@ -136,113 +145,85 @@ export default function Edit( { attributes, setAttributes } ) {
 					{ actions }
 				</Placeholder>
 			) : (
-				<>
+				<div className="blockroll-editor">
 					<ul className="blockroll-editor-list">
-						{ links.map( ( link, index ) =>
-							editing === index ? (
-								<li key={ link.url }>
-									<LinkForm
-										link={ link }
-										onSave={ saveLink }
-										onCancel={ () => setEditing( null ) }
+						{ links.map( ( link, index ) => (
+							<li key={ link.url }>
+								{ showAvatars &&
+									( link.photo ? (
+										<img
+											src={ link.photo }
+											alt=""
+											width="32"
+											height="32"
+										/>
+									) : (
+										<span className="blockroll-editor-list__no-photo" />
+									) ) }
+								<span className="blockroll-editor-list__text">
+									<strong>{ link.name || link.url }</strong>
+									<small>
+										{ link.url }
+										{ link.xfn?.length > 0 &&
+											' · ' + link.xfn.join( ' ' ) }
+									</small>
+								</span>
+								<span className="blockroll-editor-list__actions">
+									<Button
+										size="compact"
+										icon={ arrowUp }
+										label={ __( 'Move up', 'blockroll' ) }
+										disabled={ 0 === index }
+										onClick={ () =>
+											setAttributes( {
+												links: move(
+													links,
+													index,
+													index - 1
+												),
+											} )
+										}
 									/>
-								</li>
-							) : (
-								<li key={ link.url }>
-									<Flex justify="flex-start">
-										{ showAvatars && link.photo && (
-											<img
-												src={ link.photo }
-												alt=""
-												width="24"
-												height="24"
-											/>
-										) }
-										<FlexItem isBlock>
-											<strong>
-												{ link.name || link.url }
-											</strong>{ ' ' }
-											{ link.xfn?.length > 0 && (
-												<small>
-													({ link.xfn.join( ' ' ) })
-												</small>
-											) }
-										</FlexItem>
-										<Button
-											size="small"
-											icon="arrow-up-alt2"
-											label={ __(
-												'Move up',
-												'blockroll'
-											) }
-											disabled={ 0 === index }
-											onClick={ () =>
-												setAttributes( {
-													links: move(
-														links,
-														index,
-														index - 1
-													),
-												} )
-											}
-										/>
-										<Button
-											size="small"
-											icon="arrow-down-alt2"
-											label={ __(
-												'Move down',
-												'blockroll'
-											) }
-											disabled={
-												index === links.length - 1
-											}
-											onClick={ () =>
-												setAttributes( {
-													links: move(
-														links,
-														index,
-														index + 1
-													),
-												} )
-											}
-										/>
-										<Button
-											size="small"
-											onClick={ () =>
-												setEditing( index )
-											}
-										>
-											{ __( 'Edit', 'blockroll' ) }
-										</Button>
-										<Button
-											size="small"
-											isDestructive
-											onClick={ () =>
-												setAttributes( {
-													links: links.filter(
-														( unused, i ) =>
-															i !== index
-													),
-												} )
-											}
-										>
-											{ __( 'Remove', 'blockroll' ) }
-										</Button>
-									</Flex>
-								</li>
-							)
-						) }
-						{ 'new' === editing && (
-							<li>
-								<LinkForm
-									onSave={ saveLink }
-									onCancel={ () => setEditing( null ) }
-								/>
+									<Button
+										size="compact"
+										icon={ arrowDown }
+										label={ __( 'Move down', 'blockroll' ) }
+										disabled={ index === links.length - 1 }
+										onClick={ () =>
+											setAttributes( {
+												links: move(
+													links,
+													index,
+													index + 1
+												),
+											} )
+										}
+									/>
+									<Button
+										size="compact"
+										icon={ edit }
+										label={ __( 'Edit', 'blockroll' ) }
+										onClick={ () => setEditing( index ) }
+									/>
+									<Button
+										size="compact"
+										icon={ trash }
+										label={ __( 'Remove', 'blockroll' ) }
+										isDestructive
+										onClick={ () =>
+											setAttributes( {
+												links: links.filter(
+													( unused, i ) => i !== index
+												),
+											} )
+										}
+									/>
+								</span>
 							</li>
-						) }
+						) ) }
 					</ul>
-					{ null === editing && actions }
-				</>
+					{ actions }
+				</div>
 			) }
 		</div>
 	);

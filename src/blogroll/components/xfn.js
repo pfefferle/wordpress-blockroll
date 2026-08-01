@@ -24,6 +24,23 @@ export const EXCLUSIVE = [ 'friendship', 'geographical', 'family' ];
  * @param {boolean}  add    True to add, false to remove.
  * @return {string[]} New token list.
  */
+export const ALL_TOKENS = Object.values( GROUPS ).flat();
+
+/**
+ * Sanitize a full token list: whitelist and group rules, first one wins.
+ *
+ * @param {string[]} tokens Raw tokens.
+ * @return {string[]} Clean tokens.
+ */
+export function sanitizeXfn( tokens ) {
+	return tokens
+		.filter( ( token ) => ALL_TOKENS.includes( token ) )
+		.reduce(
+			( result, token ) => applyXfnToken( result, token, true ),
+			[]
+		);
+}
+
 export function applyXfnToken( tokens, token, add ) {
 	if ( ! add ) {
 		return tokens.filter( ( t ) => t !== token );
