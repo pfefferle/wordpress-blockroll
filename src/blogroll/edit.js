@@ -20,20 +20,7 @@ import {
  */
 import LinkForm from './components/link-form';
 import ImportModal from './components/import-modal';
-
-/**
- * Move an array element.
- *
- * @param {Array}  list Array.
- * @param {number} from Index to move.
- * @param {number} to   Target index.
- * @return {Array} New array.
- */
-function move( list, from, to ) {
-	const next = [ ...list ];
-	next.splice( to, 0, ...next.splice( from, 1 ) );
-	return next;
-}
+import { move } from './utils';
 
 /**
  * Block edit component.
@@ -73,7 +60,10 @@ export default function Edit( { attributes, setAttributes } ) {
 			<Button variant="primary" onClick={ () => setEditing( 'new' ) }>
 				{ __( 'Add link', 'blockroll' ) }
 			</Button>
-			<Button variant="secondary" onClick={ () => setIsImporting( true ) }>
+			<Button
+				variant="secondary"
+				onClick={ () => setIsImporting( true ) }
+			>
 				{ __( 'Import links', 'blockroll' ) }
 			</Button>
 		</Flex>
@@ -181,7 +171,10 @@ export default function Edit( { attributes, setAttributes } ) {
 										<Button
 											size="small"
 											icon="arrow-up-alt2"
-											label={ __( 'Move up', 'blockroll' ) }
+											label={ __(
+												'Move up',
+												'blockroll'
+											) }
 											disabled={ 0 === index }
 											onClick={ () =>
 												setAttributes( {
@@ -215,7 +208,9 @@ export default function Edit( { attributes, setAttributes } ) {
 										/>
 										<Button
 											size="small"
-											onClick={ () => setEditing( index ) }
+											onClick={ () =>
+												setEditing( index )
+											}
 										>
 											{ __( 'Edit', 'blockroll' ) }
 										</Button>

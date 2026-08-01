@@ -15,9 +15,9 @@ describe( 'applyXfnToken', () => {
 	} );
 
 	it( 'replaces within an exclusive group', () => {
-		expect( applyXfnToken( [ 'friend', 'met' ], 'acquaintance', true ) ).toEqual(
-			[ 'met', 'acquaintance' ]
-		);
+		expect(
+			applyXfnToken( [ 'friend', 'met' ], 'acquaintance', true )
+		).toEqual( [ 'met', 'acquaintance' ] );
 	} );
 
 	it( 'me clears everything', () => {

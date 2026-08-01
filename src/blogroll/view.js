@@ -4,14 +4,9 @@
 import { store, getContext, getElement } from '@wordpress/interactivity';
 
 /**
- * Number of pages for the current context.
- *
- * @param {Object} context Interactivity context.
- * @param {number} total   Number of list items.
- * @return {number} Page count.
+ * Internal dependencies
  */
-const pageCount = ( context, total ) =>
-	context.perPage > 0 ? Math.ceil( total / context.perPage ) : 1;
+import { compareLinks, pageCount, isHiddenOnPage } from './utils';
 
 /**
  * The block's list element for the current element.
@@ -19,40 +14,40 @@ const pageCount = ( context, total ) =>
  * @return {HTMLElement|null} The list.
  */
 const getList = () =>
-	getElement().ref.closest( '[data-wp-interactive]' )?.querySelector(
-		'.blockroll-list'
-	);
+	getElement()
+		.ref.closest( '[data-wp-interactive]' )
+		?.querySelector( '.blockroll-list' );
 
 /**
  * Sort and page the rendered list according to the context.
  */
 const apply = () => {
-	const context = getContext();
 	const list = getList();
 	if ( ! list ) {
 		return;
 	}
+	const context = getContext();
 	const items = Array.from( list.children );
 
-	if ( 'name' === context.sortBy ) {
-		items.sort( ( a, b ) =>
-			a.dataset.name.localeCompare( b.dataset.name, undefined, {
-				sensitivity: 'base',
-			} )
-		);
-	} else if ( 'added' === context.sortBy ) {
-		items.sort( ( a, b ) => b.dataset.added.localeCompare( a.dataset.added ) );
-	} else {
-		// Restore the order the editor saved.
-		items.sort( ( a, b ) => a.dataset.index - b.dataset.index );
-	}
+	items.sort( ( a, b ) =>
+		compareLinks(
+			{
+				name: a.dataset.name,
+				added: a.dataset.added,
+				index: a.dataset.index,
+			},
+			{
+				name: b.dataset.name,
+				added: b.dataset.added,
+				index: b.dataset.index,
+			},
+			context.sortBy
+		)
+	);
 	items.forEach( ( item ) => list.appendChild( item ) );
 
-	const per = context.perPage;
 	items.forEach( ( item, i ) => {
-		item.hidden =
-			per > 0 &&
-			( i < ( context.page - 1 ) * per || i >= context.page * per );
+		item.hidden = isHiddenOnPage( i, context.page, context.perPage );
 	} );
 };
 
@@ -65,7 +60,7 @@ store( 'blockroll', {
 			const context = getContext();
 			const list = getList();
 			const total = list ? list.children.length : 0;
-			return context.page >= pageCount( context, total );
+			return context.page >= pageCount( total, context.perPage );
 		},
 	},
 	actions: {

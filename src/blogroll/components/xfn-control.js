@@ -62,9 +62,7 @@ export default function XfnControl( { value = [], onChange } ) {
 					'blockroll'
 				) }
 				checked={ isMe }
-				onChange={ ( checked ) =>
-					onChange( checked ? [ 'me' ] : [] )
-				}
+				onChange={ ( checked ) => onChange( checked ? [ 'me' ] : [] ) }
 			/>
 			{ ! isMe &&
 				Object.entries( GROUP_LABELS ).map( ( [ group, label ] ) =>
