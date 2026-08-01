@@ -45,16 +45,17 @@ if ( $blockroll_per > 0 ) {
 }
 
 $blockroll_sorts = array(
-	'name'   => __( 'By name', 'blockroll' ),
-	'added'  => __( 'Newest first', 'blockroll' ),
-	'manual' => __( 'Default', 'blockroll' ),
+	'name' => __( 'By name', 'blockroll' ),
 );
-if ( ! $blockroll_dated ) {
-	unset( $blockroll_sorts['added'] );
+
+// Sorting by date needs links that carry an "added" date.
+if ( $blockroll_dated ) {
+	$blockroll_sorts['added'] = __( 'Newest first', 'blockroll' );
 }
-// The manual order is only meaningful when it is the block's own default.
-if ( 'manual' !== ( $attributes['sortBy'] ?? 'name' ) ) {
-	unset( $blockroll_sorts['manual'] );
+
+// The manual order is only offered when it is the block's own default.
+if ( 'manual' === ( $attributes['sortBy'] ?? 'name' ) ) {
+	$blockroll_sorts['manual'] = __( 'Default', 'blockroll' );
 }
 ?>
 <div <?php echo wp_kses_data( get_block_wrapper_attributes() ); ?>>
