@@ -35,13 +35,19 @@
 		align-items: center;
 		margin-bottom: 1em;
 
-		.u-photo {
+		.u-photo,
+		.blockroll-no-photo {
 			grid-row: 1 / span 2;
 			width: 2.5em;
 			height: 2.5em;
 			margin-right: 0.75em;
 			border-radius: 50%;
 			object-fit: cover;
+		}
+
+		.blockroll-no-photo {
+			background: currentcolor;
+			opacity: 0.1;
 		}
 
 		.u-url {

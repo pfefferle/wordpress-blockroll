@@ -70,8 +70,12 @@ if ( ! $blockroll_links ) {
 				data-added="<?php echo esc_attr( $blockroll_link['added'] ); ?>"
 				data-index="<?php echo esc_attr( $blockroll_i ); ?>"
 			>
-				<?php if ( $blockroll_show && $blockroll_link['photo'] ) : ?>
-					<img class="u-photo" src="<?php echo esc_url( $blockroll_link['photo'] ); ?>" alt="" loading="lazy" />
+				<?php if ( $blockroll_show ) : ?>
+					<?php if ( $blockroll_link['photo'] ) : ?>
+						<img class="u-photo" src="<?php echo esc_url( $blockroll_link['photo'] ); ?>" alt="" loading="lazy" />
+					<?php else : ?>
+						<span class="blockroll-no-photo"></span>
+					<?php endif; ?>
 				<?php endif; ?>
 				<a class="u-url p-name" rel="<?php echo esc_attr( trim( $blockroll_rel . ' noopener' ) ); ?>" target="_blank" href="<?php echo esc_url( $blockroll_link['url'] ); ?>"><?php echo esc_html( $blockroll_link['name'] ? $blockroll_link['name'] : $blockroll_link['url'] ); ?></a>
 				<?php if ( $blockroll_link['description'] ) : ?>
