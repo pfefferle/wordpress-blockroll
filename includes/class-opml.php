@@ -117,12 +117,32 @@ class Opml {
 	 * Feed callback for /feed/opml.
 	 */
 	public static function render() {
-		\header( 'Content-Type: text/xml; charset=' . \get_option( 'blog_charset' ) );
 		if ( \is_singular() ) {
-			echo self::for_post( \get_queried_object() ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-		} else {
-			echo self::directory(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			$post = \get_queried_object();
+			if ( ! $post || ! \has_block( 'blockroll/blogroll', $post ) ) {
+				self::not_found();
+			}
+			\header( 'Content-Type: text/xml; charset=' . \get_option( 'blog_charset' ) );
+			echo self::for_post( $post ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			return;
 		}
+
+		if ( ! Index::get_posts() ) {
+			self::not_found();
+		}
+		\header( 'Content-Type: text/xml; charset=' . \get_option( 'blog_charset' ) );
+		echo self::directory(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	}
+
+	/**
+	 * Send a 404 for OPML requests without a blogroll.
+	 */
+	private static function not_found() {
+		\wp_die(
+			\esc_html__( 'There is no blogroll here.', 'blockroll' ),
+			'',
+			array( 'response' => 404 )
+		);
 	}
 
 	/**

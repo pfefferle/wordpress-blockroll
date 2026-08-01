@@ -156,7 +156,7 @@ Please test and contribute to the discussion:
 								</xsl:when>
 								<xsl:otherwise>
 									<h2>
-										<a>
+										<a target="_blank">
 											<xsl:attribute name="href">
 												<xsl:value-of select="@htmlUrl"/>
 											</xsl:attribute>

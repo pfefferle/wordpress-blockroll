@@ -84,6 +84,13 @@ class Test_Opml extends WP_UnitTestCase {
 		$this->assertSame( 1, substr_count( ob_get_clean(), 'xmlns:source' ) );
 	}
 
+	public function test_opml_404_without_blogroll() {
+		$id = self::factory()->post->create( array( 'post_content' => 'plain' ) );
+		$this->go_to( get_permalink( $id ) );
+		$this->expectException( 'WPDieException' );
+		\Blockroll\Opml::render();
+	}
+
 	public function test_singular_without_block_has_no_discovery_link() {
 		$id = self::factory()->post->create( array( 'post_content' => 'plain' ) );
 		$this->go_to( get_permalink( $id ) );
