@@ -56,8 +56,8 @@ if ( ! $blockroll_links ) {
 		</label>
 		<?php if ( $blockroll_per > 0 ) : ?>
 			<span class="blockroll-pager">
-				<button type="button" data-wp-on--click="actions.prevPage" data-wp-bind--disabled="state.isFirstPage"><?php esc_html_e( 'Previous', 'blockroll' ); ?></button>
-				<button type="button" data-wp-on--click="actions.nextPage" data-wp-bind--disabled="state.isLastPage"><?php esc_html_e( 'Next', 'blockroll' ); ?></button>
+				<button type="button" class="blockroll-prev" data-wp-on--click="actions.prevPage" disabled><?php esc_html_e( 'Previous', 'blockroll' ); ?></button>
+				<button type="button" class="blockroll-next" data-wp-on--click="actions.nextPage"><?php esc_html_e( 'Next', 'blockroll' ); ?></button>
 			</span>
 		<?php endif; ?>
 	</div>

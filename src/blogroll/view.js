@@ -9,20 +9,18 @@ import { store, getContext, getElement } from '@wordpress/interactivity';
 import { compareLinks, pageCount, isHiddenOnPage } from './utils';
 
 /**
- * The block's list element for the current element.
+ * The block root for the current element.
  *
- * @return {HTMLElement|null} The list.
+ * @return {HTMLElement|null} The root.
  */
-const getList = () =>
-	getElement()
-		.ref.closest( '[data-wp-interactive]' )
-		?.querySelector( '.blockroll-list' );
+const getRoot = () => getElement().ref.closest( '[data-wp-interactive]' );
 
 /**
  * Sort and page the rendered list according to the context.
  */
 const apply = () => {
-	const list = getList();
+	const root = getRoot();
+	const list = root?.querySelector( '.blockroll-list' );
 	if ( ! list ) {
 		return;
 	}
@@ -49,20 +47,19 @@ const apply = () => {
 	items.forEach( ( item, i ) => {
 		item.hidden = isHiddenOnPage( i, context.page, context.perPage );
 	} );
+
+	const prev = root.querySelector( '.blockroll-prev' );
+	const next = root.querySelector( '.blockroll-next' );
+	if ( prev ) {
+		prev.disabled = context.page <= 1;
+	}
+	if ( next ) {
+		next.disabled =
+			context.page >= pageCount( items.length, context.perPage );
+	}
 };
 
 store( 'blockroll', {
-	state: {
-		get isFirstPage() {
-			return getContext().page <= 1;
-		},
-		get isLastPage() {
-			const context = getContext();
-			const list = getList();
-			const total = list ? list.children.length : 0;
-			return context.page >= pageCount( total, context.perPage );
-		},
-	},
 	actions: {
 		setSort( event ) {
 			const context = getContext();
@@ -82,10 +79,9 @@ store( 'blockroll', {
 	},
 	callbacks: {
 		init() {
-			const { ref } = getElement();
-			ref.querySelector( '.blockroll-controls' )?.removeAttribute(
-				'hidden'
-			);
+			getRoot()
+				?.querySelector( '.blockroll-controls' )
+				?.removeAttribute( 'hidden' );
 			apply();
 		},
 	},
