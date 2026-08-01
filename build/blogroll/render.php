@@ -134,7 +134,21 @@ if ( 'manual' === ( $attributes['sortBy'] ?? 'name' ) ) {
 	<?php $blockroll_post = get_post(); ?>
 	<?php if ( ! empty( $attributes['showOpml'] ) && $blockroll_post ) : ?>
 		<p class="blockroll-opml">
-			<a href="<?php echo esc_url( \Blockroll\Opml::feed_url( $blockroll_post ) ); ?>"><?php esc_html_e( 'Download this blogroll as an OPML file', 'blockroll' ); ?></a>
+			<?php
+			printf(
+				wp_kses(
+					/* translators: %1$s: OPML file URL */
+					__( '<a href="%1$s" download="blogroll.opml">Download</a> or <a href="%1$s">open</a> this blogroll as an OPML file.', 'blockroll' ),
+					array(
+						'a' => array(
+							'href'     => true,
+							'download' => true,
+						),
+					)
+				),
+				esc_url( \Blockroll\Opml::feed_url( $blockroll_post ) )
+			);
+			?>
 		</p>
 	<?php endif; ?>
 </div>
