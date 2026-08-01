@@ -5,7 +5,7 @@
   "title": "Blogroll",
   "category": "widgets",
   "icon": "admin-links",
-  "description": "A blogroll with XFN relationships, h-cards, and OPML.",
+  "description": "Share a list of the blogs and sites you follow.",
   "textdomain": "blockroll",
   "keywords": [
     "blogroll",

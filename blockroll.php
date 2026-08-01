@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Blockroll
- * Description: A blogroll block with XFN, h-cards, OPML import/export, and blogroll discovery.
+ * Description: A blogroll block: share a list of the blogs and sites you follow.
  * Version: 0.1.0
  * Requires PHP: 7.4
  * Author: Matthias Pfefferle

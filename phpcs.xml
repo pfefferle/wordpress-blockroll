@@ -35,4 +35,9 @@
 		<!-- tests/bootstrap.php follows the WP core test-suite boilerplate conventions ($_tests_dir, _manually_load_plugin()), not plugin globals. -->
 		<exclude-pattern>tests/bootstrap\.php</exclude-pattern>
 	</rule>
+
+	<!-- Test method names document themselves. -->
+	<rule ref="Squiz.Commenting.FunctionComment.Missing">
+		<exclude-pattern>tests/*</exclude-pattern>
+	</rule>
 </ruleset>
