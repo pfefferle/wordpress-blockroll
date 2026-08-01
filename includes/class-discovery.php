@@ -8,66 +8,12 @@
 namespace Blockroll;
 
 /**
- * Fetch a URL and extract feed, name, description, and photo.
+ * Extract feed, name, description, and photo from a fetched HTML page.
  *
- * The editor cannot fetch foreign sites itself (CORS), so it asks
- * this REST route to do it.
+ * The REST side lives in Rest\Discovery_Controller; this class is
+ * only the parser.
  */
 class Discovery {
-	/**
-	 * Register the REST route.
-	 */
-	public static function register_routes() {
-		\register_rest_route(
-			'blockroll/v1',
-			'/discover',
-			array(
-				'methods'             => \WP_REST_Server::CREATABLE,
-				'callback'            => array( self::class, 'handle' ),
-				'permission_callback' => function () {
-					return \current_user_can( 'edit_posts' );
-				},
-				'args'                => array(
-					'url' => array(
-						'required'          => true,
-						'validate_callback' => function ( $url ) {
-							return (bool) \wp_http_validate_url( $url );
-						},
-					),
-				),
-			)
-		);
-	}
-
-	/**
-	 * Handle a discover request.
-	 *
-	 * @param \WP_REST_Request $request Request.
-	 * @return array|\WP_Error Discovered link data.
-	 */
-	public static function handle( $request ) {
-		$url      = $request->get_param( 'url' );
-		$response = \wp_safe_remote_get(
-			$url,
-			array(
-				'timeout'             => 10,
-				'limit_response_size' => MB_IN_BYTES,
-			)
-		);
-		if ( \is_wp_error( $response ) || 200 !== \wp_remote_retrieve_response_code( $response ) ) {
-			return new \WP_Error(
-				'blockroll_fetch_failed',
-				\__( 'The site could not be reached.', 'blockroll' ),
-				array( 'status' => 502 )
-			);
-		}
-
-		return \array_merge(
-			self::from_html( \wp_remote_retrieve_body( $response ), $url ),
-			array( 'url' => \esc_url_raw( $url ) )
-		);
-	}
-
 	/**
 	 * Extract link details from an HTML document.
 	 *

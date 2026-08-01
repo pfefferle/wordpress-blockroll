@@ -9,77 +9,11 @@ namespace Blockroll;
 
 /**
  * Turn an OPML file into blogroll links.
+ *
+ * The REST side lives in Rest\Import_Controller; this class is
+ * only the parser.
  */
 class Import {
-	/**
-	 * Register the REST route.
-	 */
-	public static function register_routes() {
-		\register_rest_route(
-			'blockroll/v1',
-			'/import',
-			array(
-				'methods'             => \WP_REST_Server::CREATABLE,
-				'callback'            => array( self::class, 'handle' ),
-				'permission_callback' => function () {
-					return \current_user_can( 'edit_posts' );
-				},
-				'args'                => array(
-					'opml' => array( 'type' => 'string' ),
-					'url'  => array(
-						'type'              => 'string',
-						'validate_callback' => function ( $url ) {
-							return (bool) \wp_http_validate_url( $url );
-						},
-					),
-				),
-			)
-		);
-	}
-
-	/**
-	 * Handle an import request.
-	 *
-	 * @param \WP_REST_Request $request Request.
-	 * @return array|\WP_Error Parsed links.
-	 */
-	public static function handle( $request ) {
-		$opml = $request->get_param( 'opml' );
-
-		if ( ! $opml && $request->get_param( 'url' ) ) {
-			$response = \wp_safe_remote_get(
-				$request->get_param( 'url' ),
-				array(
-					'timeout'             => 10,
-					'limit_response_size' => MB_IN_BYTES,
-				)
-			);
-			if ( \is_wp_error( $response ) || 200 !== \wp_remote_retrieve_response_code( $response ) ) {
-				return new \WP_Error(
-					'blockroll_fetch_failed',
-					\__( 'The OPML file could not be fetched.', 'blockroll' ),
-					array( 'status' => 502 )
-				);
-			}
-			$opml = \wp_remote_retrieve_body( $response );
-		}
-
-		if ( ! $opml ) {
-			return new \WP_Error(
-				'blockroll_missing_opml',
-				\__( 'Provide an OPML document or a URL to one.', 'blockroll' ),
-				array( 'status' => 400 )
-			);
-		}
-
-		$links = self::parse( $opml );
-		if ( \is_wp_error( $links ) ) {
-			return $links;
-		}
-
-		return array( 'links' => $links );
-	}
-
 	/**
 	 * Parse an OPML document into normalized links.
 	 *

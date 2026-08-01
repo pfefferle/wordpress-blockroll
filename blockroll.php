@@ -22,7 +22,10 @@ define( 'BLOCKROLL_PLUGIN_FILE', __FILE__ );
 		if ( 0 !== \strpos( $class, 'Blockroll\\' ) ) {
 			return;
 		}
-		$file = __DIR__ . '/includes/class-' . \strtolower( \str_replace( array( 'Blockroll\\', '_' ), array( '', '-' ), $class ) ) . '.php';
+		$parts = \explode( '\\', \strtolower( \str_replace( array( 'Blockroll\\', '_' ), array( '', '-' ), $class ) ) );
+		$name  = \array_pop( $parts );
+		$path  = $parts ? \implode( '/', $parts ) . '/' : '';
+		$file  = __DIR__ . '/includes/' . $path . 'class-' . $name . '.php';
 		if ( \file_exists( $file ) ) {
 			require $file;
 		}
@@ -47,8 +50,8 @@ function init() {
 \add_action(
 	'rest_api_init',
 	function () {
-		Discovery::register_routes();
-		Import::register_routes();
+		( new Rest\Discovery_Controller() )->register_routes();
+		( new Rest\Import_Controller() )->register_routes();
 	}
 );
 
