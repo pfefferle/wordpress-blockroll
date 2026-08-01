@@ -1,4 +1,5 @@
 docs/
+.superpowers/
 node_modules/
 build/
 vendor/
