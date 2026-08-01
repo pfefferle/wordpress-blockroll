@@ -16,9 +16,9 @@ The name is a bad pun: a Gutenberg *block* that renders a *blogroll*.
   feed, name, description, and avatar for you. You can edit any of it afterwards.
 - **XFN and h-cards.** Each entry is marked up as an h-card, and the relationships you
   pick (friend, met, colleague, and so on) are written as `rel` values on the link.
-- **Sorting and paging on the frontend.** The list is rendered in PHP, and a small
-  script sorts and pages it in place without a reload. With JavaScript off you still
-  get the full list, just unsorted and unpaged.
+- **Sorting and paging on the frontend.** Both are plain links with query parameters,
+  rendered and handled entirely in PHP. There is no JavaScript on the frontend. You
+  can turn the visitor-facing sorting off per block.
 - **OPML out.** The block exposes its links as OPML at `{page}/feed/opml`. The site
   root, `/feed/opml`, is a directory that lists all of those per-page OPMLs.
 - **Blogroll discovery.** Pages with a blogroll advertise their own OPML in the head
@@ -42,8 +42,8 @@ block's attributes, inside the post content:
 ```
 
 Each link holds `url`, `name`, `description`, `feedUrl`, `photo`, an `xfn` array, and
-the date it was added. The block also keeps a default sort order, a page size, and
-whether to show avatars.
+the date it was added. The block also keeps a default sort order, a page size, whether
+to show site icons, and whether visitors may re-sort the list.
 
 ### Auto-fill and import happen on the server
 
@@ -57,7 +57,7 @@ do it. There are two REST routes:
   `<outline>` entries into links. Fetching extra details for each imported link is
   opt-in, so importing a 200-feed OPML does not fire 200 requests unless you ask it to.
 
-### The frontend is plain PHP
+### The frontend is PHP only
 
 The block is rendered by `render.php`. Every link becomes an h-card list item with the
 XFN relationships as `rel`:
@@ -65,15 +65,22 @@ XFN relationships as `rel`:
 ```html
 <li class="h-card">
   <img class="u-photo" src="…" alt="" loading="lazy">
-  <a class="u-url p-name" rel="friend met" href="https://example.com/">Example</a>
+  <a class="u-url p-name" rel="friend met noopener" target="_blank" href="https://example.com/">Example</a>
   <p class="p-note">A blog about examples</p>
-  <a class="u-feed" rel="alternate" type="application/rss+xml" href="…/feed/">feed</a>
+  <a href="feed:…/feed/" title="Subscribe">…</a>
+  <a class="u-feed" rel="alternate noopener" type="application/rss+xml" href="…/feed/">feed</a>
 </li>
 ```
 
-The whole list is always in the page, which keeps the microformats readable and works
-without JavaScript. A small [Interactivity API](https://developer.wordpress.org/block-editor/reference-guides/interactivity-api/)
-script handles the sorting and paging on top of that.
+The feed icon links with the `feed:` protocol, so a click lands in the visitor's feed
+reader; the "feed" text links to the plain URL. The chosen relationships are also shown
+as a small list under each entry.
+
+Sorting and paging are links with the query parameters `blockroll-sort` and
+`blockroll-page`, so each click is a normal page load and only the current page of
+links is in the HTML. Sort options only show up when they make sense: "Newest first"
+needs links with dates, and the manual order is only offered (as "Default") when it is
+the block's own default. There is no frontend JavaScript at all.
 
 ### OPML and discovery
 
@@ -100,21 +107,29 @@ a head:
 ```
 wordpress-blockroll/
 ├── blockroll.php              # plugin bootstrap
-├── block.json                 # block metadata and attributes
-├── render.php                 # PHP frontend render callback
 ├── includes/
-│   ├── class-discovery.php    # REST /discover
-│   ├── class-import.php       # REST /import (OPML parsing)
-│   ├── class-opml.php         # opml feed + head discovery link
+│   ├── class-discovery.php    # extracts feed, name, description, photo from HTML
+│   ├── class-import.php       # OPML parsing
+│   ├── class-links.php        # link normalizing and sorting
+│   ├── class-opml.php         # opml feed + head discovery links
 │   ├── class-index.php        # private taxonomy, kept in sync on save
-│   └── class-xfn.php          # XFN vocabulary and rel helper
-├── src/
+│   ├── class-xfn.php          # XFN vocabulary and rel helper
+│   └── rest/
+│       ├── class-discovery-controller.php   # POST blockroll/v1/discover
+│       └── class-import-controller.php      # POST blockroll/v1/import
+├── templates/
+│   ├── opml.php               # OPML of one blogroll page
+│   └── opml-directory.php     # directory of all blogroll pages
+├── src/blogroll/
+│   ├── block.json             # block metadata and attributes
+│   ├── render.php             # PHP frontend rendering
 │   ├── index.js               # registerBlockType
 │   ├── edit.js                # editor UI
-│   ├── view.js                # sort and paging (Interactivity API)
+│   ├── components/            # link form, import modal, XFN control
 │   ├── editor.scss
 │   └── style.scss
-├── build/                     # compiled assets
+├── build/                     # compiled assets (committed)
+├── tests/                     # PHPUnit and Jest tests
 ├── package.json
 ├── composer.json
 └── README.md
@@ -126,11 +141,14 @@ wordpress-blockroll/
 composer install
 npm install
 
-npm run build      # compile the block assets
-npm run start      # watch mode
-composer test      # PHPUnit
+npm run build         # compile the block assets (build/ is committed)
+npm run dev           # watch mode
+npm run env-start     # wp-env on ports 8833/8834
+composer test:wp-env  # PHPUnit inside wp-env
+npm run test:unit     # Jest
 npm run lint:js
-composer lint      # PHP CodeSniffer (WPCS)
+npm run lint:css
+composer lint         # PHP CodeSniffer (WPCS)
 ```
 
 ## Status
