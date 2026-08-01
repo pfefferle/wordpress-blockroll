@@ -34,6 +34,22 @@ define( 'BLOCKROLL_PLUGIN_FILE', __FILE__ );
  */
 function init() {
 	Index::register();
+	Opml::register();
 	\register_block_type( __DIR__ . '/build/blogroll' );
+
+	if ( \get_option( 'blockroll_flush_rewrite_rules' ) ) {
+		\delete_option( 'blockroll_flush_rewrite_rules' );
+		\flush_rewrite_rules();
+	}
 }
 \add_action( 'init', __NAMESPACE__ . '\init' );
+
+\register_activation_hook(
+	__FILE__,
+	function () {
+		// The opml feed adds a rewrite rule; flush once on the init after activation.
+		\update_option( 'blockroll_flush_rewrite_rules', 1 );
+	}
+);
+
+\register_deactivation_hook( __FILE__, 'flush_rewrite_rules' );
