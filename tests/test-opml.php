@@ -60,27 +60,27 @@ class Test_Opml extends WP_UnitTestCase {
 		$this->assertStringContainsString( trailingslashit( get_permalink( $id ) ) . 'feed/opml', $head );
 	}
 
-	public function test_rss_head_advertises_blogroll() {
+	public function test_feed_head_advertises_blogroll() {
 		$id = self::factory()->post->create( array( 'post_content' => self::BLOCK ) );
 		ob_start();
-		\Blockroll\Opml::rss_blogroll();
+		\Blockroll\Opml::feed_blogroll();
 		$head = ob_get_clean();
 		$this->assertStringContainsString( '<source:blogroll>', $head );
 		$this->assertStringContainsString( trailingslashit( get_permalink( $id ) ) . 'feed/opml', $head );
 	}
 
-	public function test_rss_namespace() {
+	public function test_feed_namespace() {
 		ob_start();
 		ob_start(); // The buffer started at rss2_ns priority 1.
-		\Blockroll\Opml::rss_namespace();
+		\Blockroll\Opml::feed_namespace();
 		$this->assertStringContainsString( 'xmlns:source="http://source.scripting.com/"', ob_get_clean() );
 	}
 
-	public function test_rss_namespace_not_duplicated() {
+	public function test_feed_namespace_not_duplicated() {
 		ob_start();
 		ob_start(); // The buffer started at rss2_ns priority 1.
 		echo 'xmlns:source="http://source.scripting.com/"';
-		\Blockroll\Opml::rss_namespace();
+		\Blockroll\Opml::feed_namespace();
 		$this->assertSame( 1, substr_count( ob_get_clean(), 'xmlns:source' ) );
 	}
 

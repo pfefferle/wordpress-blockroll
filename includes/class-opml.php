@@ -17,18 +17,20 @@ class Opml {
 	public static function register() {
 		\add_feed( 'opml', array( self::class, 'render' ) );
 		\add_action( 'wp_head', array( self::class, 'discovery_link' ) );
-		\add_action( 'rss2_ns', 'ob_start', 1 );
-		\add_action( 'rss2_ns', array( self::class, 'rss_namespace' ), PHP_INT_MAX );
-		\add_action( 'rss2_head', array( self::class, 'rss_blogroll' ) );
+		foreach ( array( 'rss2', 'atom' ) as $feed ) {
+			\add_action( $feed . '_ns', 'ob_start', 1 );
+			\add_action( $feed . '_ns', array( self::class, 'feed_namespace' ), PHP_INT_MAX );
+			\add_action( $feed . '_head', array( self::class, 'feed_blogroll' ) );
+		}
 	}
 
 	/**
-	 * Add the source namespace to the RSS2 feed, unless another
-	 * plugin or theme already did.
+	 * Add the source namespace to a feed, unless another plugin or
+	 * theme already did.
 	 *
 	 * See https://source.scripting.com/
 	 */
-	public static function rss_namespace() {
+	public static function feed_namespace() {
 		$namespaces = \ob_get_clean();
 		if ( false === \strpos( $namespaces, 'xmlns:source' ) ) {
 			$namespaces .= ' xmlns:source="http://source.scripting.com/" ';
@@ -37,9 +39,9 @@ class Opml {
 	}
 
 	/**
-	 * Advertise the blogroll OPMLs in the RSS2 feed head.
+	 * Advertise the blogroll OPMLs in the feed head.
 	 */
-	public static function rss_blogroll() {
+	public static function feed_blogroll() {
 		foreach ( Index::get_posts() as $post ) {
 			\printf(
 				'<source:blogroll>%s</source:blogroll>' . PHP_EOL,
