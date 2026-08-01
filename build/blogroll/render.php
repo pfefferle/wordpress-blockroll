@@ -78,7 +78,7 @@ if ( ! $blockroll_links ) {
 					<p class="p-note"><?php echo esc_html( $blockroll_link['description'] ); ?></p>
 				<?php endif; ?>
 				<?php if ( $blockroll_link['feedUrl'] ) : ?>
-					<a class="u-feed" rel="alternate" type="application/rss+xml" href="<?php echo esc_url( $blockroll_link['feedUrl'] ); ?>"><?php esc_html_e( 'feed', 'blockroll' ); ?></a>
+					<a class="u-feed" rel="alternate" type="application/rss+xml" href="<?php echo esc_url( $blockroll_link['feedUrl'] ); ?>"><svg class="blockroll-feed-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M5 17.7c.4 0 .8.1 1.2.4.3.3.4.7.4 1.2 0 .4-.1.8-.4 1.1-.3.3-.7.4-1.2.4-.4 0-.8-.1-1.1-.4-.3-.3-.4-.7-.4-1.1 0-.4.1-.8.4-1.2.3-.2.7-.4 1.1-.4zM3 8.7c2.6 0 5.1 1 7 2.9s2.9 4.4 2.9 7h-2.1c0-2.1-.8-4-2.3-5.5C7 11.7 5.1 10.8 3 10.8V8.7zm0-4.9c4 0 7.7 1.6 10.5 4.4 2.8 2.8 4.4 6.5 4.4 10.5h-2.1c0-3.4-1.3-6.6-3.8-9.1C9.6 7.2 6.4 5.8 3 5.8V3.8z"></path></svg><?php esc_html_e( 'feed', 'blockroll' ); ?></a>
 				<?php endif; ?>
 			</li>
 		<?php endforeach; ?>

@@ -53,6 +53,13 @@
 		.u-feed {
 			grid-column: 2;
 			font-size: 0.75em;
+
+			.blockroll-feed-icon {
+				width: 1em;
+				height: 1em;
+				margin-right: 0.25em;
+				vertical-align: -0.125em;
+			}
 		}
 	}
 }
