@@ -87,20 +87,25 @@
 			padding: 0;
 		}
 
-		.u-feed {
+		.blockroll-meta a {
 			color: inherit;
 			text-decoration: none;
 
 			&:hover {
 				text-decoration: underline;
 			}
+		}
 
-			.blockroll-feed-icon {
-				width: 1em;
-				height: 1em;
-				margin-right: 0.25em;
-				vertical-align: -0.125em;
-			}
+		.blockroll-feed {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.25em;
+		}
+
+		.blockroll-feed-icon {
+			width: 1em;
+			height: 1em;
+			vertical-align: -0.125em;
 		}
 	}
 }
