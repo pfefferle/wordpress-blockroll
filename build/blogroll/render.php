@@ -47,13 +47,9 @@ if ( $blockroll_per > 0 ) {
 $blockroll_sorts = array(
 	'name' => __( 'By name', 'blockroll' ),
 );
-
-// Sorting by date needs links that carry an "added" date.
 if ( $blockroll_dated ) {
 	$blockroll_sorts['added'] = __( 'Newest first', 'blockroll' );
 }
-
-// The manual order is only offered when it is the block's own default.
 if ( 'manual' === ( $attributes['sortBy'] ?? 'name' ) ) {
 	$blockroll_sorts['manual'] = __( 'Default', 'blockroll' );
 }
