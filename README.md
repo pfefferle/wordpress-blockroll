@@ -23,9 +23,10 @@ The name is a bad pun: a Gutenberg *block* that renders a *blogroll*.
   root, `/feed/opml`, is a directory that lists all of those per-page OPMLs.
 - **Blogroll discovery.** Pages with a blogroll advertise their own OPML in the head
   with `<link rel="blogroll">`, following
-  [Dave Winer's proposal](https://danq.me/2024/05/03/23615/), so readers can find it
-  automatically. The site-root directory is not advertised this way, since it is a list
-  of OPMLs rather than a blogroll.
+  [Dave Winer's proposal](https://danq.me/2024/05/03/23615/), and the front page
+  advertises them too, so readers can find the blogroll from the homepage. The
+  site-root directory is never advertised this way, since it is a list of OPMLs rather
+  than a blogroll.
 - **OPML in.** You can seed a block by importing an OPML file, for example the export
   from your feed reader.
 
@@ -86,7 +87,8 @@ post gets the term when it contains the block and loses it when it does not. The
 data still lives in the block, the taxonomy is only an index.
 
 Pages that have a blogroll add the discovery link to their head, pointing at their own
-OPML. The root directory is not advertised this way:
+OPML, and the front page repeats those links. The root directory URL never appears in
+a head:
 
 ```html
 <link rel="blogroll" type="text/xml" href="https://example.com/links/feed/opml"
