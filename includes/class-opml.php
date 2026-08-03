@@ -1,6 +1,6 @@
 <?php
 /**
- * OPML feed and blogroll discovery link.
+ * OPML output and blogroll discovery link.
  *
  * @package Blockroll
  */
