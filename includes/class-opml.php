@@ -18,7 +18,6 @@ class Opml {
 		\add_filter( 'query_vars', array( self::class, 'add_query_vars' ) );
 		\add_filter( 'request', array( self::class, 'normalize_query_vars' ) );
 		\add_action( 'template_redirect', array( self::class, 'render' ) );
-		\add_filter( 'pre_handle_404', array( self::class, 'pre_handle_404' ), 10, 2 );
 		\add_action( 'wp_head', array( self::class, 'discovery_link' ) );
 		foreach ( array( 'rss2', 'atom' ) as $feed ) {
 			\add_action( $feed . '_ns', 'ob_start', 1 );
@@ -150,52 +149,25 @@ class Opml {
 	/**
 	 * Serve the opml request.
 	 *
-	 * Requests without a blogroll were already turned into a 404 by
-	 * pre_handle_404().
+	 * Without a blogroll the query var is simply ignored and the normal
+	 * page loads, just like when the plugin is disabled.
 	 */
 	public static function render() {
-		if ( ! \get_query_var( 'opml' ) || \is_404() ) {
+		if ( ! \get_query_var( 'opml' ) ) {
 			return;
 		}
 
-		\header( 'Content-Type: text/xml; charset=' . \get_option( 'blog_charset' ) );
-		if ( \is_singular() ) {
+		if ( \is_singular() && Index::has_blogroll( \get_queried_object() ) ) {
+			\header( 'Content-Type: text/xml; charset=' . \get_option( 'blog_charset' ) );
 			self::for_post( \get_queried_object() );
-		} else {
+			exit;
+		}
+
+		if ( ( \is_front_page() || \is_home() ) && Index::get_posts() ) {
+			\header( 'Content-Type: text/xml; charset=' . \get_option( 'blog_charset' ) );
 			self::directory();
+			exit;
 		}
-		exit;
-	}
-
-	/**
-	 * Turn OPML requests without a blogroll into a regular 404.
-	 *
-	 * @param bool      $handled  Whether the 404 was already handled.
-	 * @param \WP_Query $wp_query The main query.
-	 * @return bool True when this request was turned into a 404.
-	 */
-	public static function pre_handle_404( $handled, $wp_query ) {
-		if ( ! \get_query_var( 'opml' ) ) {
-			return $handled;
-		}
-
-		if ( \is_singular() ) {
-			$post = \get_queried_object();
-			if ( Index::has_blogroll( $post ) ) {
-				return $handled;
-			}
-		} elseif ( Index::get_posts() ) {
-			return $handled;
-		}
-
-		$wp_query->set_404();
-		// redirect_canonical() would guess a permalink for the 404 and
-		// redirect to the page itself.
-		\add_filter( 'do_redirect_guess_404_permalink', '__return_false' );
-		\status_header( 404 );
-		\nocache_headers();
-
-		return true;
 	}
 
 	/**

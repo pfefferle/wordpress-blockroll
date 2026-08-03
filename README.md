@@ -90,8 +90,8 @@ plugin is disabled the URL falls back to the page itself instead of a 404.
 
 At the site root, `/?opml` emits a directory OPML that lists each per-page OPML with
 `<outline type="link">`, so a reader gets one entry per blogroll page rather than one
-big merged list. An OPML request for a page without a blogroll gets the theme's
-regular 404 page.
+big merged list. On a page without a blogroll the query var is simply ignored and the
+normal page loads.
 
 To find those pages cheaply, the plugin keeps a private taxonomy up to date on save: a
 post gets the term when it contains the block and loses it when it does not. The link

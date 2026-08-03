@@ -88,17 +88,13 @@ class Test_Opml extends WP_UnitTestCase {
 		$this->assertSame( 1, substr_count( ob_get_clean(), 'xmlns:source' ) );
 	}
 
-	public function test_opml_404_without_blogroll() {
+	public function test_render_falls_through_without_blogroll() {
 		$id = self::factory()->post->create( array( 'post_content' => 'plain' ) );
 		$this->go_to( add_query_arg( 'opml', '', get_permalink( $id ) ) );
-		$this->assertTrue( \Blockroll\Opml::pre_handle_404( false, $GLOBALS['wp_query'] ) );
-		$this->assertTrue( is_404() );
-	}
-
-	public function test_opml_not_404_with_blogroll() {
-		$id = self::factory()->post->create( array( 'post_content' => self::BLOCK ) );
-		$this->go_to( add_query_arg( 'opml', '', get_permalink( $id ) ) );
-		$this->assertFalse( \Blockroll\Opml::pre_handle_404( false, $GLOBALS['wp_query'] ) );
+		ob_start();
+		\Blockroll\Opml::render();
+		// No OPML, no exit: the normal page loads.
+		$this->assertSame( '', ob_get_clean() );
 		$this->assertFalse( is_404() );
 	}
 
