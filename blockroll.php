@@ -7,6 +7,7 @@
  * Author: Matthias Pfefferle
  * License: GPL-2.0-or-later
  * Text Domain: blockroll
+ * Update URI: https://github.com/pfefferle/wordpress-blockroll
  *
  * @package Blockroll
  */
