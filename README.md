@@ -115,7 +115,7 @@ wordpress-blockroll/
 │   ├── class-discovery.php    # extracts feed, name, description, photo from HTML
 │   ├── class-import.php       # OPML parsing
 │   ├── class-links.php        # link normalizing and sorting
-│   ├── class-opml.php         # opml feed + head discovery links
+│   ├── class-opml.php         # opml output + head discovery links
 │   ├── class-index.php        # private taxonomy, kept in sync on save
 │   ├── class-xfn.php          # XFN vocabulary and rel helper
 │   └── rest/
