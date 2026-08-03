@@ -43,7 +43,7 @@ class Test_Render extends WP_UnitTestCase {
 			)
 		);
 		$this->assertStringContainsString( 'class="h-card"', $html );
-		$this->assertStringContainsString( 'rel="friend met"', $html );
+		$this->assertStringContainsString( 'rel="friend met noopener"', $html );
 		$this->assertStringContainsString( 'class="u-url p-name"', $html );
 		$this->assertStringContainsString( 'class="p-note"', $html );
 		$this->assertStringContainsString( 'class="u-feed"', $html );
@@ -157,11 +157,11 @@ class Test_Render extends WP_UnitTestCase {
 		);
 
 		$html = $this->render_block_html( $attrs );
-		$this->assertStringContainsString( 'feed/opml', $html );
+		$this->assertStringContainsString( 'opml', $html );
 
 		$attrs['showOpml'] = false;
 		$html              = $this->render_block_html( $attrs );
-		$this->assertStringNotContainsString( 'feed/opml', $html );
+		$this->assertStringNotContainsString( 'opml', $html );
 	}
 
 	public function test_no_sort_ui_for_single_option() {

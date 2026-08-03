@@ -19,8 +19,8 @@ The name is a bad pun: a Gutenberg *block* that renders a *blogroll*.
 - **Sorting and paging on the frontend.** Both are plain links with query parameters,
   rendered and handled entirely in PHP. There is no JavaScript on the frontend. You
   can turn the visitor-facing sorting off per block.
-- **OPML out.** The block exposes its links as OPML at `{page}/feed/opml`. The site
-  root, `/feed/opml`, is a directory that lists all of those per-page OPMLs.
+- **OPML out.** The block exposes its links as OPML at `{page}/?opml`. The site
+  root, `/?opml`, is a directory that lists all of those per-page OPMLs.
 - **Blogroll discovery.** Pages with a blogroll advertise their own OPML in the head
   with `<link rel="blogroll">`, following
   [Dave Winer's proposal](https://danq.me/2024/05/03/23615/), and the front page
@@ -84,10 +84,14 @@ the block's own default. There is no frontend JavaScript at all.
 
 ### OPML and discovery
 
-The plugin registers an `opml` feed. On a single post or page it emits the OPML for
-that page's blogroll. At the site root it emits a directory OPML that lists each
-per-page OPML with `<outline type="link">`, so a reader gets one entry per blogroll
-page rather than one big merged list.
+The plugin registers an `opml` query var: append `?opml` to a page and you get the
+OPML for that page's blogroll. A plain query var needs no rewrite rules, and when the
+plugin is disabled the URL falls back to the page itself instead of a 404.
+
+At the site root, `/?opml` emits a directory OPML that lists each per-page OPML with
+`<outline type="link">`, so a reader gets one entry per blogroll page rather than one
+big merged list. An OPML request for a page without a blogroll gets the theme's
+regular 404 page.
 
 To find those pages cheaply, the plugin keeps a private taxonomy up to date on save: a
 post gets the term when it contains the block and loses it when it does not. The link
@@ -98,7 +102,7 @@ OPML, and the front page repeats those links. The root directory URL never appea
 a head:
 
 ```html
-<link rel="blogroll" type="text/xml" href="https://example.com/links/feed/opml"
+<link rel="blogroll" type="text/xml" href="https://example.com/links/?opml"
       title="Example's blogroll">
 ```
 

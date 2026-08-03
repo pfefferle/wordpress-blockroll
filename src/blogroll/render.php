@@ -146,7 +146,7 @@ if ( 'manual' === $attributes['sortBy'] ) {
 						),
 					)
 				),
-				esc_url( \Blockroll\Opml::feed_url( $blockroll_post ) )
+				esc_url( \Blockroll\Opml::opml_url( $blockroll_post ) )
 			);
 			?>
 		</p>

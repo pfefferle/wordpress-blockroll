@@ -43,7 +43,9 @@ class Test_Discovery extends WP_UnitTestCase {
 
 	public function test_route_requires_auth() {
 		$request = new WP_REST_Request( 'POST', '/blockroll/v1/discover' );
-		$request->set_param( 'url', 'https://a.example/' );
+		// A public TEST-NET IP: passes wp_http_validate_url() without DNS,
+		// so the request reaches the permission check.
+		$request->set_param( 'url', 'https://203.0.113.5/' );
 		$response = rest_do_request( $request );
 		$this->assertSame( 401, $response->get_status() );
 	}

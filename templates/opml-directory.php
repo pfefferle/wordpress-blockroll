@@ -26,7 +26,7 @@ defined( 'ABSPATH' ) || exit;
 	</head>
 	<body>
 <?php foreach ( $args['posts'] as $blockroll_post ) : ?>
-		<outline text="<?php echo esc_attr( \Blockroll\Opml::title( $blockroll_post ) ); ?>" type="link" url="<?php echo esc_url( \Blockroll\Opml::feed_url( $blockroll_post ) ); ?>" />
+		<outline text="<?php echo esc_attr( \Blockroll\Opml::title( $blockroll_post ) ); ?>" type="link" url="<?php echo esc_url( \Blockroll\Opml::opml_url( $blockroll_post ) ); ?>" />
 <?php endforeach; ?>
 	</body>
 </opml>

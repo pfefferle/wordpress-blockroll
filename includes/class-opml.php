@@ -12,11 +12,12 @@ namespace Blockroll;
  */
 class Opml {
 	/**
-	 * Register the feed and the discovery link.
+	 * Register the query var and the discovery link.
 	 */
 	public static function register() {
-		\add_feed( 'opml', array( self::class, 'render' ) );
-		\add_filter( 'feed_content_type', array( self::class, 'content_type' ), 10, 2 );
+		\add_filter( 'query_vars', array( self::class, 'add_query_vars' ) );
+		\add_filter( 'request', array( self::class, 'normalize_query_vars' ) );
+		\add_action( 'template_redirect', array( self::class, 'render' ) );
 		\add_filter( 'pre_handle_404', array( self::class, 'pre_handle_404' ), 10, 2 );
 		\add_action( 'wp_head', array( self::class, 'discovery_link' ) );
 		foreach ( array( 'rss2', 'atom' ) as $feed ) {
@@ -47,7 +48,7 @@ class Opml {
 		foreach ( Index::get_posts() as $post ) {
 			\printf(
 				'<source:blogroll>%s</source:blogroll>' . PHP_EOL,
-				\esc_url( self::feed_url( $post ) )
+				\esc_url( self::opml_url( $post ) )
 			);
 		}
 	}
@@ -118,43 +119,63 @@ class Opml {
 	}
 
 	/**
-	 * Feed callback for /feed/opml.
+	 * Register the query var.
 	 *
-	 * The Content-Type is sent by WP::send_headers(), based on the
-	 * feed_content_type filter.
+	 * A query var instead of a rewrite endpoint: no rewrite flush, and
+	 * when the plugin is disabled the URL falls back to the page itself
+	 * instead of a 404.
+	 *
+	 * @param array $query_vars Public query vars.
+	 * @return array Query vars.
+	 */
+	public static function add_query_vars( $query_vars ) {
+		$query_vars[] = 'opml';
+		return $query_vars;
+	}
+
+	/**
+	 * A bare ?opml parses to an empty string; make it truthy so a plain
+	 * get_query_var() check works.
+	 *
+	 * @param array $query_vars Request query vars.
+	 * @return array Query vars.
+	 */
+	public static function normalize_query_vars( $query_vars ) {
+		if ( isset( $query_vars['opml'] ) ) {
+			$query_vars['opml'] = true;
+		}
+		return $query_vars;
+	}
+
+	/**
+	 * Serve the opml request.
+	 *
+	 * Requests without a blogroll were already turned into a 404 by
+	 * pre_handle_404().
 	 */
 	public static function render() {
+		if ( ! \get_query_var( 'opml' ) || \is_404() ) {
+			return;
+		}
+
+		\header( 'Content-Type: text/xml; charset=' . \get_option( 'blog_charset' ) );
 		if ( \is_singular() ) {
 			self::for_post( \get_queried_object() );
 		} else {
 			self::directory();
 		}
-	}
-
-	/**
-	 * Content type of the opml feed.
-	 *
-	 * @param string $content_type Current content type.
-	 * @param string $type         Feed type.
-	 * @return string Content type.
-	 */
-	public static function content_type( $content_type, $type ) {
-		return 'opml' === $type ? 'text/xml' : $content_type;
+		exit;
 	}
 
 	/**
 	 * Turn OPML requests without a blogroll into a regular 404.
-	 *
-	 * Runs on pre_handle_404, before WP::send_headers(), so the request
-	 * gets the theme's 404 page with normal 404 headers instead of feed
-	 * headers, and conditional requests are not answered with a 304.
 	 *
 	 * @param bool      $handled  Whether the 404 was already handled.
 	 * @param \WP_Query $wp_query The main query.
 	 * @return bool True when this request was turned into a 404.
 	 */
 	public static function pre_handle_404( $handled, $wp_query ) {
-		if ( ! \is_feed( 'opml' ) ) {
+		if ( ! \get_query_var( 'opml' ) ) {
 			return $handled;
 		}
 
@@ -167,16 +188,9 @@ class Opml {
 			return $handled;
 		}
 
-		global $wp;
 		$wp_query->set_404();
-		// The theme's 404 page should render, not a feed: clear the flag
-		// for the template loader and the query var for WP::send_headers(),
-		// which would otherwise send feed headers and answer conditional
-		// requests with a 304.
-		$wp_query->is_feed = false;
-		unset( $wp->query_vars['feed'] );
-		// Without the feed query var, redirect_canonical() would guess a
-		// permalink for the 404 and redirect to the page itself.
+		// redirect_canonical() would guess a permalink for the 404 and
+		// redirect to the page itself.
 		\add_filter( 'do_redirect_guess_404_permalink', '__return_false' );
 		\status_header( 404 );
 		\nocache_headers();
@@ -185,13 +199,13 @@ class Opml {
 	}
 
 	/**
-	 * The OPML feed URL of a post.
+	 * The OPML URL of a post.
 	 *
 	 * @param \WP_Post $post Post object.
-	 * @return string Feed URL.
+	 * @return string OPML URL.
 	 */
-	public static function feed_url( $post ) {
-		return \trailingslashit( \get_permalink( $post ) ) . 'feed/opml';
+	public static function opml_url( $post ) {
+		return \add_query_arg( 'opml', '', \get_permalink( $post ) );
 	}
 
 	/**
@@ -249,7 +263,7 @@ class Opml {
 	private static function print_discovery_link( $post ) {
 		\printf(
 			'<link rel="blogroll" type="text/xml" href="%s" title="%s" />' . "\n",
-			\esc_url( self::feed_url( $post ) ),
+			\esc_url( self::opml_url( $post ) ),
 			\esc_attr( self::title( $post ) )
 		);
 	}

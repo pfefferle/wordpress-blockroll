@@ -39,7 +39,7 @@ class Test_Opml extends WP_UnitTestCase {
 		$doc     = new SimpleXMLElement( $xml );
 		$outline = $doc->body->outline[0];
 		$this->assertSame( 'link', (string) $outline['type'] );
-		$this->assertStringContainsString( 'feed/opml', (string) $outline['url'] );
+		$this->assertStringContainsString( 'opml', (string) $outline['url'] );
 		$this->assertStringNotContainsString( 'a.example', $xml ); // No inlined links.
 	}
 
@@ -50,7 +50,7 @@ class Test_Opml extends WP_UnitTestCase {
 		\Blockroll\Opml::discovery_link();
 		$head = ob_get_clean();
 		$this->assertStringContainsString( 'rel="blogroll"', $head );
-		$this->assertStringContainsString( 'feed/opml', $head );
+		$this->assertStringContainsString( 'opml', $head );
 	}
 
 	public function test_front_page_advertises_blogroll_pages() {
@@ -61,7 +61,7 @@ class Test_Opml extends WP_UnitTestCase {
 		$head = ob_get_clean();
 		// The front page points at the blogroll page's own OPML, not the directory.
 		$this->assertStringContainsString( 'rel="blogroll"', $head );
-		$this->assertStringContainsString( trailingslashit( get_permalink( $id ) ) . 'feed/opml', $head );
+		$this->assertStringContainsString( esc_url( \Blockroll\Opml::opml_url( get_post( $id ) ) ), $head );
 	}
 
 	public function test_feed_head_advertises_blogroll() {
@@ -70,7 +70,7 @@ class Test_Opml extends WP_UnitTestCase {
 		\Blockroll\Opml::feed_blogroll();
 		$head = ob_get_clean();
 		$this->assertStringContainsString( '<source:blogroll>', $head );
-		$this->assertStringContainsString( trailingslashit( get_permalink( $id ) ) . 'feed/opml', $head );
+		$this->assertStringContainsString( esc_url( \Blockroll\Opml::opml_url( get_post( $id ) ) ), $head );
 	}
 
 	public function test_feed_namespace() {
@@ -90,22 +90,16 @@ class Test_Opml extends WP_UnitTestCase {
 
 	public function test_opml_404_without_blogroll() {
 		$id = self::factory()->post->create( array( 'post_content' => 'plain' ) );
-		$this->go_to( add_query_arg( 'feed', 'opml', get_permalink( $id ) ) );
+		$this->go_to( add_query_arg( 'opml', '', get_permalink( $id ) ) );
 		$this->assertTrue( \Blockroll\Opml::pre_handle_404( false, $GLOBALS['wp_query'] ) );
 		$this->assertTrue( is_404() );
-		$this->assertFalse( is_feed() );
 	}
 
 	public function test_opml_not_404_with_blogroll() {
 		$id = self::factory()->post->create( array( 'post_content' => self::BLOCK ) );
-		$this->go_to( add_query_arg( 'feed', 'opml', get_permalink( $id ) ) );
+		$this->go_to( add_query_arg( 'opml', '', get_permalink( $id ) ) );
 		$this->assertFalse( \Blockroll\Opml::pre_handle_404( false, $GLOBALS['wp_query'] ) );
 		$this->assertFalse( is_404() );
-	}
-
-	public function test_opml_content_type() {
-		$this->assertSame( 'text/xml', \Blockroll\Opml::content_type( 'application/octet-stream', 'opml' ) );
-		$this->assertSame( 'application/rss+xml', \Blockroll\Opml::content_type( 'application/rss+xml', 'rss2' ) );
 	}
 
 	public function test_singular_without_block_has_no_discovery_link() {
