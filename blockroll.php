@@ -1,13 +1,16 @@
 <?php
 /**
- * Plugin Name: Blockroll
- * Description: A blogroll block: share a list of the blogs and sites you follow.
- * Version: 0.1.0
+ * Plugin Name: Blogroll & Podroll Block
+ * Plugin URI: https://github.com/pfefferle/wordpress-blockroll
+ * Description: Share the blogs and podcasts you follow, and let other people subscribe to your list.
+ * Version: 1.0.0
+ * Requires at least: 6.3
  * Requires PHP: 7.4
  * Author: Matthias Pfefferle
+ * Author URI: https://notiz.blog/
  * License: GPL-2.0-or-later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: blockroll
- * Update URI: https://github.com/pfefferle/wordpress-blockroll
  *
  * @package Blockroll
  */

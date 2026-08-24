@@ -1,5 +1,6 @@
 # Distribution ignores (excluded from archives)
 /.gitattributes      export-ignore
+/.github/            export-ignore
 /.gitignore          export-ignore
 /.wp-env.json        export-ignore
 /bin/                export-ignore

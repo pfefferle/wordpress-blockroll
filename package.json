@@ -1,6 +1,5 @@
 {
 	"name": "wordpress-blockroll",
-	"version": "0.1.0",
 	"scripts": {
 		"dev": "wp-scripts start --experimental-modules",
 		"build": "rm -rf build && wp-scripts build --experimental-modules",

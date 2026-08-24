@@ -1,0 +1,37 @@
+name: PHP_CodeSniffer
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**.php'
+      - phpcs.xml
+      - composer.json
+      - .github/workflows/phpcs.yml
+  pull_request:
+    paths:
+      - '**.php'
+      - phpcs.xml
+      - composer.json
+      - .github/workflows/phpcs.yml
+
+jobs:
+  phpcs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          coverage: none
+          tools: composer
+
+      - name: Install Composer dependencies
+        uses: ramsey/composer-install@v4
+
+      - name: Detect coding standard violations
+        run: ./vendor/bin/phpcs
