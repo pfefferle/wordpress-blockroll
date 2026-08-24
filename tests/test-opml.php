@@ -38,7 +38,7 @@ class Test_Opml extends WP_UnitTestCase {
 		$xml     = ob_get_clean();
 		$doc     = new SimpleXMLElement( $xml );
 		$outline = $doc->body->outline[0];
-		$this->assertSame( 'link', (string) $outline['type'] );
+		$this->assertSame( 'include', (string) $outline['type'] );
 		$this->assertSame( \Blockroll\Opml::opml_url( get_post( $id ) ), (string) $outline['url'] );
 		$this->assertStringNotContainsString( 'a.example', $xml ); // No inlined links.
 	}

@@ -95,8 +95,10 @@ the manual order is only offered (as "Default") when it is the block's own defau
 ### How do I get the OPML of a page?
 
 Append `?opml` to the page URL. The site root, `/?opml`, gives you a directory OPML
-that lists each per-page OPML with `<outline type="link">`, so a reader gets one entry
-per blogroll page rather than one big merged list.
+that lists each per-page OPML with `<outline type="include">`, so a reader gets one entry
+per blogroll page rather than one big merged list. `include` means the entries are
+referenced, not copied: a reader that follows them pulls in the current list every time
+instead of keeping a stale copy.
 
 This is a plain query var rather than a rewrite rule, so nothing has to be flushed, and
 if you disable the plugin the URL falls back to the page itself instead of a 404. On a

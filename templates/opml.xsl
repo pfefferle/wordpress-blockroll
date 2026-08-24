@@ -134,11 +134,11 @@ Please test and contribute to the discussion:
 
 				<div class="container">
 					<section class="recent">
-						<!-- One block per site; the directory OPML has type="link" outlines instead. -->
+						<!-- One block per site; the directory OPML has type="include" outlines instead. -->
 						<xsl:for-each select="/opml/body/outline">
 						<div class="pb-5">
 							<xsl:choose>
-								<xsl:when test="@type = 'link'">
+								<xsl:when test="@type = 'include' or @type = 'link'">
 									<h2>
 										<xsl:value-of select="@text"/>
 									</h2>
