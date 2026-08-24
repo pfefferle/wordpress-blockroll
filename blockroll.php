@@ -51,6 +51,10 @@ function init() {
 		// Frontend sorting and paging of the blogroll block.
 		$vars[] = 'blockroll-sort';
 		$vars[] = 'blockroll-page';
+		// OPML output. A query var rather than a rewrite endpoint: no rewrite
+		// flush, and when the plugin is disabled the URL falls back to the
+		// page itself instead of a 404.
+		$vars[] = 'opml';
 		return $vars;
 	}
 );

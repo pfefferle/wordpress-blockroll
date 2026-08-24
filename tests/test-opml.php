@@ -32,14 +32,14 @@ class Test_Opml extends WP_UnitTestCase {
 	}
 
 	public function test_directory_lists_pages_not_links() {
-		self::factory()->post->create( array( 'post_content' => self::BLOCK ) );
+		$id = self::factory()->post->create( array( 'post_content' => self::BLOCK ) );
 		ob_start();
 		\Blockroll\Opml::directory();
 		$xml     = ob_get_clean();
 		$doc     = new SimpleXMLElement( $xml );
 		$outline = $doc->body->outline[0];
 		$this->assertSame( 'link', (string) $outline['type'] );
-		$this->assertStringContainsString( 'opml', (string) $outline['url'] );
+		$this->assertSame( \Blockroll\Opml::opml_url( get_post( $id ) ), (string) $outline['url'] );
 		$this->assertStringNotContainsString( 'a.example', $xml ); // No inlined links.
 	}
 
@@ -50,7 +50,7 @@ class Test_Opml extends WP_UnitTestCase {
 		\Blockroll\Opml::discovery_link();
 		$head = ob_get_clean();
 		$this->assertStringContainsString( 'rel="blogroll"', $head );
-		$this->assertStringContainsString( 'opml', $head );
+		$this->assertStringContainsString( esc_url( \Blockroll\Opml::opml_url( get_post( $id ) ) ), $head );
 	}
 
 	public function test_front_page_advertises_blogroll_pages() {

@@ -157,7 +157,7 @@ class Test_Render extends WP_UnitTestCase {
 		);
 
 		$html = $this->render_block_html( $attrs );
-		$this->assertStringContainsString( 'opml', $html );
+		$this->assertStringContainsString( esc_url( \Blockroll\Opml::opml_url( $post ) ), $html );
 
 		$attrs['showOpml'] = false;
 		$html              = $this->render_block_html( $attrs );

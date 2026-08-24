@@ -12,11 +12,12 @@ namespace Blockroll;
  */
 class Opml {
 	/**
-	 * Register the query var and the discovery link.
+	 * Register the OPML output and the discovery link.
+	 *
+	 * The `opml` query var itself is declared with the plugin's other
+	 * public query vars in blockroll.php.
 	 */
 	public static function register() {
-		\add_filter( 'query_vars', array( self::class, 'add_query_vars' ) );
-		\add_filter( 'request', array( self::class, 'normalize_query_vars' ) );
 		\add_action( 'template_redirect', array( self::class, 'render' ) );
 		\add_action( 'wp_head', array( self::class, 'discovery_link' ) );
 		foreach ( array( 'rss2', 'atom' ) as $feed ) {
@@ -97,12 +98,14 @@ class Opml {
 
 	/**
 	 * Print the directory OPML listing every blogroll page's own OPML.
+	 *
+	 * @param \WP_Post[]|null $posts Blogroll posts, or null to look them up.
 	 */
-	public static function directory() {
+	public static function directory( $posts = null ) {
 		\load_template(
 			\dirname( BLOCKROLL_PLUGIN_FILE ) . '/templates/opml-directory.php',
 			false,
-			array( 'posts' => Index::get_posts() )
+			array( 'posts' => null === $posts ? Index::get_posts() : $posts )
 		);
 	}
 
@@ -118,32 +121,27 @@ class Opml {
 	}
 
 	/**
-	 * Register the query var.
+	 * The queried post, when it has a blogroll.
 	 *
-	 * A query var instead of a rewrite endpoint: no rewrite flush, and
-	 * when the plugin is disabled the URL falls back to the page itself
-	 * instead of a 404.
-	 *
-	 * @param array $query_vars Public query vars.
-	 * @return array Query vars.
+	 * @return \WP_Post|null Post with a blogroll block, or null.
 	 */
-	public static function add_query_vars( $query_vars ) {
-		$query_vars[] = 'opml';
-		return $query_vars;
+	private static function blogroll_post() {
+		if ( ! \is_singular() ) {
+			return null;
+		}
+
+		$post = \get_queried_object();
+
+		return Index::has_blogroll( $post ) ? $post : null;
 	}
 
 	/**
-	 * A bare ?opml parses to an empty string; make it truthy so a plain
-	 * get_query_var() check works.
+	 * Whether this request is the site root, where the directory lives.
 	 *
-	 * @param array $query_vars Request query vars.
-	 * @return array Query vars.
+	 * @return bool True on the front page or the blog home.
 	 */
-	public static function normalize_query_vars( $query_vars ) {
-		if ( isset( $query_vars['opml'] ) ) {
-			$query_vars['opml'] = true;
-		}
-		return $query_vars;
+	private static function is_blogroll_root() {
+		return \is_front_page() || \is_home();
 	}
 
 	/**
@@ -153,21 +151,25 @@ class Opml {
 	 * page loads, just like when the plugin is disabled.
 	 */
 	public static function render() {
-		if ( ! \get_query_var( 'opml' ) ) {
+		// A bare ?opml parses to an empty string, so test presence, not value.
+		if ( null === \get_query_var( 'opml', null ) ) {
 			return;
 		}
 
-		if ( \is_singular() && Index::has_blogroll( \get_queried_object() ) ) {
-			\header( 'Content-Type: text/xml; charset=' . \get_option( 'blog_charset' ) );
-			self::for_post( \get_queried_object() );
-			exit;
+		$post  = self::blogroll_post();
+		$posts = ( ! $post && self::is_blogroll_root() ) ? Index::get_posts() : array();
+
+		if ( ! $post && ! $posts ) {
+			return;
 		}
 
-		if ( ( \is_front_page() || \is_home() ) && Index::get_posts() ) {
-			\header( 'Content-Type: text/xml; charset=' . \get_option( 'blog_charset' ) );
-			self::directory();
-			exit;
+		\header( 'Content-Type: text/xml; charset=' . \get_option( 'blog_charset' ) );
+		if ( $post ) {
+			self::for_post( $post );
+		} else {
+			self::directory( $posts );
 		}
+		exit;
 	}
 
 	/**
@@ -213,14 +215,14 @@ class Opml {
 	 */
 	public static function discovery_link() {
 		if ( \is_singular() ) {
-			$post = \get_queried_object();
-			if ( Index::has_blogroll( $post ) ) {
+			$post = self::blogroll_post();
+			if ( $post ) {
 				self::print_discovery_link( $post );
 			}
 			return;
 		}
 
-		if ( \is_front_page() || \is_home() ) {
+		if ( self::is_blogroll_root() ) {
 			foreach ( Index::get_posts() as $post ) {
 				self::print_discovery_link( $post );
 			}
