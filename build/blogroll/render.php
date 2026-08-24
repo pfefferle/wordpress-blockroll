@@ -13,6 +13,8 @@
 use Blockroll\Links;
 use Blockroll\Xfn;
 
+defined( 'ABSPATH' ) || exit;
+
 $blockroll_links = array_map( array( Links::class, 'normalize' ), $attributes['links'] );
 $blockroll_links = array_filter(
 	$blockroll_links,
