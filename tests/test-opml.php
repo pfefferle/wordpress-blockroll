@@ -43,6 +43,20 @@ class Test_Opml extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'a.example', $xml ); // No inlined links.
 	}
 
+	public function test_directory_has_date_modified() {
+		$id = self::factory()->post->create( array( 'post_content' => self::BLOCK ) );
+		ob_start();
+		\Blockroll\Opml::directory();
+		$xml = ob_get_clean();
+		$doc = new SimpleXMLElement( $xml );
+		$this->assertSame(
+			get_post_modified_time( 'r', true, get_post( $id ) ),
+			(string) $doc->head->dateModified
+		);
+		$this->assertSame( get_bloginfo( 'name' ), (string) $doc->head->ownerName );
+		$this->assertSame( home_url( '/' ), (string) $doc->head->ownerId );
+	}
+
 	public function test_discovery_link_on_singular_with_block() {
 		$id = self::factory()->post->create( array( 'post_content' => self::BLOCK ) );
 		$this->go_to( get_permalink( $id ) );

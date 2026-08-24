@@ -125,6 +125,8 @@ Project and support maintained on github at [pfefferle/wordpress-blockroll](http
 
 ### Unreleased
 
+* Add `dateModified`, `ownerName` and `ownerId` to the directory OPML, with the date
+  taken from the most recently changed blogroll page
 * Mark the blogroll list up as XOXO, with `class="xoxo blogroll"` on the list
 * Add the XFN profile link, `<link rel="profile" href="https://gmpg.org/xfn/11" />`, to
   every page, because XFN is not limited to the blogroll
