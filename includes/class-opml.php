@@ -32,7 +32,9 @@ class Opml {
 	 */
 	public static function register() {
 		self::add_rewrite_rules();
-		\add_action( 'template_redirect', array( self::class, 'render' ) );
+		// Before redirect_canonical, which would send the well-known URL to a
+		// trailing-slash version of itself.
+		\add_action( 'template_redirect', array( self::class, 'render' ), 9 );
 		\add_action( 'wp_head', array( self::class, 'discovery_link' ) );
 		foreach ( array( 'rss2', 'atom' ) as $feed ) {
 			\add_action( $feed . '_ns', 'ob_start', 1 );

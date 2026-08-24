@@ -7,7 +7,8 @@
 		"lint:css": "wp-scripts lint-style",
 		"test:unit": "wp-scripts test-unit-js",
 		"env-start": "wp-env start",
-		"env-stop": "wp-env stop"
+		"env-stop": "wp-env stop",
+		"env-test": "wp-env run tests-cli --env-cwd=\"wp-content/plugins/blockroll\" vendor/bin/phpunit"
 	},
 	"devDependencies": {
 		"@wordpress/api-fetch": "^7.52.0",
@@ -15,6 +16,7 @@
 		"@wordpress/blocks": "^15.25.0",
 		"@wordpress/components": "^38.0.0",
 		"@wordpress/element": "^8.4.0",
+		"@wordpress/env": "^11.13.0",
 		"@wordpress/i18n": "^6.25.0",
 		"@wordpress/icons": "^15.3.0",
 		"@wordpress/interactivity": "^6.52.0",

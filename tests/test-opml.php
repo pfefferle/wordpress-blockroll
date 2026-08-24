@@ -43,6 +43,20 @@ class Test_Opml extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'a.example', $xml ); // No inlined links.
 	}
 
+	public function test_opml_without_author_has_no_empty_owner() {
+		$id = self::factory()->post->create(
+			array(
+				'post_content' => self::BLOCK,
+				'post_author'  => 0,
+			)
+		);
+		ob_start();
+		\Blockroll\Opml::for_post( get_post( $id ) );
+		$xml = ob_get_clean();
+		$this->assertStringNotContainsString( '<ownerName>', $xml );
+		$this->assertInstanceOf( SimpleXMLElement::class, new SimpleXMLElement( $xml ) );
+	}
+
 	public function test_well_known_url_asks_for_the_directory() {
 		$this->set_permalink_structure( '/%postname%/' );
 		$this->go_to( home_url( '/' . \Blockroll\Opml::WELL_KNOWN ) );
