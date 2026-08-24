@@ -104,6 +104,11 @@ This is a plain query var rather than a rewrite rule, so nothing has to be flush
 if you disable the plugin the URL falls back to the page itself instead of a 404. On a
 page without a blogroll the query var is simply ignored and the normal page loads.
 
+The directory is also served at `/.well-known/recommendations.opml`, so a reader can find
+it by convention instead of parsing the HTML first. That path has no page behind it, so
+it does get a rewrite rule, which is flushed on activation. It is always the directory,
+even when there is only one blogroll page, so the URL means the same thing everywhere.
+
 ### How does the plugin find the pages that have a blogroll?
 
 It keeps a private taxonomy up to date on save: a post gets the term when it contains
@@ -125,6 +130,7 @@ Project and support maintained on github at [pfefferle/wordpress-blockroll](http
 
 ### Unreleased
 
+* Serve the directory OPML at `/.well-known/recommendations.opml`
 * Add `dateModified`, `ownerName` and `ownerId` to the directory OPML, with the date
   taken from the most recently changed blogroll page
 * Mark the blogroll list up as XOXO, with `class="xoxo blogroll"` on the list

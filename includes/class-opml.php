@@ -8,9 +8,22 @@
 namespace Blockroll;
 
 /**
- * Serve OPML for blogroll pages and a directory of them at the site root.
+ * Serve OPML for blogroll pages and a directory of them at the site root
+ * and at /.well-known/recommendations.opml.
  */
 class Opml {
+	/**
+	 * Path of the well-known directory OPML, without the leading slash.
+	 *
+	 * See https://opml.org/
+	 */
+	const WELL_KNOWN = '.well-known/recommendations.opml';
+
+	/**
+	 * Value of the `opml` query var that always asks for the directory.
+	 */
+	const DIRECTORY = 'directory';
+
 	/**
 	 * Register the OPML output and the discovery link.
 	 *
@@ -18,6 +31,7 @@ class Opml {
 	 * public query vars in blockroll.php.
 	 */
 	public static function register() {
+		self::add_rewrite_rules();
 		\add_action( 'template_redirect', array( self::class, 'render' ) );
 		\add_action( 'wp_head', array( self::class, 'discovery_link' ) );
 		foreach ( array( 'rss2', 'atom' ) as $feed ) {
@@ -25,6 +39,22 @@ class Opml {
 			\add_action( $feed . '_ns', array( self::class, 'feed_namespace' ), PHP_INT_MAX );
 			\add_action( $feed . '_head', array( self::class, 'feed_blogroll' ) );
 		}
+	}
+
+	/**
+	 * Map the well-known URL to the directory OPML.
+	 *
+	 * Also called on activation, before the rules are flushed. Unlike the
+	 * `?opml` query var, this path has no page to fall back to, so it needs
+	 * a rule of its own.
+	 */
+	public static function add_rewrite_rules() {
+		\add_rewrite_rule(
+			// WordPress matches rewrite rules with "#" as the delimiter.
+			\sprintf( '^%s$', \preg_quote( self::WELL_KNOWN, '#' ) ),
+			\sprintf( 'index.php?opml=%s', self::DIRECTORY ),
+			'top'
+		);
 	}
 
 	/**
@@ -152,12 +182,15 @@ class Opml {
 	 */
 	public static function render() {
 		// A bare ?opml parses to an empty string, so test presence, not value.
-		if ( null === \get_query_var( 'opml', null ) ) {
+		$opml = \get_query_var( 'opml', null );
+		if ( null === $opml ) {
 			return;
 		}
 
-		$post  = self::blogroll_post();
-		$posts = ( ! $post && self::is_blogroll_root() ) ? Index::get_posts() : array();
+		// The well-known URL asks for the directory, whatever page it lands on.
+		$directory = self::DIRECTORY === $opml;
+		$post      = $directory ? null : self::blogroll_post();
+		$posts     = ( ! $post && ( $directory || self::is_blogroll_root() ) ) ? Index::get_posts() : array();
 
 		if ( ! $post && ! $posts ) {
 			return;

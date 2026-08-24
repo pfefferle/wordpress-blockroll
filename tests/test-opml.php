@@ -43,6 +43,14 @@ class Test_Opml extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'a.example', $xml ); // No inlined links.
 	}
 
+	public function test_well_known_url_asks_for_the_directory() {
+		$this->set_permalink_structure( '/%postname%/' );
+		$this->go_to( home_url( '/' . \Blockroll\Opml::WELL_KNOWN ) );
+		$this->assertSame( \Blockroll\Opml::DIRECTORY, get_query_var( 'opml' ) );
+		$this->assertFalse( is_404() );
+		$this->set_permalink_structure( '' );
+	}
+
 	public function test_directory_has_date_modified() {
 		$id = self::factory()->post->create( array( 'post_content' => self::BLOCK ) );
 		ob_start();

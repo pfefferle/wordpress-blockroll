@@ -46,6 +46,19 @@ function init() {
 }
 \add_action( 'init', __NAMESPACE__ . '\init' );
 
+/**
+ * Add the rewrite rules and flush them.
+ *
+ * On activation the plugin was not loaded when `init` ran, so the rules
+ * have to be added before flushing.
+ */
+function activate() {
+	Opml::add_rewrite_rules();
+	\flush_rewrite_rules();
+}
+\register_activation_hook( __FILE__, __NAMESPACE__ . '\activate' );
+\register_deactivation_hook( __FILE__, 'flush_rewrite_rules' );
+
 \add_filter(
 	'query_vars',
 	function ( $vars ) {
@@ -54,7 +67,8 @@ function init() {
 		$vars[] = 'blockroll-page';
 		// OPML output. A query var rather than a rewrite endpoint: no rewrite
 		// flush, and when the plugin is disabled the URL falls back to the
-		// page itself instead of a 404.
+		// page itself instead of a 404. Only the well-known URL, which has
+		// no page behind it, gets a rewrite rule of its own.
 		$vars[] = 'opml';
 		return $vars;
 	}
