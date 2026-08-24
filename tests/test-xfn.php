@@ -22,6 +22,15 @@ class Test_Xfn extends WP_UnitTestCase {
 		$this->assertSame( array( 'me' ), \Blockroll\Xfn::sanitize( array( 'me', 'friend', 'met' ) ) );
 	}
 
+	public function test_profile_link_on_every_page() {
+		$this->go_to( home_url( '/' ) );
+		ob_start();
+		\Blockroll\Xfn::profile_link();
+		$head = ob_get_clean();
+		$this->assertStringContainsString( 'rel="profile"', $head );
+		$this->assertStringContainsString( \Blockroll\Xfn::PROFILE, $head );
+	}
+
 	public function test_rel_string() {
 		$this->assertSame( 'friend met', \Blockroll\Xfn::rel_string( array( 'friend', 'met' ) ) );
 		$this->assertSame( '', \Blockroll\Xfn::rel_string( array() ) );

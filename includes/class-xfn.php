@@ -11,6 +11,11 @@ namespace Blockroll;
  * XFN relationship tokens, grouped per the XFN 1.1 profile.
  */
 class Xfn {
+	/**
+	 * The XFN 1.1 profile URI.
+	 */
+	const PROFILE = 'https://gmpg.org/xfn/11';
+
 	const GROUPS = array(
 		'friendship'   => array( 'friend', 'acquaintance', 'contact' ),
 		'physical'     => array( 'met' ),
@@ -22,6 +27,26 @@ class Xfn {
 	);
 
 	const EXCLUSIVE = array( 'friendship', 'geographical', 'family' );
+
+	/**
+	 * Register the profile link.
+	 */
+	public static function register() {
+		\add_action( 'wp_head', array( self::class, 'profile_link' ) );
+	}
+
+	/**
+	 * Print the XFN profile link on every page.
+	 *
+	 * XFN values are not limited to the blogroll, themes use them in menus
+	 * and on comment author links, so the profile belongs on the whole
+	 * site. Some themes print it too. A second one does no harm, the
+	 * profiles of a document are a set, and there is no way to know what
+	 * the theme does before it does it.
+	 */
+	public static function profile_link() {
+		\printf( '<link rel="profile" href="%s" />' . PHP_EOL, \esc_url( self::PROFILE ) );
+	}
 
 	/**
 	 * Whitelist tokens against the XFN vocabulary and enforce group rules.

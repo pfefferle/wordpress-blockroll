@@ -125,6 +125,11 @@ Project and support maintained on github at [pfefferle/wordpress-blockroll](http
 
 ### Unreleased
 
+* Mark the blogroll list up as XOXO, with `class="xoxo blogroll"` on the list
+* Add the XFN profile link, `<link rel="profile" href="https://gmpg.org/xfn/11" />`, to
+  every page, because XFN is not limited to the blogroll
+* List the per-page OPMLs in the directory as `type="include"` instead of `type="link"`,
+  so a reader references them instead of keeping a copy
 * Serve the OPML as a `?opml` query var instead of an `opml` feed, so no rewrite rules
   are registered and nothing has to be flushed on activation
 * Serve the normal page instead of a 404 when a page without a blogroll is requested

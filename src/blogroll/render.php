@@ -77,7 +77,7 @@ if ( 'manual' === $attributes['sortBy'] ) {
 			</span>
 		</nav>
 	<?php endif; ?>
-	<ul class="blockroll-list">
+	<ul class="blockroll-list xoxo blogroll">
 		<?php foreach ( $blockroll_links as $blockroll_link ) : ?>
 			<?php $blockroll_rel = trim( Xfn::rel_string( $blockroll_link['xfn'] ) . ' noopener' ); ?>
 			<li class="h-card">

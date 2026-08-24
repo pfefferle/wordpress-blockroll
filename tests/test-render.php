@@ -48,6 +48,7 @@ class Test_Render extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'class="p-note"', $html );
 		$this->assertStringContainsString( 'class="u-feed"', $html );
 		$this->assertStringContainsString( 'class="u-photo"', $html );
+		$this->assertStringContainsString( 'class="blockroll-list xoxo blogroll"', $html );
 	}
 
 	public function test_sorts_by_name_by_default() {
