@@ -111,17 +111,45 @@ class Test_Opml extends WP_UnitTestCase {
 
 	public function test_feed_namespace() {
 		ob_start();
-		ob_start(); // The buffer started at rss2_ns priority 1.
+		\Blockroll\Opml::feed_namespace_start();
 		\Blockroll\Opml::feed_namespace();
 		$this->assertStringContainsString( 'xmlns:source="http://source.scripting.com/"', ob_get_clean() );
 	}
 
 	public function test_feed_namespace_not_duplicated() {
 		ob_start();
-		ob_start(); // The buffer started at rss2_ns priority 1.
+		\Blockroll\Opml::feed_namespace_start();
 		echo 'xmlns:source="http://source.scripting.com/"';
 		\Blockroll\Opml::feed_namespace();
 		$this->assertSame( 1, substr_count( ob_get_clean(), 'xmlns:source' ) );
+	}
+
+	/**
+	 * The hooks run as WordPress calls them, without a PHP warning.
+	 *
+	 * `do_action()` passes an empty string to every callback, so hooking
+	 * `ob_start` directly made PHP complain about an invalid callback.
+	 */
+	public function test_feed_ns_hooks_do_not_warn() {
+		ob_start();
+		do_action( 'rss2_ns' );
+		$this->assertSame( 1, substr_count( ob_get_clean(), 'xmlns:source' ) );
+	}
+
+	/**
+	 * A buffer that is not ours is left alone.
+	 *
+	 * Without the start callback there is nothing to clean up, and
+	 * cleaning anyway would swallow another plugin's output, like a
+	 * caching plugin's feed cache.
+	 */
+	public function test_feed_namespace_keeps_foreign_buffer() {
+		ob_start();
+		echo 'not ours';
+		\Blockroll\Opml::feed_namespace();
+		$output = ob_get_clean();
+		$this->assertStringContainsString( 'not ours', $output );
+		$this->assertStringContainsString( 'xmlns:source="http://source.scripting.com/"', $output );
 	}
 
 	public function test_render_falls_through_without_blogroll() {

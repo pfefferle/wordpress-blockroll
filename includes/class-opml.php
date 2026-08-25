@@ -25,6 +25,13 @@ class Opml {
 	const DIRECTORY = 'directory';
 
 	/**
+	 * Output buffer level of the feed namespace buffer, 0 if not buffering.
+	 *
+	 * @var int
+	 */
+	private static $namespace_level = 0;
+
+	/**
 	 * Register the OPML output and the discovery link.
 	 *
 	 * The `opml` query var itself is declared with the plugin's other
@@ -37,7 +44,7 @@ class Opml {
 		\add_action( 'template_redirect', array( self::class, 'render' ), 9 );
 		\add_action( 'wp_head', array( self::class, 'discovery_link' ) );
 		foreach ( array( 'rss2', 'atom' ) as $feed ) {
-			\add_action( $feed . '_ns', 'ob_start', 1 );
+			\add_action( $feed . '_ns', array( self::class, 'feed_namespace_start' ), 1 );
 			\add_action( $feed . '_ns', array( self::class, 'feed_namespace' ), PHP_INT_MAX );
 			\add_action( $feed . '_head', array( self::class, 'feed_blogroll' ) );
 		}
@@ -60,13 +67,33 @@ class Opml {
 	}
 
 	/**
+	 * Start buffering the namespaces other plugins and themes print.
+	 *
+	 * A method rather than `ob_start` itself: `do_action()` passes an empty
+	 * string to every callback, and `ob_start( '' )` is a PHP warning.
+	 */
+	public static function feed_namespace_start() {
+		if ( \ob_start() ) {
+			self::$namespace_level = \ob_get_level();
+		}
+	}
+
+	/**
 	 * Add the source namespace to a feed, unless another plugin or
 	 * theme already did.
 	 *
 	 * See https://source.scripting.com/
 	 */
 	public static function feed_namespace() {
-		$namespaces = \ob_get_clean();
+		$namespaces = '';
+
+		// Only close the buffer this class opened. Somebody else's buffer,
+		// a caching plugin's for example, has to stay untouched.
+		if ( self::$namespace_level && \ob_get_level() === self::$namespace_level ) {
+			$namespaces            = (string) \ob_get_clean();
+			self::$namespace_level = 0;
+		}
+
 		if ( false === \strpos( $namespaces, 'xmlns:source' ) ) {
 			$namespaces .= ' xmlns:source="http://source.scripting.com/" ';
 		}
