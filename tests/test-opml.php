@@ -100,6 +100,57 @@ class Test_Opml extends WP_UnitTestCase {
 		$this->assertStringContainsString( esc_url( \Blockroll\Opml::opml_url( get_post( $id ) ) ), $head );
 	}
 
+	/**
+	 * A static front page advertises the blogroll pages too.
+	 *
+	 * It is `is_singular()` as well, so it used to fall into the branch for
+	 * single posts and, without a blogroll of its own, print nothing.
+	 */
+	public function test_static_front_page_advertises_blogroll_pages() {
+		$id    = self::factory()->post->create(
+			array(
+				'post_type'    => 'page',
+				'post_content' => self::BLOCK,
+			)
+		);
+		$front = self::factory()->post->create(
+			array(
+				'post_type'    => 'page',
+				'post_content' => 'plain',
+			)
+		);
+		update_option( 'show_on_front', 'page' );
+		update_option( 'page_on_front', $front );
+
+		$this->go_to( get_permalink( $front ) );
+		ob_start();
+		\Blockroll\Opml::discovery_link();
+		$head = ob_get_clean();
+
+		$this->assertTrue( is_front_page() );
+		$this->assertStringContainsString( esc_url( \Blockroll\Opml::opml_url( get_post( $id ) ) ), $head );
+	}
+
+	/**
+	 * A blogroll page that is the front page is advertised once, not twice.
+	 */
+	public function test_front_page_with_own_blogroll_is_not_duplicated() {
+		$front = self::factory()->post->create(
+			array(
+				'post_type'    => 'page',
+				'post_content' => self::BLOCK,
+			)
+		);
+		update_option( 'show_on_front', 'page' );
+		update_option( 'page_on_front', $front );
+
+		$this->go_to( get_permalink( $front ) );
+		ob_start();
+		\Blockroll\Opml::discovery_link();
+
+		$this->assertSame( 1, substr_count( ob_get_clean(), 'rel="blogroll"' ) );
+	}
+
 	public function test_feed_head_advertises_blogroll() {
 		$id = self::factory()->post->create( array( 'post_content' => self::BLOCK ) );
 		ob_start();
