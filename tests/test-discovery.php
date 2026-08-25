@@ -27,6 +27,38 @@ class Test_Discovery extends WP_UnitTestCase {
 		$this->assertSame( 'Writes about the open web.', $result['description'] );
 	}
 
+	/**
+	 * A blogroll on the page must not win against the site's own h-card.
+	 *
+	 * The blogroll block marks every entry up as an h-card, so the first
+	 * h-card on a page is often somebody else.
+	 */
+	public function test_own_hcard_wins_over_blogroll_hcards() {
+		$result = \Blockroll\Discovery::from_html( $this->fixture( 'blogroll-hcards.html' ), 'https://ann.example/' );
+		$this->assertSame( 'Ann Example', $result['name'] );
+		$this->assertSame( 'https://ann.example/photo.jpg', $result['photo'] );
+		$this->assertSame( 'Writes about the open web.', $result['description'] );
+	}
+
+	/**
+	 * An h-card linked from a rel="me" URL is the site's own one too.
+	 */
+	public function test_rel_me_hcard_wins_over_blogroll_hcards() {
+		$result = \Blockroll\Discovery::from_html( $this->fixture( 'hcard-rel-me.html' ), 'https://ann.example/' );
+		$this->assertSame( 'Ann Example', $result['name'] );
+		$this->assertSame( 'https://ann.example/photo.jpg', $result['photo'] );
+	}
+
+	/**
+	 * Without an own h-card the blogroll entries are ignored.
+	 */
+	public function test_blogroll_only_page_falls_back_to_title_and_meta() {
+		$result = \Blockroll\Discovery::from_html( $this->fixture( 'blogroll-only.html' ), 'https://ann.example/' );
+		$this->assertSame( "Ann's Website", $result['name'] );
+		$this->assertSame( 'Writes about the open web.', $result['description'] );
+		$this->assertSame( 'https://ann.example/favicon.ico', $result['photo'] );
+	}
+
 	public function test_falls_back_to_title_and_meta() {
 		$result = \Blockroll\Discovery::from_html( $this->fixture( 'feed-only.html' ), 'https://b.example/' );
 		$this->assertSame( 'Feed Only', $result['name'] );
