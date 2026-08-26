@@ -276,18 +276,22 @@ class Opml {
 	 * list of OPMLs, not a blogroll, so it is never advertised.
 	 */
 	public static function discovery_link() {
-		if ( \is_singular() ) {
-			$post = self::blogroll_post();
-			if ( $post ) {
-				self::print_discovery_link( $post );
-			}
+		$post = self::blogroll_post();
+		if ( $post ) {
+			self::print_discovery_link( $post );
+		}
+
+		// A static front page is singular as well, so it gets both: its own
+		// blogroll, if it has one, and the ones on the other pages.
+		if ( ! self::is_blogroll_root() ) {
 			return;
 		}
 
-		if ( self::is_blogroll_root() ) {
-			foreach ( Index::get_posts() as $post ) {
-				self::print_discovery_link( $post );
+		foreach ( Index::get_posts() as $blogroll ) {
+			if ( $post && $post->ID === $blogroll->ID ) {
+				continue;
 			}
+			self::print_discovery_link( $blogroll );
 		}
 	}
 
