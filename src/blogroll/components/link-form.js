@@ -16,7 +16,7 @@ import {
  * Internal dependencies
  */
 import XfnControl from './xfn-control';
-import { mergeDiscovered } from '../utils';
+import { fetchPhoto, mergeDiscovered, needsEmbedding } from '../utils';
 
 const EMPTY = {
 	url: '',
@@ -39,6 +39,8 @@ const EMPTY = {
 export default function LinkForm( { link, onSave, onCancel } ) {
 	const [ draft, setDraft ] = useState( { ...EMPTY, ...link } );
 	const [ isFetching, setIsFetching ] = useState( false );
+	const [ isEmbedding, setIsEmbedding ] = useState( false );
+	const [ photoUrl, setPhotoUrl ] = useState( '' );
 	const [ error, setError ] = useState( null );
 
 	const set = ( field ) => ( fieldValue ) =>
@@ -62,6 +64,28 @@ export default function LinkForm( { link, onSave, onCancel } ) {
 				)
 			)
 			.finally( () => setIsFetching( false ) );
+	};
+
+	// The image is copied into the page, so a visitor never asks the
+	// other site for it.
+	const embedPhoto = ( source ) => {
+		setIsEmbedding( true );
+		setError( null );
+		fetchPhoto( source )
+			.then( ( photo ) => {
+				if ( ! photo ) {
+					setError(
+						__(
+							'That address did not give us an image we can use.',
+							'blockroll'
+						)
+					);
+					return;
+				}
+				setDraft( ( current ) => ( { ...current, photo } ) );
+				setPhotoUrl( '' );
+			} )
+			.finally( () => setIsEmbedding( false ) );
 	};
 
 	const save = () =>
@@ -128,14 +152,57 @@ export default function LinkForm( { link, onSave, onCancel } ) {
 					value={ draft.feedUrl }
 					onChange={ set( 'feedUrl' ) }
 				/>
-				<TextControl
-					__next40pxDefaultSize
-					__nextHasNoMarginBottom
-					label={ __( 'Image address', 'blockroll' ) }
-					type="url"
-					value={ draft.photo }
-					onChange={ set( 'photo' ) }
-				/>
+				{ draft.photo && (
+					<div className="blockroll-form__photo">
+						<img src={ draft.photo } alt="" width="48" />
+						{ needsEmbedding( draft.photo ) ? (
+							<Button
+								__next40pxDefaultSize
+								variant="secondary"
+								isBusy={ isEmbedding }
+								disabled={ isEmbedding }
+								onClick={ () => embedPhoto( draft ) }
+							>
+								{ __(
+									'Copy the image into the page',
+									'blockroll'
+								) }
+							</Button>
+						) : (
+							<Button
+								__next40pxDefaultSize
+								variant="tertiary"
+								isDestructive
+								onClick={ () => set( 'photo' )( '' ) }
+							>
+								{ __( 'Remove image', 'blockroll' ) }
+							</Button>
+						) }
+					</div>
+				) }
+				<div className="blockroll-form__row">
+					<TextControl
+						__next40pxDefaultSize
+						__nextHasNoMarginBottom
+						label={ __( 'Image address', 'blockroll' ) }
+						help={ __(
+							'The image is copied into the page, so visitors never load it from another site.',
+							'blockroll'
+						) }
+						type="url"
+						value={ photoUrl }
+						onChange={ setPhotoUrl }
+					/>
+					<Button
+						__next40pxDefaultSize
+						variant="secondary"
+						isBusy={ isEmbedding }
+						disabled={ ! photoUrl || isEmbedding }
+						onClick={ () => embedPhoto( { photo: photoUrl } ) }
+					>
+						{ __( 'Use image', 'blockroll' ) }
+					</Button>
+				</div>
 				<XfnControl value={ draft.xfn } onChange={ set( 'xfn' ) } />
 				<div className="blockroll-form__footer">
 					<Button

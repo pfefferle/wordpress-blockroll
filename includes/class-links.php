@@ -36,7 +36,7 @@ class Links {
 			'name'        => \sanitize_text_field( $link['name'] ),
 			'description' => \sanitize_text_field( $link['description'] ),
 			'feedUrl'     => \esc_url_raw( $link['feedUrl'] ),
-			'photo'       => \esc_url_raw( $link['photo'] ),
+			'photo'       => Icon::is_data_uri( $link['photo'] ) ? $link['photo'] : \esc_url_raw( $link['photo'] ),
 			'xfn'         => Xfn::sanitize( $link['xfn'] ),
 			'added'       => \sanitize_text_field( $link['added'] ),
 		);

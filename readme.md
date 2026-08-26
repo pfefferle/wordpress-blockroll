@@ -96,6 +96,15 @@ the site's name, feed and icon, and when you import a list from an address, your
 fetches that file. Nothing else leaves your server, and there is no tracking, no
 analytics and no account anywhere.
 
+Your visitors send nothing at all. The icon of a site is fetched once, by your server,
+and copied into the page, so nobody's browser has to ask another site for a picture.
+
+### Why is an icon missing?
+
+Because it still points at another site. Those are not shown any more, a visitor would
+hand their address to every site on your list just by reading it. Open the page in the
+editor and use "Copy the images into the page", then they are back.
+
 ### Does this need JavaScript?
 
 Not for your visitors. The list, the sorting and the paging are plain HTML rendered on

@@ -80,6 +80,19 @@
 	}
 }
 
+.blockroll-form__photo {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+
+	img {
+		border-radius: 50%;
+		height: 48px;
+		object-fit: cover;
+		width: 48px;
+	}
+}
+
 .blockroll-form__footer {
 	display: flex;
 	align-items: center;

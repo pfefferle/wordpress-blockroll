@@ -1,11 +1,12 @@
 /**
  * WordPress dependencies
  */
-import { __ } from '@wordpress/i18n';
+import { __, _n, sprintf } from '@wordpress/i18n';
 import { useState } from '@wordpress/element';
 import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
 import {
 	Button,
+	Notice,
 	PanelBody,
 	Placeholder,
 	RangeControl,
@@ -19,7 +20,7 @@ import { arrowDown, arrowUp, pencil, trash } from '@wordpress/icons';
  */
 import LinkForm from './components/link-form';
 import ImportModal from './components/import-modal';
-import { move } from './utils';
+import { fetchPhoto, move, needsEmbedding } from './utils';
 
 /**
  * Block edit component.
@@ -33,6 +34,29 @@ export default function Edit( { attributes, setAttributes } ) {
 		attributes;
 	const [ editing, setEditing ] = useState( null ); // Index, 'new', or null.
 	const [ isImporting, setIsImporting ] = useState( false );
+	const [ isEmbedding, setIsEmbedding ] = useState( false );
+
+	const remote = links.filter( ( link ) => needsEmbedding( link.photo ) );
+
+	// One after the other, this asks other people's servers.
+	const embedPhotos = () => {
+		setIsEmbedding( true );
+		links
+			.reduce(
+				( chain, link ) =>
+					chain.then( ( done ) =>
+						needsEmbedding( link.photo )
+							? fetchPhoto( link ).then( ( photo ) => [
+									...done,
+									{ ...link, photo },
+							  ] )
+							: [ ...done, link ]
+					),
+				Promise.resolve( [] )
+			)
+			.then( ( next ) => setAttributes( { links: next } ) )
+			.finally( () => setIsEmbedding( false ) );
+	};
 
 	const saveLink = ( link ) => {
 		const next = [ ...links ];
@@ -170,6 +194,33 @@ export default function Edit( { attributes, setAttributes } ) {
 				</Placeholder>
 			) : (
 				<div className="blockroll-editor">
+					{ remote.length > 0 && (
+						<Notice status="warning" isDismissible={ false }>
+							<p>
+								{ sprintf(
+									/* translators: %d: number of images. */
+									_n(
+										'%d image comes from another site, so visitors do not get to see it.',
+										'%d images come from another site, so visitors do not get to see them.',
+										remote.length,
+										'blockroll'
+									),
+									remote.length
+								) }
+							</p>
+							<Button
+								variant="secondary"
+								isBusy={ isEmbedding }
+								disabled={ isEmbedding }
+								onClick={ embedPhotos }
+							>
+								{ __(
+									'Copy the images into the page',
+									'blockroll'
+								) }
+							</Button>
+						</Notice>
+					) }
 					<ul className="blockroll-editor-list">
 						{ links.map( ( link, index ) => (
 							<li key={ link.url }>

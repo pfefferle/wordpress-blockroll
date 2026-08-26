@@ -8,6 +8,7 @@
 namespace Blockroll\Rest;
 
 use Blockroll\Discovery;
+use Blockroll\Icon;
 
 /**
  * REST endpoint that fetches a URL and extracts link details.
@@ -69,11 +70,14 @@ class Discovery_Controller extends \WP_REST_Controller {
 			return $body;
 		}
 
+		$found = Discovery::from_html( $body, $url );
+
+		// The icon is fetched here, once, and travels with the post from
+		// then on. The visitor's browser never asks the foreign server.
+		$found['photo'] = Icon::embed( $found['photo'] );
+
 		return \rest_ensure_response(
-			\array_merge(
-				Discovery::from_html( $body, $url ),
-				array( 'url' => \esc_url_raw( $url ) )
-			)
+			\array_merge( $found, array( 'url' => \esc_url_raw( $url ) ) )
 		);
 	}
 
@@ -111,9 +115,8 @@ class Discovery_Controller extends \WP_REST_Controller {
 					'format'      => 'uri',
 				),
 				'photo'       => array(
-					'description' => \__( 'An image for the site.', 'blockroll' ),
+					'description' => \__( 'An image for the site, embedded in the page.', 'blockroll' ),
 					'type'        => 'string',
-					'format'      => 'uri',
 				),
 			),
 		);

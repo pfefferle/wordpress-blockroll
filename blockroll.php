@@ -81,6 +81,7 @@ function activate() {
 	'rest_api_init',
 	function () {
 		( new Rest\Discovery_Controller() )->register_routes();
+		( new Rest\Icon_Controller() )->register_routes();
 		( new Rest\Import_Controller() )->register_routes();
 	}
 );

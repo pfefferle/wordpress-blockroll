@@ -10,6 +10,7 @@
  * @var array $attributes Block attributes.
  */
 
+use Blockroll\Icon;
 use Blockroll\Links;
 use Blockroll\Xfn;
 
@@ -84,8 +85,9 @@ if ( 'manual' === $attributes['sortBy'] ) {
 			<?php $blockroll_rel = trim( Xfn::rel_string( $blockroll_link['xfn'] ) . ' noopener' ); ?>
 			<li class="h-card">
 				<?php if ( $blockroll_show ) : ?>
-					<?php if ( $blockroll_link['photo'] ) : ?>
-						<img class="u-photo" src="<?php echo esc_url( $blockroll_link['photo'] ); ?>" alt="" loading="lazy" />
+					<?php $blockroll_photo = Icon::printable( $blockroll_link['photo'] ); ?>
+					<?php if ( $blockroll_photo ) : ?>
+						<img class="u-photo" src="<?php echo esc_attr( $blockroll_photo ); ?>" alt="" loading="lazy" />
 					<?php else : ?>
 						<span class="blockroll-no-photo"></span>
 					<?php endif; ?>
