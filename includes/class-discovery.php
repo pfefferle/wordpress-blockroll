@@ -102,7 +102,8 @@ class Discovery {
 	 * A page can carry many h-cards: a blogroll marks up every entry as
 	 * one, and picking the first would describe somebody else's site. This
 	 * follows the representative h-card parsing rules: an h-card that links
-	 * to the page itself wins, then one that links to a rel="me" URL. If
+	 * to the page itself wins, ignoring the query string on a second pass,
+	 * then one that links to a rel="me" URL. If
 	 * neither is there, only a page with a single h-card is unambiguous
 	 * enough to use, otherwise there is none and the generic HTML
 	 * fallbacks take over.
@@ -120,18 +121,34 @@ class Discovery {
 			return null;
 		}
 
+		$urls = array();
+		foreach ( $hcards as $index => $hcard ) {
+			$urls[ $index ] = self::hcard_urls( $xpath, $hcard, $base_url );
+		}
+
 		$page = self::normalize_url( $base_url );
-		foreach ( $hcards as $hcard ) {
-			if ( \in_array( $page, self::hcard_urls( $xpath, $hcard, $base_url ), true ) ) {
-				return $hcard;
+		foreach ( $urls as $index => $hcard_urls ) {
+			if ( \in_array( $page, $hcard_urls, true ) ) {
+				return $hcards[ $index ];
+			}
+		}
+
+		// Again without the query strings. A URL pasted with a tracking
+		// parameter still points at the page the h-card links to. The exact
+		// match goes first, because on a site without pretty permalinks the
+		// query string is the whole address.
+		$page = self::without_query( $page );
+		foreach ( $urls as $index => $hcard_urls ) {
+			if ( \in_array( $page, \array_map( array( self::class, 'without_query' ), $hcard_urls ), true ) ) {
+				return $hcards[ $index ];
 			}
 		}
 
 		$rel_me = self::rel_urls( $xpath, 'me', $base_url );
 		if ( $rel_me ) {
-			foreach ( $hcards as $hcard ) {
-				if ( \array_intersect( $rel_me, self::hcard_urls( $xpath, $hcard, $base_url ) ) ) {
-					return $hcard;
+			foreach ( $urls as $index => $hcard_urls ) {
+				if ( \array_intersect( $rel_me, $hcard_urls ) ) {
+					return $hcards[ $index ];
 				}
 			}
 		}
@@ -194,6 +211,16 @@ class Discovery {
 		$url = \preg_replace( '#^www\.#', '', $url );
 		$url = \preg_replace( '/#.*$/', '', $url );
 		return \untrailingslashit( $url );
+	}
+
+	/**
+	 * A normalized URL without its query string.
+	 *
+	 * @param string $url Normalized URL.
+	 * @return string URL up to the question mark.
+	 */
+	private static function without_query( $url ) {
+		return \untrailingslashit( \preg_replace( '/\?.*$/', '', $url ) );
 	}
 
 	/**

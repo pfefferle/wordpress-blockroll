@@ -41,6 +41,14 @@ class Test_Discovery extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A tracking parameter on the pasted URL does not break the match.
+	 */
+	public function test_own_hcard_wins_despite_query_string() {
+		$result = \Blockroll\Discovery::from_html( $this->fixture( 'blogroll-hcards.html' ), 'https://ann.example/?utm_source=newsletter' );
+		$this->assertSame( 'Ann Example', $result['name'] );
+	}
+
+	/**
 	 * An h-card linked from a rel="me" URL is the site's own one too.
 	 */
 	public function test_rel_me_hcard_wins_over_blogroll_hcards() {
