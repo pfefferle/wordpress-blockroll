@@ -67,6 +67,9 @@ class Opml {
 		// A `.opml` suffix as an alias for `?opml` on pages, so the URL
 		// looks like a file: /blogroll.opml. The query var stays the
 		// canonical form; it also works with plain permalinks.
+		// This rule matches the well-known path too. Rules keep the order
+		// they were added in, so the well-known rule above has to stay
+		// above; the well-known test covers that.
 		\add_rewrite_rule(
 			'^(.+?)\\.opml$',
 			'index.php?pagename=$matches[1]&opml=',
