@@ -131,8 +131,8 @@ readers with a 404:
   That path has no page behind it, so it does get a rewrite rule, flushed on activation.
 
 Pages with a blogroll advertise their own OPML with `<link rel="blogroll">`, following
-[Dave Winer's proposal](https://danq.me/2024/05/03/23615/), and the front page repeats
-those links. Feeds carry the same information as `<source:blogroll>`. The directory
+[Dave Winer's proposal](https://danq.me/2024/05/03/23615/), plus a second `text/html`
+link to the page itself. The front page repeats those links. Feeds carry the same information as `<source:blogroll>`. The directory
 address is never advertised, since it is a list of OPMLs rather than a blogroll.
 
 Two REST routes back the editor, because a browser cannot fetch other people's sites

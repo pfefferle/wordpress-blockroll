@@ -89,6 +89,20 @@ class Test_Opml extends WP_UnitTestCase {
 		$this->assertStringContainsString( esc_url( \Blockroll\Opml::opml_url( get_post( $id ) ) ), $head );
 	}
 
+	public function test_discovery_link_has_html_alternative() {
+		$id = self::factory()->post->create( array( 'post_content' => self::BLOCK ) );
+		$this->go_to( get_permalink( $id ) );
+		ob_start();
+		\Blockroll\Opml::discovery_link();
+		$head = ob_get_clean();
+		$this->assertStringContainsString(
+			'<link rel="blogroll" type="text/html" href="' . esc_url( get_permalink( $id ) ) . '"',
+			$head
+		);
+		$this->assertSame( 1, substr_count( $head, 'type="text/xml"' ) );
+		$this->assertSame( 1, substr_count( $head, 'type="text/html"' ) );
+	}
+
 	public function test_front_page_advertises_blogroll_pages() {
 		$id = self::factory()->post->create( array( 'post_content' => self::BLOCK ) );
 		$this->go_to( home_url( '/' ) );
@@ -148,7 +162,9 @@ class Test_Opml extends WP_UnitTestCase {
 		ob_start();
 		\Blockroll\Opml::discovery_link();
 
-		$this->assertSame( 1, substr_count( ob_get_clean(), 'rel="blogroll"' ) );
+		$head = ob_get_clean();
+		$this->assertSame( 1, substr_count( $head, 'type="text/xml"' ) );
+		$this->assertSame( 1, substr_count( $head, 'type="text/html"' ) );
 	}
 
 	public function test_feed_head_advertises_blogroll() {
