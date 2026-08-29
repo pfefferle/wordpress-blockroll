@@ -81,6 +81,52 @@ class Test_Discovery extends WP_UnitTestCase {
 		$this->assertSame( 'https://c.example/favicon.ico', $result['photo'] );
 	}
 
+	/**
+	 * The discovered icon comes back embedded, not as a foreign URL.
+	 */
+	public function test_route_embeds_the_icon() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+
+		$html = $this->fixture( 'bare.html' );
+		$png  = $this->png();
+		add_filter(
+			'pre_http_request',
+			function ( $pre, $args, $url ) use ( $html, $png ) {
+				$is_icon = false !== strpos( $url, 'favicon' );
+				return array(
+					'headers'  => array( 'content-type' => $is_icon ? 'image/png' : 'text/html' ),
+					'body'     => $is_icon ? $png : $html,
+					'response' => array(
+						'code'    => 200,
+						'message' => 'OK',
+					),
+				);
+			},
+			10,
+			3
+		);
+
+		$request = new WP_REST_Request( 'POST', '/blockroll/v1/discover' );
+		$request->set_param( 'url', home_url( '/' ) );
+		$data = rest_do_request( $request )->get_data();
+
+		$this->assertTrue( \Blockroll\Icon::is_data_uri( $data['photo'] ) );
+	}
+
+	/**
+	 * A real PNG, so the image editor has something to work with.
+	 *
+	 * @return string PNG bytes.
+	 */
+	private function png() {
+		$image = imagecreatetruecolor( 64, 64 );
+		imagefill( $image, 0, 0, imagecolorallocate( $image, 200, 100, 50 ) );
+		ob_start();
+		imagepng( $image );
+		imagedestroy( $image );
+		return ob_get_clean();
+	}
+
 	public function test_route_requires_auth() {
 		$request = new WP_REST_Request( 'POST', '/blockroll/v1/discover' );
 		// The site's own address: passes wp_http_validate_url() without a DNS

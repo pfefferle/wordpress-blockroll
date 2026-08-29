@@ -35,7 +35,7 @@ class Test_Render extends WP_UnitTestCase {
 						'name'        => 'Example',
 						'description' => 'A blog',
 						'feedUrl'     => 'https://example.com/feed/',
-						'photo'       => 'https://example.com/a.jpg',
+						'photo'       => self::DATA_URI,
 						'xfn'         => array( 'friend', 'met' ),
 						'added'       => '2026-08-01',
 					),
@@ -83,6 +83,55 @@ class Test_Render extends WP_UnitTestCase {
 		);
 		$this->assertStringNotContainsString( '<img', $html );
 		$this->assertStringNotContainsString( 'rel=""', $html );
+	}
+
+	const DATA_URI = 'data:image/png;base64,iVBORw0KGgo=';
+
+	/**
+	 * Build a one link block with the given photo.
+	 *
+	 * @param string $photo Photo attribute.
+	 * @return string Rendered HTML.
+	 */
+	private function render_with_photo( $photo ) {
+		return $this->render_block_html(
+			array(
+				'links' => array(
+					array(
+						'url'   => 'https://a.example/',
+						'name'  => 'A',
+						'photo' => $photo,
+					),
+				),
+			)
+		);
+	}
+
+	public function test_embedded_photo_is_printed() {
+		$html = $this->render_with_photo( self::DATA_URI );
+		$this->assertStringContainsString( 'src="' . self::DATA_URI . '"', $html );
+	}
+
+	/**
+	 * A foreign icon URL would make every visitor talk to every listed site.
+	 */
+	public function test_remote_photo_becomes_the_placeholder() {
+		$html = $this->render_with_photo( 'https://a.example/favicon.png' );
+		$this->assertStringNotContainsString( '<img', $html );
+		$this->assertStringContainsString( 'blockroll-no-photo', $html );
+	}
+
+	public function test_photo_from_the_own_site_is_printed() {
+		$photo = home_url( '/wp-content/uploads/a.png' );
+		$html  = $this->render_with_photo( $photo );
+		$this->assertStringContainsString( 'src="' . esc_attr( $photo ) . '"', $html );
+	}
+
+	public function test_remote_photo_can_be_allowed_again() {
+		add_filter( 'blockroll_allow_remote_photo', '__return_true' );
+		$html = $this->render_with_photo( 'https://a.example/favicon.png' );
+		remove_filter( 'blockroll_allow_remote_photo', '__return_true' );
+		$this->assertStringContainsString( 'src="https://a.example/favicon.png"', $html );
 	}
 
 	public function test_escapes_output() {
