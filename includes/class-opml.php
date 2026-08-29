@@ -303,16 +303,15 @@ class Opml {
 	 * @param \WP_Post $post Post with a blogroll block.
 	 */
 	private static function print_discovery_link( $post ) {
-		$title = \esc_attr( self::title( $post ) );
 		\printf(
 			'<link rel="blogroll" type="text/xml" href="%s" title="%s" />' . "\n",
 			\esc_url( self::opml_url( $post ) ),
-			$title
+			\esc_attr( self::title( $post ) )
 		);
 		\printf(
 			'<link rel="blogroll" type="text/html" href="%s" title="%s" />' . "\n",
 			\esc_url( \get_permalink( $post ) ),
-			$title
+			\esc_attr( self::title( $post ) )
 		);
 	}
 }
