@@ -130,6 +130,19 @@ class Test_Icon extends WP_UnitTestCase {
 		$this->assertFalse( \Blockroll\Icon::is_data_uri( '' ) );
 	}
 
+	public function test_is_data_uri_refuses_a_huge_image() {
+		$huge = 'data:image/png;base64,' . str_repeat( 'A', \Blockroll\Icon::MAX_LENGTH );
+		$this->assertFalse( \Blockroll\Icon::is_data_uri( $huge ) );
+	}
+
+	public function test_keeps_an_icon_that_is_already_small() {
+		$this->fake_response( $this->png( 16 ), 'image/png' );
+		$data = \Blockroll\Icon::embed( 'https://ann.example/favicon.png' );
+		$this->assertStringStartsWith( 'data:image/png;base64,', $data );
+		$size = getimagesizefromstring( base64_decode( substr( $data, strlen( 'data:image/png;base64,' ) ) ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
+		$this->assertSame( 16, $size[0] );
+	}
+
 	public function test_route_requires_auth() {
 		$request = new WP_REST_Request( 'POST', '/blockroll/v1/icon' );
 		$request->set_param( 'url', home_url( '/favicon.png' ) );

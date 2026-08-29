@@ -115,7 +115,10 @@ class Icon {
 
 		\file_put_contents( $file, $bytes ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- A temporary file, not the uploads directory.
 
-		$editor = \wp_get_image_editor( $file );
+		// The temporary file has no image extension, so WordPress cannot
+		// tell the type from the name. Given the type, it picks an editor
+		// that supports it, GD when Imagick lacks the format for example.
+		$editor = \wp_get_image_editor( $file, array( 'mime_type' => $type ) );
 		if ( \is_wp_error( $editor ) ) {
 			\wp_delete_file( $file );
 			return null;
@@ -125,7 +128,14 @@ class Icon {
 		// size. Everything else becomes a PNG.
 		$target = ( 'image/jpeg' === $type && $editor->supports_mime_type( $type ) ) ? $type : 'image/png';
 
-		$editor->resize( self::SIZE, self::SIZE, false );
+		// Most favicons are smaller than the icon size already, and the
+		// editor refuses to scale up. The original is embedded as it is.
+		$resized = $editor->resize( self::SIZE, self::SIZE, false );
+		if ( \is_wp_error( $resized ) ) {
+			\wp_delete_file( $file );
+			return null;
+		}
+
 		$saved = $editor->save( null, $target );
 		\wp_delete_file( $file );
 
@@ -142,10 +152,17 @@ class Icon {
 	/**
 	 * Whether a value is an image data URI the plugin would print.
 	 *
+	 * Anything longer than MAX_LENGTH is refused as well, so an imported
+	 * OPML cannot smuggle a huge image into the post.
+	 *
 	 * @param string $value Attribute value.
 	 * @return bool True for an embedded image.
 	 */
 	public static function is_data_uri( $value ) {
+		if ( \strlen( (string) $value ) > self::MAX_LENGTH ) {
+			return false;
+		}
+
 		$types = \implode( '|', \array_map( 'preg_quote', self::TYPES ) );
 
 		return (bool) \preg_match( '#^data:(?:' . $types . ');base64,[A-Za-z0-9+/]+={0,2}$#', (string) $value );

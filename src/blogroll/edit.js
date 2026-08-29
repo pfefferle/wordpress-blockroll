@@ -38,7 +38,9 @@ export default function Edit( { attributes, setAttributes } ) {
 
 	const remote = links.filter( ( link ) => needsEmbedding( link.photo ) );
 
-	// One after the other, this asks other people's servers.
+	// One after the other, this asks other people's servers. A link whose
+	// image could not be fetched keeps its address, so it can be tried
+	// again later.
 	const embedPhotos = () => {
 		setIsEmbedding( true );
 		links
@@ -48,7 +50,7 @@ export default function Edit( { attributes, setAttributes } ) {
 						needsEmbedding( link.photo )
 							? fetchPhoto( link ).then( ( photo ) => [
 									...done,
-									{ ...link, photo },
+									{ ...link, photo: photo || link.photo },
 							  ] )
 							: [ ...done, link ]
 					),
