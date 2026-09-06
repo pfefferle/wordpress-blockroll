@@ -2,6 +2,7 @@
 /.gitattributes      export-ignore
 /.github/            export-ignore
 /.gitignore          export-ignore
+/.wordpress-org/     export-ignore
 /.wp-env.json        export-ignore
 /bin/                export-ignore
 /composer.json       export-ignore
