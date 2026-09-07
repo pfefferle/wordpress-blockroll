@@ -1,0 +1,28 @@
+name: Update assets and readme on WordPress.org
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - readme.md
+      - '.wordpress-org/**'
+      - .github/workflows/assets.yml
+  workflow_dispatch:
+
+jobs:
+  assets:
+    name: Update assets and readme
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: WordPress Plugin Asset Update
+        uses: 10up/action-wordpress-plugin-asset-update@stable
+        env:
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SLUG: blockroll
+          README_NAME: readme.md
+          IGNORE_OTHER_FILES: true
