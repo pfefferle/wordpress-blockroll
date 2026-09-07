@@ -107,6 +107,11 @@ The markup of the list, the OPML endpoints, the discovery links and the two REST
 routes are described in the
 [developer docs](https://github.com/pfefferle/wordpress-blockroll/blob/main/docs/developers.md).
 
+## Screenshots
+
+1. A blogroll on a page, with the sorting and a link to each feed.
+2. The same list as an OPML file, which is what a feed reader gets when someone subscribes.
+
 ## Changelog
 
 Project and support maintained on github at [pfefferle/wordpress-blockroll](https://github.com/pfefferle/wordpress-blockroll).
