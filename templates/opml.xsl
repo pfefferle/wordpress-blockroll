@@ -23,6 +23,15 @@ Please test and contribute to the discussion:
 					h1,h2,h3 { margin-block-start: 0; margin-block-end: 0; }
 					.pb-5 { padding-bottom: calc(var(--gap) / 3); }
 					.meta { color: #676767; }
+					.group {
+						font-size: 0.9rem;
+						text-transform: uppercase;
+						letter-spacing: 0.08em;
+						color: #676767;
+						padding-block-end: 0.4rem;
+						margin-block-end: 1rem;
+						border-block-end: 1px solid #e5e5e5;
+					}
 					.container {
 						display: grid;
 						gap: var(--gap);
@@ -154,39 +163,19 @@ Please test and contribute to the discussion:
 										</li>
 									</ul>
 								</xsl:when>
-								<xsl:otherwise>
-									<h2>
-										<a target="_blank">
-											<xsl:attribute name="href">
-												<xsl:value-of select="@htmlUrl"/>
-											</xsl:attribute>
-											<xsl:value-of select="@text"/>
-										</a>
+								<!-- A page with several blogrolls nests them, one outline per blogroll. -->
+								<xsl:when test="outline">
+									<h2 class="group">
+										<xsl:value-of select="@text"/>
 									</h2>
-									<xsl:if test="@description">
-										<p class="meta">
-											<xsl:value-of select="@description"/>
-										</p>
-									</xsl:if>
-									<xsl:if test="@xmlUrl">
-										<ul class="feeds">
-											<li>
-												<span class="format">FEED</span>
-												<a class="url" target="_blank">
-													<xsl:attribute name="href">
-														<xsl:value-of select="@xmlUrl"/>
-													</xsl:attribute>
-													<xsl:value-of select="@xmlUrl"/>
-												</a>
-												<a class="subscribe" title="Subscribe in your feed reader">
-													<xsl:attribute name="href">
-														<xsl:value-of select="concat('feed:', @xmlUrl)"/>
-													</xsl:attribute>
-													Subscribe
-												</a>
-											</li>
-										</ul>
-									</xsl:if>
+									<xsl:for-each select="outline">
+										<div class="pb-5">
+											<xsl:call-template name="site"/>
+										</div>
+									</xsl:for-each>
+								</xsl:when>
+								<xsl:otherwise>
+									<xsl:call-template name="site"/>
 								</xsl:otherwise>
 							</xsl:choose>
 						</div>
@@ -195,5 +184,41 @@ Please test and contribute to the discussion:
 				</div>
 			</body>
 		</html>
+	</xsl:template>
+
+	<!-- One site, used both on its own and inside a group. -->
+	<xsl:template name="site">
+		<h2>
+			<a target="_blank">
+				<xsl:attribute name="href">
+					<xsl:value-of select="@htmlUrl"/>
+				</xsl:attribute>
+				<xsl:value-of select="@text"/>
+			</a>
+		</h2>
+		<xsl:if test="@description">
+			<p class="meta">
+				<xsl:value-of select="@description"/>
+			</p>
+		</xsl:if>
+		<xsl:if test="@xmlUrl">
+			<ul class="feeds">
+				<li>
+					<span class="format">FEED</span>
+					<a class="url" target="_blank">
+						<xsl:attribute name="href">
+							<xsl:value-of select="@xmlUrl"/>
+						</xsl:attribute>
+						<xsl:value-of select="@xmlUrl"/>
+					</a>
+					<a class="subscribe" title="Subscribe in your feed reader">
+						<xsl:attribute name="href">
+							<xsl:value-of select="concat('feed:', @xmlUrl)"/>
+						</xsl:attribute>
+						Subscribe
+					</a>
+				</li>
+			</ul>
+		</xsl:if>
 	</xsl:template>
 </xsl:stylesheet>
