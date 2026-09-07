@@ -65,6 +65,22 @@ class Test_Opml extends WP_UnitTestCase {
 		$this->set_permalink_structure( '' );
 	}
 
+	public function test_opml_suffix_is_an_alias_for_the_query_var() {
+		$id = self::factory()->post->create(
+			array(
+				'post_type'    => 'page',
+				'post_name'    => 'blogroll',
+				'post_content' => self::BLOCK,
+			)
+		);
+		$this->set_permalink_structure( '/%postname%/' );
+		$this->go_to( home_url( '/blogroll.opml' ) );
+		$this->assertFalse( is_404() );
+		$this->assertSame( $id, get_queried_object_id() );
+		$this->assertSame( '', get_query_var( 'opml', null ) );
+		$this->set_permalink_structure( '' );
+	}
+
 	public function test_directory_has_date_modified() {
 		$id = self::factory()->post->create( array( 'post_content' => self::BLOCK ) );
 		ob_start();

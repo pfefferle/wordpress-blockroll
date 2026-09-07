@@ -51,17 +51,28 @@ class Opml {
 	}
 
 	/**
-	 * Map the well-known URL to the directory OPML.
+	 * Map the well-known URL to the directory OPML and `.opml` to `?opml`.
 	 *
 	 * Also called on activation, before the rules are flushed. Unlike the
-	 * `?opml` query var, this path has no page to fall back to, so it needs
-	 * a rule of its own.
+	 * `?opml` query var, the well-known path has no page to fall back to,
+	 * so it needs a rule of its own.
 	 */
 	public static function add_rewrite_rules() {
 		\add_rewrite_rule(
 			// WordPress matches rewrite rules with "#" as the delimiter.
 			\sprintf( '^%s$', \preg_quote( self::WELL_KNOWN, '#' ) ),
 			\sprintf( 'index.php?opml=%s', self::DIRECTORY ),
+			'top'
+		);
+		// A `.opml` suffix as an alias for `?opml` on pages, so the URL
+		// looks like a file: /blogroll.opml. The query var stays the
+		// canonical form; it also works with plain permalinks.
+		// This rule matches the well-known path too. Rules keep the order
+		// they were added in, so the well-known rule above has to stay
+		// above; the well-known test covers that.
+		\add_rewrite_rule(
+			'^(.+?)\\.opml$',
+			'index.php?pagename=$matches[1]&opml=',
 			'top'
 		);
 	}
