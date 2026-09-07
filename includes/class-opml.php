@@ -179,8 +179,9 @@ class Opml {
 	 * Build the outline elements for a page's blogrolls.
 	 *
 	 * Several blogrolls on one page become groups, named after the block, so
-	 * a reader can keep them apart. A single blogroll stays a plain list, and
-	 * so do blogrolls that were never given a name.
+	 * a reader can keep them apart. Blogrolls that were never named fall back
+	 * to the name of the block itself. A single blogroll stays a plain list,
+	 * the page is its own group.
 	 *
 	 * @param array $groups Groups as returned by extract_groups().
 	 * @return string The escaped elements.
@@ -190,8 +191,9 @@ class Opml {
 		$lines   = array();
 
 		foreach ( $groups as $group ) {
-			if ( $grouped && $group['name'] ) {
-				$lines[] = "\t\t" . '<outline text="' . \esc_attr( $group['name'] ) . '">';
+			if ( $grouped ) {
+				$name    = $group['name'] ? $group['name'] : \__( 'Blogroll', 'blockroll' );
+				$lines[] = "\t\t" . '<outline text="' . \esc_attr( $name ) . '">';
 				foreach ( $group['links'] as $link ) {
 					$lines[] = self::link_outline( $link, "\t\t\t" );
 				}

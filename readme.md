@@ -52,8 +52,8 @@ normal page load, and you can switch the sorting off per block.
 In the editor, add a block and search for "Blogroll". Put it on any page or post. You
 can have several, on one page or spread over many.
 
-If you have more than one on a page, rename the blocks in the editor. Those names then
-group the entries in the list people subscribe to.
+If you have more than one on a page, give each one a name. The names then group the
+entries in the list people subscribe to, so a reader can tell them apart.
 
 ### How do I add a link?
 

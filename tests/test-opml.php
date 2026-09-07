@@ -43,7 +43,7 @@ class Test_Opml extends WP_UnitTestCase {
 		$this->assertSame( 'B', (string) $doc->body->outline[1]->outline[0]['text'] );
 	}
 
-	public function test_unnamed_blogroll_keeps_its_links_at_the_top() {
+	public function test_unnamed_blogroll_falls_back_to_the_block_name() {
 		$content = '<!-- wp:blockroll/blogroll {"metadata":{"name":"Blogs"},"links":[{"url":"https://a.example/","name":"A"}]} /--><!-- wp:blockroll/blogroll {"links":[{"url":"https://c.example/","name":"C"}]} /-->';
 		$post    = self::factory()->post->create_and_get( array( 'post_content' => $content ) );
 		ob_start();
@@ -51,8 +51,9 @@ class Test_Opml extends WP_UnitTestCase {
 		$doc = new SimpleXMLElement( ob_get_clean() );
 		$this->assertCount( 2, $doc->body->outline );
 		$this->assertSame( 'Blogs', (string) $doc->body->outline[0]['text'] );
-		$this->assertSame( 'C', (string) $doc->body->outline[1]['text'] );
-		$this->assertSame( 'https://c.example/', (string) $doc->body->outline[1]['htmlUrl'] );
+		$this->assertSame( 'Blogroll', (string) $doc->body->outline[1]['text'] );
+		$this->assertSame( 'C', (string) $doc->body->outline[1]->outline[0]['text'] );
+		$this->assertSame( 'https://c.example/', (string) $doc->body->outline[1]->outline[0]['htmlUrl'] );
 	}
 
 	public function test_extract_links_still_returns_every_link_flat() {
