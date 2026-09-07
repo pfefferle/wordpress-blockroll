@@ -30,8 +30,15 @@ import { move } from './utils';
  * @param {Function} props.setAttributes Attribute setter.
  */
 export default function Edit( { attributes, setAttributes } ) {
-	const { links, sortBy, perPage, showAvatars, showSort, showOpml, metadata } =
-		attributes;
+	const {
+		links,
+		sortBy,
+		perPage,
+		showAvatars,
+		showSort,
+		showOpml,
+		metadata,
+	} = attributes;
 
 	// The name lives where the editor's own "Rename" keeps it, so both write
 	// the same value and a page never ends up with two names for one list.
