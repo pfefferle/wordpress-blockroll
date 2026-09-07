@@ -1,0 +1,37 @@
+{
+	"landingPage": "/blogroll/",
+	"steps": [
+		{
+			"step": "setSiteOptions",
+			"options": {
+				"permalink_structure": "/%postname%/"
+			}
+		},
+		{
+			"step": "installPlugin",
+			"pluginZipFile": {
+				"resource": "wordpress.org/plugins",
+				"slug": "blockroll"
+			},
+			"options": {
+				"activate": true
+			}
+		},
+		{
+			"step": "login",
+			"username": "admin",
+			"password": "password"
+		},
+		{
+			"step": "runPHP",
+			"code": "<?php require_once 'wordpress/wp-load.php';\n$links = array(\n\tarray( 'url' => 'https://notiz.blog/', 'name' => 'Matthias Pfefferle', 'description' => 'Webworker, Open Web Lead at Automattic', 'feedUrl' => 'https://notiz.blog/feed/', 'photo' => '', 'xfn' => array( 'me' ), 'added' => '2026-01-04' ),\n\tarray( 'url' => 'https://alex.kirk.at/', 'name' => 'Alex Kirk', 'description' => 'Building the Friends plugin', 'feedUrl' => 'https://alex.kirk.at/feed/', 'photo' => '', 'xfn' => array( 'co-worker' ), 'added' => '2026-01-11' ),\n\tarray( 'url' => 'https://adactio.com/', 'name' => 'Jeremy Keith', 'description' => 'Journal of a web developer in Brighton', 'feedUrl' => 'https://adactio.com/journal/rss', 'photo' => '', 'xfn' => array(), 'added' => '2026-02-02' ),\n\tarray( 'url' => 'https://tantek.com/', 'name' => 'Tantek Celik', 'description' => 'Inventor, writer, teacher, runner', 'feedUrl' => 'https://tantek.com/updates.atom', 'photo' => '', 'xfn' => array(), 'added' => '2026-02-17' ),\n\tarray( 'url' => 'https://ma.tt/', 'name' => 'Matt Mullenweg', 'description' => 'Unlucky in cards', 'feedUrl' => 'https://ma.tt/feed/', 'photo' => '', 'xfn' => array(), 'added' => '2026-03-08' ),\n\tarray( 'url' => 'https://www.manton.org/', 'name' => 'Manton Reece', 'description' => 'Micro.blog, indie microblogging', 'feedUrl' => 'https://www.manton.org/feed.xml', 'photo' => '', 'xfn' => array(), 'added' => '2026-03-25' ),\n);\n$attributes = array(\n\t'links'       => $links,\n\t'sortBy'      => 'name',\n\t'perPage'     => 0,\n\t'showAvatars' => true,\n\t'showSort'    => true,\n\t'showOpml'    => true,\n);\n$content = '<!-- wp:blockroll/blogroll ' . wp_json_encode( $attributes ) . ' /-->';\nwp_insert_post(\n\tarray(\n\t\t'post_title'   => 'Blogroll',\n\t\t'post_name'    => 'blogroll',\n\t\t'post_type'    => 'page',\n\t\t'post_status'  => 'publish',\n\t\t'post_content' => $content,\n\t)\n);\n"
+		},
+		{
+			"step": "setSiteOptions",
+			"options": {
+				"blogname": "Blogroll Demo",
+				"blogdescription": "The blogs and podcasts I follow"
+			}
+		}
+	]
+}
