@@ -144,6 +144,7 @@ export default function ImportModal( { onImport, onClose } ) {
 			title={ __( 'Import links', 'blockroll' ) }
 			size="medium"
 			onRequestClose={ onClose }
+			focusOnMount="firstContentElement"
 		>
 			<div className="blockroll-form">
 				{ error && (

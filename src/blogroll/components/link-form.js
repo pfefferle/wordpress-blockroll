@@ -79,6 +79,7 @@ export default function LinkForm( { link, onSave, onCancel } ) {
 			}
 			size="medium"
 			onRequestClose={ onCancel }
+			focusOnMount="firstContentElement"
 		>
 			<div className="blockroll-form">
 				{ error && (
