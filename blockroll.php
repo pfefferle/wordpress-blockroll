@@ -4,7 +4,7 @@
  * Plugin URI: https://github.com/pfefferle/wordpress-blockroll
  * Description: Share the blogs and podcasts you follow, and let other people subscribe to your list.
  * Version: 1.0.0
- * Requires at least: 6.3
+ * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: Matthias Pfefferle
  * Author URI: https://notiz.blog/

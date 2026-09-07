@@ -3,7 +3,7 @@
 - Contributors: pfefferle
 - Donate link: https://notiz.blog/donate/
 - Tags: blogroll, podroll, opml, links, feeds
-- Requires at least: 6.3
+- Requires at least: 6.5
 - Tested up to: 7.1
 - Stable tag: 1.0.0
 - Requires PHP: 7.4
