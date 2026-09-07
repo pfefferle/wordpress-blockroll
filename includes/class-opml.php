@@ -190,9 +190,13 @@ class Opml {
 		$grouped = \count( $groups ) > 1;
 		$lines   = array();
 
+		// A blogroll nobody renamed is still called after the block itself.
+		$block_type = \WP_Block_Type_Registry::get_instance()->get_registered( 'blockroll/blogroll' );
+		$default    = $block_type ? $block_type->title : '';
+
 		foreach ( $groups as $group ) {
 			if ( $grouped ) {
-				$name    = $group['name'] ? $group['name'] : \__( 'Blogroll', 'blockroll' );
+				$name    = $group['name'] ? $group['name'] : $default;
 				$lines[] = "\t\t" . '<outline text="' . \esc_attr( $name ) . '">';
 				foreach ( $group['links'] as $link ) {
 					$lines[] = self::link_outline( $link, "\t\t\t" );
