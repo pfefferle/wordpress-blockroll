@@ -154,7 +154,7 @@ Please test and contribute to the discussion:
 									<ul class="feeds">
 										<li>
 											<span class="format">OPML</span>
-											<a class="url" target="_blank">
+											<a class="url" target="_blank" rel="noopener noreferrer">
 												<xsl:attribute name="href">
 													<xsl:value-of select="@url"/>
 												</xsl:attribute>
@@ -170,7 +170,9 @@ Please test and contribute to the discussion:
 									</h2>
 									<xsl:for-each select="outline">
 										<div class="pb-5">
-											<xsl:call-template name="site"/>
+											<xsl:call-template name="site">
+												<xsl:with-param name="heading" select="'h3'"/>
+											</xsl:call-template>
 										</div>
 									</xsl:for-each>
 								</xsl:when>
@@ -187,15 +189,17 @@ Please test and contribute to the discussion:
 	</xsl:template>
 
 	<!-- One site, used both on its own and inside a group. -->
-	<xsl:template name="site">
-		<h2>
-			<a target="_blank">
+	<xsl:template name="site" xmlns="http://www.w3.org/1999/xhtml">
+		<!-- Sites inside a group sit one level below its label. -->
+		<xsl:param name="heading" select="'h2'"/>
+		<xsl:element name="{$heading}" namespace="http://www.w3.org/1999/xhtml">
+			<a target="_blank" rel="noopener noreferrer">
 				<xsl:attribute name="href">
 					<xsl:value-of select="@htmlUrl"/>
 				</xsl:attribute>
 				<xsl:value-of select="@text"/>
 			</a>
-		</h2>
+		</xsl:element>
 		<xsl:if test="@description">
 			<p class="meta">
 				<xsl:value-of select="@description"/>
@@ -205,7 +209,7 @@ Please test and contribute to the discussion:
 			<ul class="feeds">
 				<li>
 					<span class="format">FEED</span>
-					<a class="url" target="_blank">
+					<a class="url" target="_blank" rel="noopener noreferrer">
 						<xsl:attribute name="href">
 							<xsl:value-of select="@xmlUrl"/>
 						</xsl:attribute>
