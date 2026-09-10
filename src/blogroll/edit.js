@@ -10,6 +10,7 @@ import {
 	Placeholder,
 	RangeControl,
 	SelectControl,
+	TextControl,
 	ToggleControl,
 } from '@wordpress/components';
 import { arrowDown, arrowUp, pencil, trash } from '@wordpress/icons';
@@ -29,8 +30,29 @@ import { move } from './utils';
  * @param {Function} props.setAttributes Attribute setter.
  */
 export default function Edit( { attributes, setAttributes } ) {
-	const { links, sortBy, perPage, showAvatars, showSort, showOpml } =
-		attributes;
+	const {
+		links,
+		sortBy,
+		perPage,
+		showAvatars,
+		showSort,
+		showOpml,
+		metadata,
+	} = attributes;
+
+	// The name lives where the editor's own "Rename" keeps it, so both write
+	// the same value and a page never ends up with two names for one list.
+	const setName = ( value ) => {
+		const next = { ...metadata };
+		if ( value ) {
+			next.name = value;
+		} else {
+			delete next.name;
+		}
+		setAttributes( {
+			metadata: Object.keys( next ).length ? next : undefined,
+		} );
+	};
 	const [ editing, setEditing ] = useState( null ); // Index, 'new', or null.
 	const [ isImporting, setIsImporting ] = useState( false );
 
@@ -73,6 +95,18 @@ export default function Edit( { attributes, setAttributes } ) {
 		<div { ...useBlockProps() }>
 			<InspectorControls>
 				<PanelBody title={ __( 'Blogroll settings', 'blockroll' ) }>
+					<TextControl
+						__next40pxDefaultSize
+						__nextHasNoMarginBottom
+						label={ __( 'Name', 'blockroll' ) }
+						help={ __(
+							'Used to group this list when a page has more than one blogroll. Renaming the block does the same.',
+							'blockroll'
+						) }
+						placeholder={ __( 'Blogroll', 'blockroll' ) }
+						value={ metadata?.name || '' }
+						onChange={ setName }
+					/>
 					<SelectControl
 						__next40pxDefaultSize
 						__nextHasNoMarginBottom

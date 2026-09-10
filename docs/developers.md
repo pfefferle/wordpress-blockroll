@@ -31,6 +31,13 @@ readers with a 404:
 * `/.well-known/recommendations.opml` is the same directory under a well-known address.
   That path has no page behind it, so it does get a rewrite rule, flushed on activation.
 
+A page with more than one blogroll groups them, one `<outline>` per block with the
+links nested inside it. The group name is the one WordPress keeps when a block is
+renamed in the editor, `metadata.name`, so the block needs no title of its own. The
+block also has a "Name" field in the sidebar that writes the same value. A blogroll
+that was never named falls back to "Blogroll", and a page with a single blogroll stays
+a flat list.
+
 Pages with a blogroll advertise their own OPML with `<link rel="blogroll">`, following
 [Dave Winer's proposal](https://danq.me/2024/05/03/23615/), and the front page repeats
 those links. Feeds carry the same information as `<source:blogroll>`. The directory

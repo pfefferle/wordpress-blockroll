@@ -130,15 +130,40 @@ class Opml {
 	 * @return array Normalized links.
 	 */
 	public static function extract_links( $post ) {
-		$links  = array();
-		$walker = function ( $blocks ) use ( &$walker, &$links ) {
+		$links = array();
+		foreach ( self::extract_groups( $post ) as $group ) {
+			$links = \array_merge( $links, $group['links'] );
+		}
+		return $links;
+	}
+
+	/**
+	 * Collect the blogroll blocks of a post, each with its own name and links.
+	 *
+	 * The name is the one WordPress keeps when a block is renamed in the
+	 * editor, so a page with several blogrolls can say what each one is
+	 * without the block needing a title of its own.
+	 *
+	 * @param \WP_Post $post Post object.
+	 * @return array List of arrays with a "name" and a "links" key.
+	 */
+	public static function extract_groups( $post ) {
+		$groups = array();
+		$walker = function ( $blocks ) use ( &$walker, &$groups ) {
 			foreach ( $blocks as $block ) {
 				if ( 'blockroll/blogroll' === $block['blockName'] ) {
+					$links = array();
 					foreach ( (array) ( $block['attrs']['links'] ?? array() ) as $link ) {
 						$link = Links::normalize( $link );
 						if ( $link['url'] ) {
 							$links[] = $link;
 						}
+					}
+					if ( $links ) {
+						$groups[] = array(
+							'name'  => \sanitize_text_field( (string) ( $block['attrs']['metadata']['name'] ?? '' ) ),
+							'links' => $links,
+						);
 					}
 				}
 				if ( ! empty( $block['innerBlocks'] ) ) {
@@ -147,7 +172,61 @@ class Opml {
 			}
 		};
 		$walker( \parse_blocks( $post->post_content ) );
-		return $links;
+		return $groups;
+	}
+
+	/**
+	 * Build the outline elements for a page's blogrolls.
+	 *
+	 * Several blogrolls on one page become groups, named after the block, so
+	 * a reader can keep them apart. Blogrolls that were never named fall back
+	 * to the name of the block itself. A single blogroll stays a plain list,
+	 * the page is its own group.
+	 *
+	 * @param array $groups Groups as returned by extract_groups().
+	 * @return string The escaped elements.
+	 */
+	public static function outlines( $groups ) {
+		$grouped = \count( $groups ) > 1;
+		$lines   = array();
+
+		foreach ( $groups as $group ) {
+			if ( $grouped ) {
+				$name    = $group['name'] ? $group['name'] : \__( 'Blogroll', 'blockroll' );
+				$lines[] = "\t\t" . '<outline text="' . \esc_attr( $name ) . '">';
+				foreach ( $group['links'] as $link ) {
+					$lines[] = self::link_outline( $link, "\t\t\t" );
+				}
+				$lines[] = "\t\t" . '</outline>';
+				continue;
+			}
+
+			foreach ( $group['links'] as $link ) {
+				$lines[] = self::link_outline( $link );
+			}
+		}
+
+		return $lines ? \implode( "\n", $lines ) . "\n" : '';
+	}
+
+	/**
+	 * Build the outline element of a single link.
+	 *
+	 * @param array  $link   Normalized link.
+	 * @param string $indent Leading whitespace.
+	 * @return string The escaped element.
+	 */
+	private static function link_outline( $link, $indent = "\t\t" ) {
+		$attributes = \sprintf( ' text="%s" type="rss"', \esc_attr( $link['name'] ? $link['name'] : $link['url'] ) );
+		if ( $link['description'] ) {
+			$attributes .= \sprintf( ' description="%s"', \esc_attr( $link['description'] ) );
+		}
+		if ( $link['feedUrl'] ) {
+			$attributes .= \sprintf( ' xmlUrl="%s"', \esc_url( $link['feedUrl'] ) );
+		}
+		$attributes .= \sprintf( ' htmlUrl="%s"', \esc_url( $link['url'] ) );
+
+		return $indent . '<outline' . $attributes . ' />';
 	}
 
 	/**
@@ -160,8 +239,8 @@ class Opml {
 			\dirname( BLOCKROLL_PLUGIN_FILE ) . '/templates/opml.php',
 			false,
 			array(
-				'post'  => $post,
-				'links' => self::extract_links( $post ),
+				'post'   => $post,
+				'groups' => self::extract_groups( $post ),
 			)
 		);
 	}

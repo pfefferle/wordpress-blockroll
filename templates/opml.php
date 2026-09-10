@@ -7,8 +7,8 @@
  * @var array $args {
  *     Template arguments.
  *
- *     @type \WP_Post $post  The post.
- *     @type array    $links Normalized links.
+ *     @type \WP_Post $post   The post.
+ *     @type array    $groups Blogroll blocks, each with a "name" and "links".
  * }
  */
 
@@ -28,8 +28,6 @@ $blockroll_owner = get_the_author_meta( 'display_name', $args['post']->post_auth
 <?php endif; ?>
 	</head>
 	<body>
-<?php foreach ( $args['links'] as $blockroll_link ) : ?>
-		<outline text="<?php echo esc_attr( $blockroll_link['name'] ? $blockroll_link['name'] : $blockroll_link['url'] ); ?>" type="rss"<?php echo $blockroll_link['description'] ? ' description="' . esc_attr( $blockroll_link['description'] ) . '"' : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><?php echo $blockroll_link['feedUrl'] ? ' xmlUrl="' . esc_url( $blockroll_link['feedUrl'] ) . '"' : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> htmlUrl="<?php echo esc_url( $blockroll_link['url'] ); ?>" />
-<?php endforeach; ?>
+<?php echo \Blockroll\Opml::outlines( $args['groups'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 	</body>
 </opml>

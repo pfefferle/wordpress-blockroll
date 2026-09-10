@@ -18,6 +18,52 @@ class Test_Opml extends WP_UnitTestCase {
 		$this->assertSame( 'https://a.example/', $links[0]['url'] );
 	}
 
+	const TWO_NAMED_BLOCKS = '<!-- wp:blockroll/blogroll {"metadata":{"name":"Blogs"},"links":[{"url":"https://a.example/","name":"A","feedUrl":"https://a.example/feed/"}]} /--><!-- wp:blockroll/blogroll {"metadata":{"name":"Podcasts"},"links":[{"url":"https://b.example/","name":"B","feedUrl":"https://b.example/feed/"}]} /-->';
+
+	public function test_one_blogroll_stays_flat() {
+		$post = self::factory()->post->create_and_get( array( 'post_content' => self::BLOCK ) );
+		ob_start();
+		\Blockroll\Opml::for_post( $post );
+		$doc = new SimpleXMLElement( ob_get_clean() );
+		$this->assertCount( 1, $doc->body->outline );
+		$this->assertSame( 'A', (string) $doc->body->outline[0]['text'] );
+		$this->assertCount( 0, $doc->body->outline[0]->outline );
+	}
+
+	public function test_two_blogrolls_become_groups() {
+		$post = self::factory()->post->create_and_get( array( 'post_content' => self::TWO_NAMED_BLOCKS ) );
+		ob_start();
+		\Blockroll\Opml::for_post( $post );
+		$doc = new SimpleXMLElement( ob_get_clean() );
+		$this->assertCount( 2, $doc->body->outline );
+		$this->assertSame( 'Blogs', (string) $doc->body->outline[0]['text'] );
+		$this->assertSame( 'Podcasts', (string) $doc->body->outline[1]['text'] );
+		$this->assertSame( 'A', (string) $doc->body->outline[0]->outline[0]['text'] );
+		$this->assertSame( 'https://a.example/feed/', (string) $doc->body->outline[0]->outline[0]['xmlUrl'] );
+		$this->assertSame( 'B', (string) $doc->body->outline[1]->outline[0]['text'] );
+	}
+
+	public function test_unnamed_blogroll_falls_back_to_the_block_name() {
+		$content = '<!-- wp:blockroll/blogroll {"metadata":{"name":"Blogs"},"links":[{"url":"https://a.example/","name":"A"}]} /--><!-- wp:blockroll/blogroll {"links":[{"url":"https://c.example/","name":"C"}]} /-->';
+		$post    = self::factory()->post->create_and_get( array( 'post_content' => $content ) );
+		ob_start();
+		\Blockroll\Opml::for_post( $post );
+		$doc = new SimpleXMLElement( ob_get_clean() );
+		$this->assertCount( 2, $doc->body->outline );
+		$this->assertSame( 'Blogs', (string) $doc->body->outline[0]['text'] );
+		$this->assertSame( 'Blogroll', (string) $doc->body->outline[1]['text'] );
+		$this->assertSame( 'C', (string) $doc->body->outline[1]->outline[0]['text'] );
+		$this->assertSame( 'https://c.example/', (string) $doc->body->outline[1]->outline[0]['htmlUrl'] );
+	}
+
+	public function test_extract_links_still_returns_every_link_flat() {
+		$post  = self::factory()->post->create_and_get( array( 'post_content' => self::TWO_NAMED_BLOCKS ) );
+		$links = \Blockroll\Opml::extract_links( $post );
+		$this->assertCount( 2, $links );
+		$this->assertSame( 'https://a.example/', $links[0]['url'] );
+		$this->assertSame( 'https://b.example/', $links[1]['url'] );
+	}
+
 	public function test_page_opml_contains_outline() {
 		$post = self::factory()->post->create_and_get( array( 'post_content' => self::BLOCK ) );
 		ob_start();
