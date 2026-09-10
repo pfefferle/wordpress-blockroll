@@ -20,6 +20,13 @@ class Opml {
 	const WELL_KNOWN = '.well-known/recommendations.opml';
 
 	/**
+	 * Query var that asks for the OPML of a page instead of its HTML.
+	 *
+	 * Declared with the plugin's other public query vars in blockroll.php.
+	 */
+	const QUERY_VAR = 'opml';
+
+	/**
 	 * Value of the `opml` query var that always asks for the directory.
 	 */
 	const DIRECTORY = 'directory';
@@ -43,7 +50,7 @@ class Opml {
 	/**
 	 * Register the OPML output and the discovery link.
 	 *
-	 * The `opml` query var itself is declared with the plugin's other
+	 * The query vars themselves are declared with the plugin's other
 	 * public query vars in blockroll.php.
 	 */
 	public static function register() {
@@ -70,7 +77,7 @@ class Opml {
 		\add_rewrite_rule(
 			// WordPress matches rewrite rules with "#" as the delimiter.
 			\sprintf( '^%s$', \preg_quote( self::WELL_KNOWN, '#' ) ),
-			\sprintf( 'index.php?opml=%s', self::DIRECTORY ),
+			\sprintf( 'index.php?%s=%s', self::QUERY_VAR, self::DIRECTORY ),
 			'top'
 		);
 		// A `.opml` suffix as an alias for `?opml` on pages, so the URL
@@ -81,7 +88,7 @@ class Opml {
 		// above; the well-known test covers that.
 		\add_rewrite_rule(
 			'^(.+?)\\.opml$',
-			'index.php?pagename=$matches[1]&opml=',
+			'index.php?pagename=$matches[1]&' . self::QUERY_VAR . '=',
 			'top'
 		);
 	}
@@ -352,7 +359,7 @@ class Opml {
 	 */
 	public static function render() {
 		// A bare ?opml parses to an empty string, so test presence, not value.
-		$opml = \get_query_var( 'opml', null );
+		$opml = \get_query_var( self::QUERY_VAR, null );
 		if ( null === $opml ) {
 			return;
 		}
@@ -383,7 +390,7 @@ class Opml {
 	 * @return string OPML URL.
 	 */
 	public static function opml_url( $post, $anchor = '' ) {
-		$args = array( 'opml' => '' );
+		$args = array( self::QUERY_VAR => '' );
 		if ( '' !== $anchor ) {
 			$args[ self::GROUP ] = $anchor;
 		}
