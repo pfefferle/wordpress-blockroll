@@ -3,7 +3,7 @@
  */
 import { __, sprintf } from '@wordpress/i18n';
 import { useEffect, useRef, useState } from '@wordpress/element';
-import { useDispatch, useRegistry, useSelect } from '@wordpress/data';
+import { useDispatch, useRegistry } from '@wordpress/data';
 import {
 	InspectorControls,
 	store as blockEditorStore,
@@ -11,7 +11,6 @@ import {
 } from '@wordpress/block-editor';
 import {
 	Button,
-	Notice,
 	PanelBody,
 	Placeholder,
 	RangeControl,
@@ -77,7 +76,6 @@ export default function Edit( { attributes, setAttributes, clientId } ) {
 			.map( ( id ) => getBlockAttributes( id )?.anchor )
 			.filter( Boolean );
 	};
-	const taken = useSelect( takenAnchors, [ clientId ] );
 	const registry = useRegistry();
 	const { __unstableMarkNextChangeAsNotPersistent } =
 		useDispatch( blockEditorStore );
@@ -88,9 +86,18 @@ export default function Edit( { attributes, setAttributes, clientId } ) {
 		uniqueAnchor( slugOf( forName ), takenAnchors( registry.select ) );
 
 	// A block without an anchor gets one: a fresh block, or one saved before
-	// anchors existed. Not an undo step, nobody typed anything.
+	// anchors existed. So does a block that arrives with the anchor of another
+	// one, which is what a duplicated block does. Checked once, when the block
+	// mounts, so an address typed by hand is not rewritten while typing.
+	// Not an undo step either way, nobody typed anything.
+	const mounted = useRef( false );
 	useEffect( () => {
-		if ( ! anchor ) {
+		const twin =
+			! mounted.current &&
+			!! anchor &&
+			takenAnchors( registry.select ).includes( anchor );
+		mounted.current = true;
+		if ( ! anchor || twin ) {
 			__unstableMarkNextChangeAsNotPersistent();
 			setAttributes( { anchor: generate( name ) } );
 		}
@@ -112,8 +119,6 @@ export default function Edit( { attributes, setAttributes, clientId } ) {
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [ name ] );
-
-	const hasTwin = !! anchor && taken.includes( anchor );
 
 	const [ editing, setEditing ] = useState( null ); // Index, 'new', or null.
 	const [ isImporting, setIsImporting ] = useState( false );
@@ -173,18 +178,6 @@ export default function Edit( { attributes, setAttributes, clientId } ) {
 						value={ name }
 						onChange={ setName }
 					/>
-					{ hasTwin && (
-						<Notice status="warning" isDismissible={ false }>
-							{ sprintf(
-								/* translators: %s: the anchor of the block */
-								__(
-									'The address #%s is already used by another block on this page.',
-									'blockroll'
-								),
-								anchor
-							) }
-						</Notice>
-					) }
 					<SelectControl
 						__next40pxDefaultSize
 						__nextHasNoMarginBottom
