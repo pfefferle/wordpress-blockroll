@@ -52,11 +52,13 @@ address is never advertised, since it is a list of OPMLs rather than a blogroll.
 The anchor is generated from the block name, the way the Heading block derives its
 anchor from the heading text: the editor slugs the name and makes it unique against
 every other anchor on the page, appending `-1`, `-2` if needed. An anchor set by hand
-under Advanced is left alone. Pages saved before anchors existed are migrated lazily:
-on the first singular view or OPML request, `Anchors::migrate()` writes the missing
-anchors into the blogroll block comments only, with the same rules, directly into
-`post_content` so there is no revision, no modified date and no save hook for a
-change nobody made.
+under Advanced is left alone. Pages saved before anchors existed get theirs on the
+fly: `Anchors::add()` is a pure transform that adds the missing anchors to the blogroll
+block comments only, with the same rules. It runs on `the_content` before `do_blocks()`
+and inside `Opml::extract_groups()`, so the ids and the group links are there from the
+first view on. On that first singular view `Anchors::migrate()` also writes the result
+into `post_content`, directly, so there is no revision, no modified date and no save
+hook for a change nobody made.
 
 Two REST routes back the editor, because a browser cannot fetch other people's sites
 itself:

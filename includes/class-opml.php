@@ -34,9 +34,9 @@ class Opml {
 	/**
 	 * Query var that picks one blogroll of a page by its HTML anchor.
 	 *
-	 * A var of its own rather than a value of `opml`, so it works with the
-	 * `.opml` suffix as well: /links.opml?group=podcasts. It only has a
-	 * meaning next to `opml`, so the plain name is safe.
+	 * A var of its own next to `opml`, so the address reads as a file with
+	 * a parameter: /links.opml?group=podcasts. It only has a meaning next
+	 * to `opml`, so the plain name is safe.
 	 */
 	const GROUP = 'group';
 
@@ -160,10 +160,22 @@ class Opml {
 	 * editor, so a page with several blogrolls can say what each one is
 	 * without the block needing a title of its own.
 	 *
+	 * Anchors missing from pages saved before they existed are added on
+	 * the fly, the same way they are when the page renders. The result is
+	 * kept for the request: the head, every block and the OPML ask for it.
+	 *
 	 * @param \WP_Post $post Post object.
 	 * @return array List of arrays with a "name", an "anchor" and a "links" key.
 	 */
 	public static function extract_groups( $post ) {
+		static $cache = array();
+
+		$content = Anchors::add( $post->post_content );
+		$key     = $post->ID . ':' . \md5( $content );
+		if ( isset( $cache[ $key ] ) ) {
+			return $cache[ $key ];
+		}
+
 		$groups = array();
 		$walker = function ( $blocks ) use ( &$walker, &$groups ) {
 			foreach ( $blocks as $block ) {
@@ -188,8 +200,21 @@ class Opml {
 				}
 			}
 		};
-		$walker( \parse_blocks( $post->post_content ) );
+		$walker( \parse_blocks( $content ) );
+
+		$cache[ $key ] = $groups;
 		return $groups;
+	}
+
+	/**
+	 * Whether a page has more than one blogroll, so that each one is a
+	 * group with an address of its own. A single blogroll is the page.
+	 *
+	 * @param \WP_Post $post Post object.
+	 * @return bool True with two or more blogrolls.
+	 */
+	public static function is_grouped( $post ) {
+		return \count( self::extract_groups( $post ) ) > 1;
 	}
 
 	/**
@@ -258,13 +283,13 @@ class Opml {
 	/**
 	 * Title of one blogroll of a page: its name, then the page title.
 	 *
-	 * @param array    $group Group as returned by extract_groups().
-	 * @param \WP_Post $post  Post object.
+	 * @param array  $group      Group as returned by extract_groups().
+	 * @param string $page_title Title of the page, see title().
 	 * @return string Title.
 	 */
-	public static function group_title( $group, $post ) {
+	private static function group_title( $group, $page_title ) {
 		/* translators: 1: name of the blogroll, 2: page title with author */
-		return \sprintf( \__( '%1$s (%2$s)', 'blockroll' ), self::group_name( $group ), self::title( $post ) );
+		return \sprintf( \__( '%1$s (%2$s)', 'blockroll' ), self::group_name( $group ), $page_title );
 	}
 
 	/**
@@ -282,14 +307,10 @@ class Opml {
 		$groups = self::extract_groups( $post );
 		$title  = self::title( $post );
 
-		if ( '' !== $anchor ) {
-			foreach ( $groups as $group ) {
-				if ( $anchor === $group['anchor'] ) {
-					$groups = array( $group );
-					$title  = self::group_title( $group, $post );
-					break;
-				}
-			}
+		$group = '' !== $anchor ? \wp_list_filter( $groups, array( 'anchor' => $anchor ) ) : array();
+		if ( $group ) {
+			$groups = array( \reset( $group ) );
+			$title  = self::group_title( $groups[0], $title );
 		}
 
 		\load_template(
@@ -383,6 +404,20 @@ class Opml {
 	}
 
 	/**
+	 * The OPML URL of one blogroll of a page, for the link under the list.
+	 *
+	 * On a page with a single blogroll that is the page's own OPML, whatever
+	 * the anchor of the block.
+	 *
+	 * @param \WP_Post $post   Post object.
+	 * @param string   $anchor HTML anchor of the block.
+	 * @return string OPML URL.
+	 */
+	public static function group_url( $post, $anchor ) {
+		return self::opml_url( $post, self::is_grouped( $post ) ? $anchor : '' );
+	}
+
+	/**
 	 * The OPML URL of a post, or of one of its blogrolls.
 	 *
 	 * @param \WP_Post $post   Post object.
@@ -469,19 +504,20 @@ class Opml {
 	 * @param \WP_Post $post Post with blogroll blocks.
 	 */
 	private static function print_group_links( $post ) {
-		$groups = self::extract_groups( $post );
-		if ( \count( $groups ) < 2 ) {
+		if ( ! self::is_grouped( $post ) ) {
 			return;
 		}
 
-		foreach ( $groups as $group ) {
+		$permalink  = \get_permalink( $post );
+		$page_title = self::title( $post );
+		foreach ( self::extract_groups( $post ) as $group ) {
 			if ( '' === $group['anchor'] ) {
 				continue;
 			}
 			self::print_links(
 				self::opml_url( $post, $group['anchor'] ),
-				\get_permalink( $post ) . '#' . $group['anchor'],
-				self::group_title( $group, $post )
+				$permalink . '#' . $group['anchor'],
+				self::group_title( $group, $page_title )
 			);
 		}
 	}

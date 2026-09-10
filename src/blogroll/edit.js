@@ -68,41 +68,34 @@ export default function Edit( { attributes, setAttributes, clientId } ) {
 	// other anchor on the page. An anchor set by hand under Advanced is left
 	// alone. The server does the same for pages saved before this existed.
 	const name = metadata?.name || '';
-	const takenAnchors = ( select ) => {
+	const registry = useRegistry();
+	const { __unstableMarkNextChangeAsNotPersistent } =
+		useDispatch( blockEditorStore );
+	// Read from the store at the time it runs, not at render time: when
+	// several blocks mount in one pass, each has to see the anchors the ones
+	// before it just set, or two lists with the same name end up with the
+	// same one.
+	const takenAnchors = () => {
 		const { getClientIdsWithDescendants, getBlockAttributes } =
-			select( blockEditorStore );
+			registry.select( blockEditorStore );
 		return getClientIdsWithDescendants()
 			.filter( ( id ) => id !== clientId )
 			.map( ( id ) => getBlockAttributes( id )?.anchor )
 			.filter( Boolean );
 	};
-	const registry = useRegistry();
-	const { __unstableMarkNextChangeAsNotPersistent } =
-		useDispatch( blockEditorStore );
-	// Reads the store at the time it runs, not at render time: when several
-	// blocks mount in one pass, each has to see the anchors the ones before
-	// it just set, or two lists with the same name end up with the same one.
-	const generate = ( forName ) =>
-		uniqueAnchor( slugOf( forName ), takenAnchors( registry.select ) );
 
-	// A block without an anchor gets one: a fresh block, or one saved before
-	// anchors existed. So does a block that arrives with the anchor of another
-	// one, which is what a duplicated block does. Checked once, when the block
-	// mounts, so an address typed by hand is not rewritten while typing.
+	// A block without an anchor gets one when it mounts: a fresh block, or
+	// one saved before anchors existed. So does a block that arrives with
+	// the anchor of another one, which is what a duplicated block does.
 	// Not an undo step either way, nobody typed anything.
-	const mounted = useRef( false );
 	useEffect( () => {
-		const twin =
-			! mounted.current &&
-			!! anchor &&
-			takenAnchors( registry.select ).includes( anchor );
-		mounted.current = true;
-		if ( ! anchor || twin ) {
+		const taken = takenAnchors();
+		if ( ! anchor || taken.includes( anchor ) ) {
 			__unstableMarkNextChangeAsNotPersistent();
-			setAttributes( { anchor: generate( name ) } );
+			setAttributes( { anchor: uniqueAnchor( slugOf( name ), taken ) } );
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [ anchor ] );
+	}, [] );
 
 	// A rename, from the field below or from the block's own Rename, moves
 	// the anchor along while it is still the generated one.
@@ -111,11 +104,13 @@ export default function Edit( { attributes, setAttributes, clientId } ) {
 		if ( previousName.current === name ) {
 			return;
 		}
+		const taken = takenAnchors();
 		const wasGenerated =
-			! anchor || anchor === generate( previousName.current );
+			! anchor ||
+			anchor === uniqueAnchor( slugOf( previousName.current ), taken );
 		previousName.current = name;
 		if ( wasGenerated ) {
-			setAttributes( { anchor: generate( name ) } );
+			setAttributes( { anchor: uniqueAnchor( slugOf( name ), taken ) } );
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [ name ] );
@@ -172,7 +167,7 @@ export default function Edit( { attributes, setAttributes, clientId } ) {
 								'Groups this list when a page has more than one blogroll, and gives it its address: #%s. Renaming the block does the same. The address can be changed under Advanced.',
 								'blockroll'
 							),
-							anchor || generate( name )
+							anchor || slugOf( name )
 						) }
 						placeholder={ __( 'Blogroll', 'blockroll' ) }
 						value={ name }

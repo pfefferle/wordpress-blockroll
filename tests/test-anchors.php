@@ -119,9 +119,10 @@ class Test_Anchors extends WP_UnitTestCase {
 		$this->assertStringContainsString( '"anchor":"podcasts"', get_post( $id )->post_content );
 	}
 
-	public function test_a_page_view_updates_the_loop_copy_of_the_post() {
+	public function test_the_content_renders_the_anchors_before_they_are_written() {
 		// A page request holds the post twice: the queried object comes from
-		// get_page_by_path(), the loop from the posts query.
+		// get_page_by_path(), the loop from the posts query. The filter on the
+		// content makes that irrelevant.
 		$id = self::factory()->post->create(
 			array(
 				'post_type'    => 'page',
@@ -130,13 +131,8 @@ class Test_Anchors extends WP_UnitTestCase {
 			)
 		);
 		$this->go_to( get_permalink( $id ) );
-		\Blockroll\Anchors::migrate_queried_post();
-
-		global $wp_query;
-		$this->assertStringContainsString( '"anchor":"podcasts"', $wp_query->posts[0]->post_content );
-		$this->assertStringContainsString( '"anchor":"podcasts"', $GLOBALS['post']->post_content );
-
 		the_post();
+		$this->assertStringNotContainsString( 'anchor', $GLOBALS['post']->post_content );
 		$this->assertStringContainsString( 'id="podcasts"', apply_filters( 'the_content', get_the_content() ) );
 	}
 

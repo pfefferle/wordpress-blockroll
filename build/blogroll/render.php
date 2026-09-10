@@ -28,7 +28,7 @@ $blockroll_sortable = $attributes['showSort'];
 // The HTML anchor is the address of this one list. The sorting and paging
 // links carry it, so the reload lands on the list that was clicked, not
 // at the top of the page.
-$blockroll_anchor   = isset( $attributes['anchor'] ) ? trim( (string) $attributes['anchor'] ) : '';
+$blockroll_anchor   = trim( (string) ( $attributes['anchor'] ?? '' ) );
 $blockroll_fragment = '' !== $blockroll_anchor ? '#' . $blockroll_anchor : '';
 
 $blockroll_sort = $blockroll_sortable ? get_query_var( 'blockroll-sort' ) : '';
@@ -62,7 +62,8 @@ if ( 'manual' === $attributes['sortBy'] ) {
 	$blockroll_sorts['manual'] = __( 'Default', 'blockroll' );
 }
 ?>
-<div <?php echo wp_kses_data( get_block_wrapper_attributes( '' !== $blockroll_anchor ? array( 'id' => $blockroll_anchor ) : array() ) ); ?>>
+<?php // The id is what core's anchor support adds by itself from 7.0 on. ?>
+<div <?php echo wp_kses_data( get_block_wrapper_attributes( array( 'id' => $blockroll_anchor ) ) ); ?>>
 	<?php if ( $blockroll_sortable && $blockroll_total > 1 && count( $blockroll_sorts ) > 1 ) : ?>
 		<nav class="blockroll-controls">
 			<span class="blockroll-sort">
@@ -141,11 +142,6 @@ if ( 'manual' === $attributes['sortBy'] ) {
 	<?php endif; ?>
 	<?php $blockroll_post = get_post(); ?>
 	<?php if ( $attributes['showOpml'] && $blockroll_post ) : ?>
-		<?php
-		// On a page with several blogrolls an anchored block links to its own
-		// list. A single blogroll is the page's list, anchor or not.
-		$blockroll_group = '' !== $blockroll_anchor && count( \Blockroll\Opml::extract_groups( $blockroll_post ) ) > 1 ? $blockroll_anchor : '';
-		?>
 		<p class="blockroll-opml">
 			<?php
 			printf(
@@ -159,7 +155,7 @@ if ( 'manual' === $attributes['sortBy'] ) {
 						),
 					)
 				),
-				esc_url( \Blockroll\Opml::opml_url( $blockroll_post, $blockroll_group ) )
+				esc_url( \Blockroll\Opml::group_url( $blockroll_post, $blockroll_anchor ) )
 			);
 			?>
 		</p>

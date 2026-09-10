@@ -301,15 +301,18 @@ class Test_Opml extends WP_UnitTestCase {
 
 	const TWO_ANCHORED_BLOCKS = '<!-- wp:blockroll/blogroll {"anchor":"blogs","metadata":{"name":"Blogs"},"links":[{"url":"https://a.example/","name":"A","feedUrl":"https://a.example/feed/"}]} /--><!-- wp:blockroll/blogroll {"anchor":"podcasts","metadata":{"name":"Podcasts"},"links":[{"url":"https://b.example/","name":"B","feedUrl":"https://b.example/feed/"}]} /-->';
 
-	public function test_extract_groups_keeps_the_anchor() {
+	public function test_extract_groups_keeps_the_anchor_and_derives_a_missing_one() {
 		$post   = self::factory()->post->create_and_get( array( 'post_content' => self::TWO_ANCHORED_BLOCKS ) );
 		$groups = \Blockroll\Opml::extract_groups( $post );
 		$this->assertSame( 'blogs', $groups[0]['anchor'] );
 		$this->assertSame( 'podcasts', $groups[1]['anchor'] );
 
-		$post   = self::factory()->post->create_and_get( array( 'post_content' => self::BLOCK ) );
+		// A page saved before anchors existed reads as if it had them.
+		$post   = self::factory()->post->create_and_get( array( 'post_content' => self::TWO_NAMED_BLOCKS ) );
 		$groups = \Blockroll\Opml::extract_groups( $post );
-		$this->assertSame( '', $groups[0]['anchor'] );
+		$this->assertSame( 'blogs', $groups[0]['anchor'] );
+		$this->assertSame( 'podcasts', $groups[1]['anchor'] );
+		$this->assertStringNotContainsString( 'anchor', $post->post_content, 'Reading does not write.' );
 	}
 
 	public function test_group_opml_url_uses_its_own_query_var() {
@@ -352,7 +355,7 @@ class Test_Opml extends WP_UnitTestCase {
 		$this->go_to( home_url( '/links.opml?' . \Blockroll\Opml::GROUP . '=podcasts' ) );
 		$this->assertFalse( is_404() );
 		$this->assertSame( $id, get_queried_object_id() );
-		$this->assertSame( '', get_query_var( 'opml', null ) );
+		$this->assertSame( '', get_query_var( \Blockroll\Opml::QUERY_VAR, null ) );
 		$this->assertSame( 'podcasts', get_query_var( \Blockroll\Opml::GROUP ) );
 		$this->set_permalink_structure( '' );
 	}
@@ -371,12 +374,13 @@ class Test_Opml extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'title="Podcasts', $head );
 	}
 
-	public function test_groups_without_anchor_get_no_extra_discovery_links() {
+	public function test_unwritten_anchors_still_get_discovery_links() {
 		$id = self::factory()->post->create( array( 'post_content' => self::TWO_NAMED_BLOCKS ) );
 		$this->go_to( get_permalink( $id ) );
 		ob_start();
 		\Blockroll\Opml::discovery_link();
 		$head = ob_get_clean();
-		$this->assertSame( 1, substr_count( $head, 'type="text/xml"' ) );
+		$this->assertSame( 3, substr_count( $head, 'type="text/xml"' ) );
+		$this->assertStringContainsString( '#podcasts"', $head );
 	}
 }

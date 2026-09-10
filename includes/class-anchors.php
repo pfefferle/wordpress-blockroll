@@ -14,7 +14,8 @@ namespace Blockroll;
  * and the value of the `group` query var of its OPML. The editor generates
  * it from the name of the block, the same way the Heading block derives
  * its anchor from the heading text. Pages saved before that existed get
- * theirs here, lazily, the first time the page or its OPML is loaded.
+ * theirs here: added on the fly wherever the content is read, and written
+ * into the page once, the first time it is viewed.
  */
 class Anchors {
 	/**
@@ -31,86 +32,44 @@ class Anchors {
 	const BLOCK = '/<!--\s+wp:blockroll\/blogroll(?:\s+(\{.*?\}))?\s+(\/?-->)/s';
 
 	/**
-	 * Migrate the page before it is rendered or served as OPML.
+	 * Add the anchors wherever content is rendered, and write them once.
 	 */
 	public static function register() {
-		// Before Opml::render() at 9, so the OPML sees the anchors too.
-		\add_action( 'template_redirect', array( self::class, 'migrate_queried_post' ), 8 );
+		// Before do_blocks() at 9, so the blocks render with their anchors
+		// whether or not the page has been written yet.
+		\add_filter( 'the_content', array( self::class, 'add' ), 8 );
+		\add_action( 'template_redirect', array( self::class, 'migrate_queried_post' ) );
 	}
 
 	/**
-	 * Migrate the post of a singular request.
+	 * Write the anchors into the post of a singular request.
 	 *
-	 * Previews render an autosave, which is never migrated, so the page
+	 * Previews render an autosave, which is never written, so the page
 	 * behind it is left alone as well.
 	 */
 	public static function migrate_queried_post() {
-		if ( ! \is_singular() || \is_preview() ) {
-			return;
-		}
-		$post = \get_queried_object();
-		if ( ! $post instanceof \WP_Post || ! self::migrate( $post ) ) {
-			return;
-		}
-
-		// A page request holds the post twice: the queried object comes from
-		// get_page_by_path(), the loop from the posts query. Bring the loop's
-		// copies up to date too, so this very view renders the anchors.
-		global $wp_query;
-		$copies   = $wp_query->posts;
-		$copies[] = $wp_query->post;
-		$copies[] = $GLOBALS['post'] ?? null;
-		foreach ( $copies as $copy ) {
-			if ( $copy instanceof \WP_Post && $copy->ID === $post->ID ) {
-				$copy->post_content = $post->post_content;
-			}
+		if ( \is_singular() && ! \is_preview() ) {
+			self::migrate( \get_queried_object() );
 		}
 	}
 
 	/**
 	 * Write missing anchors into the blogroll blocks of a post.
 	 *
-	 * Only the block comments of blogroll blocks are touched, everything
-	 * else stays byte for byte as it was. The content is written directly,
-	 * the way core's upgrade routines do it: no revision, no modified date,
-	 * no save hooks for a change nobody made. The passed object is updated
-	 * too, so the request that triggered the migration already renders the
-	 * anchors.
+	 * The content is written directly, the way core's upgrade routines do
+	 * it: no revision, no modified date, no save hooks for a change nobody
+	 * made.
 	 *
 	 * @param \WP_Post $post Post object.
 	 * @return bool Whether anything was written.
 	 */
 	public static function migrate( $post ) {
-		if ( 'revision' === $post->post_type || ! \has_block( 'blockroll/blogroll', $post ) ) {
+		if ( ! $post instanceof \WP_Post || 'revision' === $post->post_type || ! Index::has_blogroll( $post ) ) {
 			return false;
 		}
 
-		$taken   = self::taken( $post->post_content );
-		$changed = false;
-		$content = \preg_replace_callback(
-			self::BLOCK,
-			function ( $found ) use ( &$taken, &$changed ) {
-				$attributes = isset( $found[1] ) && '' !== $found[1] ? \json_decode( $found[1], true ) : array();
-				if ( ! \is_array( $attributes ) || ! empty( $attributes['anchor'] ) ) {
-					return $found[0];
-				}
-
-				$anchor  = self::unique( self::slug( (string) ( $attributes['metadata']['name'] ?? '' ) ), $taken );
-				$taken[] = $anchor;
-				$changed = true;
-
-				// Add the anchor to the JSON as it is, rather than encoding
-				// the attributes again: PHP escapes slashes and non-ASCII
-				// characters differently than the editor does.
-				$json  = '{"anchor":' . \wp_json_encode( $anchor );
-				$json .= $attributes ? ',' . \substr( $found[1], 1 ) : '}';
-
-				return '<!-- wp:blockroll/blogroll ' . $json . ' ' . $found[2];
-			},
-			$post->post_content
-		);
-
-		if ( ! $changed || null === $content ) {
+		$content = self::add( $post->post_content );
+		if ( $content === $post->post_content ) {
 			return false;
 		}
 
@@ -121,6 +80,52 @@ class Anchors {
 		$post->post_content = $content;
 
 		return true;
+	}
+
+	/**
+	 * Add an anchor to every blogroll block that has none.
+	 *
+	 * Only the block comments of blogroll blocks are touched, everything
+	 * else stays byte for byte as it is. The anchor is the slug of the
+	 * block name, made unique against every id already on the page, in
+	 * document order: the same rules the editor applies.
+	 *
+	 * @param string $content Post content.
+	 * @return string Content with an anchor on every blogroll block.
+	 */
+	public static function add( $content ) {
+		if ( ! \is_string( $content ) || false === \strpos( $content, 'wp:blockroll/blogroll' ) ) {
+			return $content;
+		}
+
+		// Collected only when a block actually needs an anchor, so a page
+		// that has them all costs one pass over its block comments.
+		$taken = null;
+
+		return \preg_replace_callback(
+			self::BLOCK,
+			function ( $found ) use ( &$taken, $content ) {
+				$attributes = isset( $found[1] ) && '' !== $found[1] ? \json_decode( $found[1], true ) : array();
+				if ( ! \is_array( $attributes ) || ! empty( $attributes['anchor'] ) ) {
+					return $found[0];
+				}
+
+				if ( null === $taken ) {
+					$taken = self::taken( $content );
+				}
+				$anchor  = self::unique( self::slug( (string) ( $attributes['metadata']['name'] ?? '' ) ), $taken );
+				$taken[] = $anchor;
+
+				// Add the anchor to the JSON as it is, rather than encoding
+				// the attributes again: PHP escapes slashes and non-ASCII
+				// characters differently than the editor does.
+				$json  = '{"anchor":' . \wp_json_encode( $anchor );
+				$json .= $attributes ? ',' . \substr( $found[1], 1 ) : '}';
+
+				return '<!-- wp:blockroll/blogroll ' . $json . ' ' . $found[2];
+			},
+			$content
+		);
 	}
 
 	/**
@@ -170,6 +175,6 @@ class Anchors {
 		if ( \preg_match_all( '/\sid="([^"]*)"/', $content, $matches ) ) {
 			$taken = \array_merge( $taken, $matches[1] );
 		}
-		return \array_values( \array_unique( \array_filter( $taken ) ) );
+		return $taken;
 	}
 }
