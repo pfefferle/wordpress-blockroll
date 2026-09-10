@@ -5,7 +5,7 @@
 - Tags: blogroll, podroll, opml, links, feeds
 - Requires at least: 6.5
 - Tested up to: 7.1
-- Stable tag: 1.0.0
+- Stable tag: 1.1.0
 - Requires PHP: 7.4
 - License: GPL-2.0-or-later
 - License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -118,6 +118,19 @@ routes are described in the
 ## Changelog
 
 Project and support maintained on github at [pfefferle/wordpress-blockroll](https://github.com/pfefferle/wordpress-blockroll).
+
+### 1.1.0
+
+* If a page has more than one blogroll, the subscription list keeps them apart. Each list becomes its own group, named after the block.
+* You can give a blogroll a name in the block settings. Renaming the block in the editor does the same.
+* The subscription list also has a file-like address now: add `.opml` to the page address, for example `https://example.com/links.opml`.
+* Feed readers can now find the page itself, not only the OPML file, when they look for your blogroll.
+* A static front page now announces the blogrolls on your other pages as well.
+* When you paste the address of a site that has a blogroll of its own, the plugin now picks up the name and icon of that site, not the first entry of its list.
+* Fixed a warning in the feed of your site, and the plugin no longer touches the output of other plugins there.
+* The first field gets the focus when you open the "Add link" or the "Import links" window.
+* Live preview and screenshots in the plugin directory.
+* Needs WordPress 6.5 or newer now.
 
 ### 1.0.0
 

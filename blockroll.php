@@ -3,7 +3,7 @@
  * Plugin Name: Blogroll & Podroll Block
  * Plugin URI: https://github.com/pfefferle/wordpress-blockroll
  * Description: Share the blogs and podcasts you follow, and let other people subscribe to your list.
- * Version: 1.0.0
+ * Version: 1.1.0
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: Matthias Pfefferle
