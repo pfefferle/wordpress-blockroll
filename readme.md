@@ -57,7 +57,7 @@ entries in the list people subscribe to, so a reader can tell them apart.
 
 To link to one of them, give the block an HTML anchor, under Advanced in the block
 settings. Then `https://example.com/links/#podcasts` jumps to that list, and
-`https://example.com/links/?opml&blockroll-group=podcasts` is the subscription list of
+`https://example.com/links/?opml&group=podcasts` is the subscription list of
 that one alone. The download link under the list uses it too.
 
 ### How do I add a link?

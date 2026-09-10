@@ -26,9 +26,9 @@ when the plugin is disabled the URL falls back to the page instead of leaving su
 readers with a 404:
 
 * `{page}/?opml` is the OPML of one blogroll page.
-* `{page}/?opml&blockroll-group={anchor}` is the OPML of one block on that page, picked
-  by its HTML anchor. `blockroll-group` is a query var of its own rather than a value of
-  `opml`, so `{page}.opml?blockroll-group={anchor}` works as well. An anchor no block
+* `{page}/?opml&group={anchor}` is the OPML of one block on that page, picked
+  by its HTML anchor. `group` is a query var of its own rather than a value of
+  `opml`, so `{page}.opml?group={anchor}` works as well. An anchor no block
   has falls back to the whole page.
 * `/?opml` is a directory that lists those per-page OPMLs as `<outline type="include">`,
   so a reader references them instead of keeping a copy.

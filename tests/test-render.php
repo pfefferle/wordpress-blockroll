@@ -286,7 +286,7 @@ class Test_Render extends WP_UnitTestCase {
 				),
 			),
 		);
-		$html = $this->render_block_html( $attrs );
+		$html  = $this->render_block_html( $attrs );
 		$this->assertMatchesRegularExpression( '/href="[^"]*blockroll-sort=added[^"]*#podcasts"/', $html );
 		$this->assertMatchesRegularExpression( '/href="[^"]*blockroll-page=2[^"]*#podcasts"/', $html );
 	}

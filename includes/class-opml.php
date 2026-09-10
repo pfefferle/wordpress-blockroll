@@ -28,9 +28,10 @@ class Opml {
 	 * Query var that picks one blogroll of a page by its HTML anchor.
 	 *
 	 * A var of its own rather than a value of `opml`, so it works with the
-	 * `.opml` suffix as well: /links.opml?blockroll-group=podcasts.
+	 * `.opml` suffix as well: /links.opml?group=podcasts. It only has a
+	 * meaning next to `opml`, so the plain name is safe.
 	 */
-	const GROUP = 'blockroll-group';
+	const GROUP = 'group';
 
 	/**
 	 * Output buffer level of the feed namespace buffer, 0 if not buffering.
