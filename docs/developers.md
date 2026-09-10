@@ -26,6 +26,10 @@ when the plugin is disabled the URL falls back to the page instead of leaving su
 readers with a 404:
 
 * `{page}/?opml` is the OPML of one blogroll page.
+* `{page}/?opml&group={anchor}` is the OPML of one block on that page, picked
+  by its HTML anchor. `group` is a query var of its own rather than a value of
+  `opml`, so `{page}.opml?group={anchor}` works as well. An anchor no block
+  has falls back to the whole page.
 * `/?opml` is a directory that lists those per-page OPMLs as `<outline type="include">`,
   so a reader references them instead of keeping a copy.
 * `/.well-known/recommendations.opml` is the same directory under a well-known address.
@@ -40,8 +44,21 @@ a flat list.
 
 Pages with a blogroll advertise their own OPML with `<link rel="blogroll">`, following
 [Dave Winer's proposal](https://danq.me/2024/05/03/23615/), and the front page repeats
-those links. Feeds carry the same information as `<source:blogroll>`. The directory
+those links. A page with several blogrolls adds one pair of links per anchored block,
+pointing at its group OPML and at `{page}#{anchor}`. The block supports the HTML anchor,
+and renders it as the `id` of its wrapper. Feeds carry the same information as `<source:blogroll>`. The directory
 address is never advertised, since it is a list of OPMLs rather than a blogroll.
+
+The anchor is generated from the block name, the way the Heading block derives its
+anchor from the heading text: the editor slugs the name and makes it unique against
+every other anchor on the page, appending `-1`, `-2` if needed. An anchor set by hand
+under Advanced is left alone. Pages saved before anchors existed get theirs on the
+fly: `Anchors::add()` is a pure transform that adds the missing anchors to the blogroll
+block comments only, with the same rules. It runs on `the_content` before `do_blocks()`
+and inside `Opml::extract_groups()`, so the ids and the group links are there from the
+first view on. On that first singular view `Anchors::migrate()` also writes the result
+into `post_content`, directly, so there is no revision, no modified date and no save
+hook for a change nobody made.
 
 Two REST routes back the editor, because a browser cannot fetch other people's sites
 itself:
@@ -78,6 +95,7 @@ wordpress-blockroll/
 │   ├── class-import.php       # OPML parsing
 │   ├── class-links.php        # link normalizing and sorting
 │   ├── class-opml.php         # opml output + head discovery links
+│   ├── class-anchors.php      # anchor of each list, added on read, written once
 │   ├── class-index.php        # private taxonomy, kept in sync on save
 │   ├── class-xfn.php          # XFN vocabulary and rel helper
 │   └── rest/
@@ -92,10 +110,11 @@ wordpress-blockroll/
 │   ├── index.js               # registerBlockType
 │   ├── edit.js                # editor UI
 │   ├── components/            # link form, import modal, XFN control
+│   ├── __tests__/             # Jest tests
 │   ├── editor.scss
 │   └── style.scss
 ├── build/                     # compiled assets (committed)
-├── tests/                     # PHPUnit and Jest tests
+├── tests/                     # PHPUnit tests and fixtures
 ├── package.json
 ├── composer.json
 ├── readme.md

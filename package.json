@@ -15,11 +15,13 @@
 		"@wordpress/block-editor": "^16.1.0",
 		"@wordpress/blocks": "^15.25.0",
 		"@wordpress/components": "^38.0.0",
+		"@wordpress/data": "^10.55.0",
 		"@wordpress/element": "^8.4.0",
 		"@wordpress/env": "^11.14.0",
 		"@wordpress/i18n": "^6.25.0",
 		"@wordpress/icons": "^15.3.0",
 		"@wordpress/interactivity": "^6.52.0",
-		"@wordpress/scripts": "^34.2.0"
+		"@wordpress/scripts": "^34.2.0",
+		"@wordpress/url": "^4.55.0"
 	}
 }

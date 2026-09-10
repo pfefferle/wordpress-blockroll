@@ -298,4 +298,89 @@ class Test_Opml extends WP_UnitTestCase {
 		\Blockroll\Opml::discovery_link();
 		$this->assertSame( '', ob_get_clean() );
 	}
+
+	const TWO_ANCHORED_BLOCKS = '<!-- wp:blockroll/blogroll {"anchor":"blogs","metadata":{"name":"Blogs"},"links":[{"url":"https://a.example/","name":"A","feedUrl":"https://a.example/feed/"}]} /--><!-- wp:blockroll/blogroll {"anchor":"podcasts","metadata":{"name":"Podcasts"},"links":[{"url":"https://b.example/","name":"B","feedUrl":"https://b.example/feed/"}]} /-->';
+
+	public function test_extract_groups_keeps_the_anchor_and_derives_a_missing_one() {
+		$post   = self::factory()->post->create_and_get( array( 'post_content' => self::TWO_ANCHORED_BLOCKS ) );
+		$groups = \Blockroll\Opml::extract_groups( $post );
+		$this->assertSame( 'blogs', $groups[0]['anchor'] );
+		$this->assertSame( 'podcasts', $groups[1]['anchor'] );
+
+		// A page saved before anchors existed reads as if it had them.
+		$post   = self::factory()->post->create_and_get( array( 'post_content' => self::TWO_NAMED_BLOCKS ) );
+		$groups = \Blockroll\Opml::extract_groups( $post );
+		$this->assertSame( 'blogs', $groups[0]['anchor'] );
+		$this->assertSame( 'podcasts', $groups[1]['anchor'] );
+		$this->assertStringNotContainsString( 'anchor', $post->post_content, 'Reading does not write.' );
+	}
+
+	public function test_group_opml_url_uses_its_own_query_var() {
+		$post = self::factory()->post->create_and_get( array( 'post_content' => self::TWO_ANCHORED_BLOCKS ) );
+		$url  = \Blockroll\Opml::opml_url( $post, 'podcasts' );
+		$this->assertStringStartsWith( \Blockroll\Opml::opml_url( $post ), $url );
+		$this->assertStringContainsString( \Blockroll\Opml::GROUP . '=podcasts', $url );
+	}
+
+	public function test_one_group_is_served_flat_with_its_own_title() {
+		$post = self::factory()->post->create_and_get( array( 'post_content' => self::TWO_ANCHORED_BLOCKS ) );
+		ob_start();
+		\Blockroll\Opml::for_post( $post, 'podcasts' );
+		$doc = new SimpleXMLElement( ob_get_clean() );
+		$this->assertCount( 1, $doc->body->outline );
+		$this->assertSame( 'B', (string) $doc->body->outline[0]['text'] );
+		$this->assertCount( 0, $doc->body->outline[0]->outline );
+		$this->assertStringContainsString( 'Podcasts', (string) $doc->head->title );
+		$this->assertStringContainsString( get_the_title( $post ), (string) $doc->head->title );
+	}
+
+	public function test_unknown_group_falls_back_to_the_whole_page() {
+		$post = self::factory()->post->create_and_get( array( 'post_content' => self::TWO_ANCHORED_BLOCKS ) );
+		ob_start();
+		\Blockroll\Opml::for_post( $post, 'nope' );
+		$doc = new SimpleXMLElement( ob_get_clean() );
+		$this->assertCount( 2, $doc->body->outline );
+		$this->assertSame( \Blockroll\Opml::title( $post ), (string) $doc->head->title );
+	}
+
+	public function test_group_query_var_works_with_the_opml_suffix() {
+		$id = self::factory()->post->create(
+			array(
+				'post_type'    => 'page',
+				'post_name'    => 'links',
+				'post_content' => self::TWO_ANCHORED_BLOCKS,
+			)
+		);
+		$this->set_permalink_structure( '/%postname%/' );
+		$this->go_to( home_url( '/links.opml?' . \Blockroll\Opml::GROUP . '=podcasts' ) );
+		$this->assertFalse( is_404() );
+		$this->assertSame( $id, get_queried_object_id() );
+		$this->assertSame( '', get_query_var( \Blockroll\Opml::QUERY_VAR, null ) );
+		$this->assertSame( 'podcasts', get_query_var( \Blockroll\Opml::GROUP ) );
+		$this->set_permalink_structure( '' );
+	}
+
+	public function test_anchored_groups_get_their_own_discovery_links() {
+		$id = self::factory()->post->create( array( 'post_content' => self::TWO_ANCHORED_BLOCKS ) );
+		$this->go_to( get_permalink( $id ) );
+		ob_start();
+		\Blockroll\Opml::discovery_link();
+		$head = ob_get_clean();
+		$post = get_post( $id );
+		$this->assertSame( 3, substr_count( $head, 'type="text/xml"' ) );
+		$this->assertSame( 3, substr_count( $head, 'type="text/html"' ) );
+		$this->assertStringContainsString( 'href="' . esc_url( \Blockroll\Opml::opml_url( $post, 'podcasts' ) ) . '"', $head );
+		$this->assertStringContainsString( 'href="' . esc_url( get_permalink( $post ) . '#podcasts' ) . '"', $head );
+		$this->assertStringContainsString( 'title="Podcasts', $head );
+	}
+
+	public function test_unwritten_anchors_still_get_discovery_links() {
+		$id = self::factory()->post->create( array( 'post_content' => self::TWO_NAMED_BLOCKS ) );
+		$this->go_to( get_permalink( $id ) );
+		ob_start();
+		\Blockroll\Opml::discovery_link();
+		$head = ob_get_clean();
+		$this->assertSame( 3, substr_count( $head, 'type="text/xml"' ) );
+		$this->assertStringContainsString( '#podcasts"', $head );
+	}
 }

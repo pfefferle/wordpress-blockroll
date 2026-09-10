@@ -8,8 +8,9 @@
 	"description": "Share a list of the blogs and sites you follow.",
 	"textdomain": "blockroll",
 	"keywords": [ "blogroll", "links", "opml", "xfn" ],
-	"supports": { "html": false, "align": true },
+	"supports": { "html": false, "align": true, "anchor": true },
 	"attributes": {
+		"anchor": { "type": "string" },
 		"links": { "type": "array", "default": [] },
 		"sortBy": { "type": "string", "default": "name", "enum": [ "name", "added", "manual" ] },
 		"perPage": { "type": "number", "default": 0 },

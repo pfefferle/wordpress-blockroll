@@ -1,9 +1,14 @@
 /**
  * WordPress dependencies
  */
-import { __ } from '@wordpress/i18n';
-import { useState } from '@wordpress/element';
-import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
+import { __, sprintf } from '@wordpress/i18n';
+import { useEffect, useRef, useState } from '@wordpress/element';
+import { useDispatch, useRegistry } from '@wordpress/data';
+import {
+	InspectorControls,
+	store as blockEditorStore,
+	useBlockProps,
+} from '@wordpress/block-editor';
 import {
 	Button,
 	PanelBody,
@@ -21,6 +26,7 @@ import { arrowDown, arrowUp, pencil, trash } from '@wordpress/icons';
 import LinkForm from './components/link-form';
 import ImportModal from './components/import-modal';
 import { move } from './utils';
+import { slugOf, uniqueAnchor } from './anchors';
 
 /**
  * Block edit component.
@@ -28,9 +34,11 @@ import { move } from './utils';
  * @param {Object}   props               Block props.
  * @param {Object}   props.attributes    Block attributes.
  * @param {Function} props.setAttributes Attribute setter.
+ * @param {string}   props.clientId      Client ID of the block.
  */
-export default function Edit( { attributes, setAttributes } ) {
+export default function Edit( { attributes, setAttributes, clientId } ) {
 	const {
+		anchor,
 		links,
 		sortBy,
 		perPage,
@@ -53,6 +61,60 @@ export default function Edit( { attributes, setAttributes } ) {
 			metadata: Object.keys( next ).length ? next : undefined,
 		} );
 	};
+
+	// The anchor is the address of this list: the id of the block and the
+	// group of its OPML. It is generated from the name, like the Heading block
+	// derives its anchor from the heading text, and made unique against every
+	// other anchor on the page. An anchor set by hand under Advanced is left
+	// alone. The server does the same for pages saved before this existed.
+	const name = metadata?.name || '';
+	const registry = useRegistry();
+	const { __unstableMarkNextChangeAsNotPersistent } =
+		useDispatch( blockEditorStore );
+	// Read from the store at the time it runs, not at render time: when
+	// several blocks mount in one pass, each has to see the anchors the ones
+	// before it just set, or two lists with the same name end up with the
+	// same one.
+	const takenAnchors = () => {
+		const { getClientIdsWithDescendants, getBlockAttributes } =
+			registry.select( blockEditorStore );
+		return getClientIdsWithDescendants()
+			.filter( ( id ) => id !== clientId )
+			.map( ( id ) => getBlockAttributes( id )?.anchor )
+			.filter( Boolean );
+	};
+
+	// A block without an anchor gets one when it mounts: a fresh block, or
+	// one saved before anchors existed. So does a block that arrives with
+	// the anchor of another one, which is what a duplicated block does.
+	// Not an undo step either way, nobody typed anything.
+	useEffect( () => {
+		const taken = takenAnchors();
+		if ( ! anchor || taken.includes( anchor ) ) {
+			__unstableMarkNextChangeAsNotPersistent();
+			setAttributes( { anchor: uniqueAnchor( slugOf( name ), taken ) } );
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [] );
+
+	// A rename, from the field below or from the block's own Rename, moves
+	// the anchor along while it is still the generated one.
+	const previousName = useRef( name );
+	useEffect( () => {
+		if ( previousName.current === name ) {
+			return;
+		}
+		const taken = takenAnchors();
+		const wasGenerated =
+			! anchor ||
+			anchor === uniqueAnchor( slugOf( previousName.current ), taken );
+		previousName.current = name;
+		if ( wasGenerated ) {
+			setAttributes( { anchor: uniqueAnchor( slugOf( name ), taken ) } );
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [ name ] );
+
 	const [ editing, setEditing ] = useState( null ); // Index, 'new', or null.
 	const [ isImporting, setIsImporting ] = useState( false );
 
@@ -99,12 +161,16 @@ export default function Edit( { attributes, setAttributes } ) {
 						__next40pxDefaultSize
 						__nextHasNoMarginBottom
 						label={ __( 'Name', 'blockroll' ) }
-						help={ __(
-							'Used to group this list when a page has more than one blogroll. Renaming the block does the same.',
-							'blockroll'
+						help={ sprintf(
+							/* translators: %s: the anchor of the block */
+							__(
+								'Groups this list when a page has more than one blogroll, and gives it its address: #%s. Renaming the block does the same. The address can be changed under Advanced.',
+								'blockroll'
+							),
+							anchor || slugOf( name )
 						) }
 						placeholder={ __( 'Blogroll', 'blockroll' ) }
-						value={ metadata?.name || '' }
+						value={ name }
 						onChange={ setName }
 					/>
 					<SelectControl

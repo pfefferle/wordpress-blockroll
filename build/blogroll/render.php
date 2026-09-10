@@ -25,6 +25,12 @@ $blockroll_links = array_filter(
 
 $blockroll_sortable = $attributes['showSort'];
 
+// The HTML anchor is the address of this one list. The sorting and paging
+// links carry it, so the reload lands on the list that was clicked, not
+// at the top of the page.
+$blockroll_anchor   = trim( (string) ( $attributes['anchor'] ?? '' ) );
+$blockroll_fragment = '' !== $blockroll_anchor ? '#' . $blockroll_anchor : '';
+
 $blockroll_sort = $blockroll_sortable ? get_query_var( 'blockroll-sort' ) : '';
 if ( ! in_array( $blockroll_sort, array( 'name', 'added', 'manual' ), true ) ) {
 	$blockroll_sort = $attributes['sortBy'];
@@ -56,7 +62,8 @@ if ( 'manual' === $attributes['sortBy'] ) {
 	$blockroll_sorts['manual'] = __( 'Default', 'blockroll' );
 }
 ?>
-<div <?php echo wp_kses_data( get_block_wrapper_attributes() ); ?>>
+<?php // The id is what core's anchor support adds by itself from 7.0 on. ?>
+<div <?php echo wp_kses_data( get_block_wrapper_attributes( array( 'id' => $blockroll_anchor ) ) ); ?>>
 	<?php if ( $blockroll_sortable && $blockroll_total > 1 && count( $blockroll_sorts ) > 1 ) : ?>
 		<nav class="blockroll-controls">
 			<span class="blockroll-sort">
@@ -68,7 +75,7 @@ if ( 'manual' === $attributes['sortBy'] ) {
 							'blockroll-sort' => $blockroll_key,
 							'blockroll-page' => false,
 						)
-					);
+					) . $blockroll_fragment;
 					?>
 					<?php if ( $blockroll_key === $blockroll_sort ) : ?>
 						<span aria-current="true"><?php echo esc_html( $blockroll_label ); ?></span>
@@ -120,7 +127,7 @@ if ( 'manual' === $attributes['sortBy'] ) {
 	<?php if ( $blockroll_pages > 1 ) : ?>
 		<nav class="blockroll-pager">
 			<?php if ( $blockroll_page > 1 ) : ?>
-				<a href="<?php echo esc_url( add_query_arg( 'blockroll-page', $blockroll_page - 1 ) ); ?>"><?php esc_html_e( 'Previous', 'blockroll' ); ?></a>
+				<a href="<?php echo esc_url( add_query_arg( 'blockroll-page', $blockroll_page - 1 ) . $blockroll_fragment ); ?>"><?php esc_html_e( 'Previous', 'blockroll' ); ?></a>
 			<?php endif; ?>
 			<span>
 			<?php
@@ -129,7 +136,7 @@ if ( 'manual' === $attributes['sortBy'] ) {
 			?>
 			</span>
 			<?php if ( $blockroll_page < $blockroll_pages ) : ?>
-				<a href="<?php echo esc_url( add_query_arg( 'blockroll-page', $blockroll_page + 1 ) ); ?>"><?php esc_html_e( 'Next', 'blockroll' ); ?></a>
+				<a href="<?php echo esc_url( add_query_arg( 'blockroll-page', $blockroll_page + 1 ) . $blockroll_fragment ); ?>"><?php esc_html_e( 'Next', 'blockroll' ); ?></a>
 			<?php endif; ?>
 		</nav>
 	<?php endif; ?>
@@ -148,7 +155,7 @@ if ( 'manual' === $attributes['sortBy'] ) {
 						),
 					)
 				),
-				esc_url( \Blockroll\Opml::opml_url( $blockroll_post ) )
+				esc_url( \Blockroll\Opml::group_url( $blockroll_post, $blockroll_anchor ) )
 			);
 			?>
 		</p>
