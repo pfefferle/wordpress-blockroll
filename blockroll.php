@@ -43,6 +43,7 @@ define( 'BLOCKROLL_PLUGIN_FILE', __FILE__ );
  */
 function init() {
 	Index::register();
+	Anchors::register();
 	Opml::register();
 	Xfn::register();
 	\register_block_type( __DIR__ . '/build/blogroll' );
