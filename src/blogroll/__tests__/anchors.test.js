@@ -1,4 +1,4 @@
-import { slugOf, uniqueAnchor } from '../../src/blogroll/anchors';
+import { slugOf, uniqueAnchor } from '../anchors';
 
 describe( 'slugOf', () => {
 	it( 'slugs a name', () => {

@@ -107,10 +107,11 @@ wordpress-blockroll/
 │   ├── index.js               # registerBlockType
 │   ├── edit.js                # editor UI
 │   ├── components/            # link form, import modal, XFN control
+│   ├── __tests__/             # Jest tests
 │   ├── editor.scss
 │   └── style.scss
 ├── build/                     # compiled assets (committed)
-├── tests/                     # PHPUnit and Jest tests
+├── tests/                     # PHPUnit tests and fixtures
 ├── package.json
 ├── composer.json
 ├── readme.md

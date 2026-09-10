@@ -1,7 +1,7 @@
 /**
  * Internal dependencies
  */
-import { applyXfnToken, sanitizeXfn } from '../../src/blogroll/components/xfn';
+import { applyXfnToken, sanitizeXfn } from '../components/xfn';
 
 describe( 'applyXfnToken', () => {
 	it( 'adds a token', () => {

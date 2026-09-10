@@ -1,7 +1,7 @@
 /**
  * Internal dependencies
  */
-import { move, mergeDiscovered } from '../../src/blogroll/utils';
+import { move, mergeDiscovered } from '../utils';
 
 describe( 'move', () => {
 	it( 'moves an element down', () => {
