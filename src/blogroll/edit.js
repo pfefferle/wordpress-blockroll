@@ -3,7 +3,7 @@
  */
 import { __, sprintf } from '@wordpress/i18n';
 import { useEffect, useRef, useState } from '@wordpress/element';
-import { useDispatch, useSelect } from '@wordpress/data';
+import { useDispatch, useRegistry, useSelect } from '@wordpress/data';
 import {
 	InspectorControls,
 	store as blockEditorStore,
@@ -69,20 +69,23 @@ export default function Edit( { attributes, setAttributes, clientId } ) {
 	// other anchor on the page. An anchor set by hand under Advanced is left
 	// alone. The server does the same for pages saved before this existed.
 	const name = metadata?.name || '';
-	const taken = useSelect(
-		( select ) => {
-			const { getClientIdsWithDescendants, getBlockAttributes } =
-				select( blockEditorStore );
-			return getClientIdsWithDescendants()
-				.filter( ( id ) => id !== clientId )
-				.map( ( id ) => getBlockAttributes( id )?.anchor )
-				.filter( Boolean );
-		},
-		[ clientId ]
-	);
+	const takenAnchors = ( select ) => {
+		const { getClientIdsWithDescendants, getBlockAttributes } =
+			select( blockEditorStore );
+		return getClientIdsWithDescendants()
+			.filter( ( id ) => id !== clientId )
+			.map( ( id ) => getBlockAttributes( id )?.anchor )
+			.filter( Boolean );
+	};
+	const taken = useSelect( takenAnchors, [ clientId ] );
+	const registry = useRegistry();
 	const { __unstableMarkNextChangeAsNotPersistent } =
 		useDispatch( blockEditorStore );
-	const generate = ( forName ) => uniqueAnchor( slugOf( forName ), taken );
+	// Reads the store at the time it runs, not at render time: when several
+	// blocks mount in one pass, each has to see the anchors the ones before
+	// it just set, or two lists with the same name end up with the same one.
+	const generate = ( forName ) =>
+		uniqueAnchor( slugOf( forName ), takenAnchors( registry.select ) );
 
 	// A block without an anchor gets one: a fresh block, or one saved before
 	// anchors existed. Not an undo step, nobody typed anything.
@@ -172,9 +175,13 @@ export default function Edit( { attributes, setAttributes, clientId } ) {
 					/>
 					{ hasTwin && (
 						<Notice status="warning" isDismissible={ false }>
-							{ __(
-								'Another block on this page has the same HTML anchor. Links and subscriptions would reach that one instead. Change the anchor under Advanced.',
-								'blockroll'
+							{ sprintf(
+								/* translators: %s: the anchor of the block */
+								__(
+									'The address #%s is already used by another block on this page.',
+									'blockroll'
+								),
+								anchor
 							) }
 						</Notice>
 					) }
