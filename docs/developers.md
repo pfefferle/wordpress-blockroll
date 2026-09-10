@@ -95,6 +95,7 @@ wordpress-blockroll/
 │   ├── class-import.php       # OPML parsing
 │   ├── class-links.php        # link normalizing and sorting
 │   ├── class-opml.php         # opml output + head discovery links
+│   ├── class-anchors.php      # anchor of each list, added on read, written once
 │   ├── class-index.php        # private taxonomy, kept in sync on save
 │   ├── class-xfn.php          # XFN vocabulary and rel helper
 │   └── rest/
