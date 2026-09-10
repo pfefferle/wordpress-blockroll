@@ -88,7 +88,7 @@ class Opml {
 		// above; the well-known test covers that.
 		\add_rewrite_rule(
 			'^(.+?)\\.opml$',
-			'index.php?pagename=$matches[1]&' . self::QUERY_VAR . '=',
+			\sprintf( 'index.php?pagename=$matches[1]&%s=', self::QUERY_VAR ),
 			'top'
 		);
 	}
