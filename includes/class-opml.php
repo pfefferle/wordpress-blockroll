@@ -25,6 +25,14 @@ class Opml {
 	const DIRECTORY = 'directory';
 
 	/**
+	 * Query var that picks one blogroll of a page by its HTML anchor.
+	 *
+	 * A var of its own rather than a value of `opml`, so it works with the
+	 * `.opml` suffix as well: /links.opml?blockroll-group=podcasts.
+	 */
+	const GROUP = 'blockroll-group';
+
+	/**
 	 * Output buffer level of the feed namespace buffer, 0 if not buffering.
 	 *
 	 * @var int
@@ -145,7 +153,7 @@ class Opml {
 	 * without the block needing a title of its own.
 	 *
 	 * @param \WP_Post $post Post object.
-	 * @return array List of arrays with a "name" and a "links" key.
+	 * @return array List of arrays with a "name", an "anchor" and a "links" key.
 	 */
 	public static function extract_groups( $post ) {
 		$groups = array();
@@ -161,8 +169,9 @@ class Opml {
 					}
 					if ( $links ) {
 						$groups[] = array(
-							'name'  => \sanitize_text_field( (string) ( $block['attrs']['metadata']['name'] ?? '' ) ),
-							'links' => $links,
+							'name'   => \sanitize_text_field( (string) ( $block['attrs']['metadata']['name'] ?? '' ) ),
+							'anchor' => \trim( (string) ( $block['attrs']['anchor'] ?? '' ) ),
+							'links'  => $links,
 						);
 					}
 				}
@@ -192,8 +201,7 @@ class Opml {
 
 		foreach ( $groups as $group ) {
 			if ( $grouped ) {
-				$name    = $group['name'] ? $group['name'] : \__( 'Blogroll', 'blockroll' );
-				$lines[] = "\t\t" . '<outline text="' . \esc_attr( $name ) . '">';
+				$lines[] = "\t\t" . '<outline text="' . \esc_attr( self::group_name( $group ) ) . '">';
 				foreach ( $group['links'] as $link ) {
 					$lines[] = self::link_outline( $link, "\t\t\t" );
 				}
@@ -230,17 +238,59 @@ class Opml {
 	}
 
 	/**
+	 * Name of a group, falling back to the name of the block itself.
+	 *
+	 * @param array $group Group as returned by extract_groups().
+	 * @return string Name.
+	 */
+	private static function group_name( $group ) {
+		return $group['name'] ? $group['name'] : \__( 'Blogroll', 'blockroll' );
+	}
+
+	/**
+	 * Title of one blogroll of a page: its name, then the page title.
+	 *
+	 * @param array    $group Group as returned by extract_groups().
+	 * @param \WP_Post $post  Post object.
+	 * @return string Title.
+	 */
+	public static function group_title( $group, $post ) {
+		/* translators: 1: name of the blogroll, 2: page title with author */
+		return \sprintf( \__( '%1$s (%2$s)', 'blockroll' ), self::group_name( $group ), self::title( $post ) );
+	}
+
+	/**
 	 * Print the OPML for a single post's blogroll.
 	 *
-	 * @param \WP_Post $post Post object.
+	 * With an anchor, only the block carrying that anchor is printed, as a
+	 * flat list with a title of its own. An anchor no block has falls back
+	 * to the whole page, so a reader keeps getting a list when a block is
+	 * renamed, instead of an error.
+	 *
+	 * @param \WP_Post $post   Post object.
+	 * @param string   $anchor HTML anchor of one blogroll block, or empty for all.
 	 */
-	public static function for_post( $post ) {
+	public static function for_post( $post, $anchor = '' ) {
+		$groups = self::extract_groups( $post );
+		$title  = self::title( $post );
+
+		if ( '' !== $anchor ) {
+			foreach ( $groups as $group ) {
+				if ( $anchor === $group['anchor'] ) {
+					$groups = array( $group );
+					$title  = self::group_title( $group, $post );
+					break;
+				}
+			}
+		}
+
 		\load_template(
 			\dirname( BLOCKROLL_PLUGIN_FILE ) . '/templates/opml.php',
 			false,
 			array(
 				'post'   => $post,
-				'groups' => self::extract_groups( $post ),
+				'title'  => $title,
+				'groups' => $groups,
 			)
 		);
 	}
@@ -317,7 +367,7 @@ class Opml {
 
 		\header( 'Content-Type: text/xml; charset=' . \get_option( 'blog_charset' ) );
 		if ( $post ) {
-			self::for_post( $post );
+			self::for_post( $post, (string) \get_query_var( self::GROUP, '' ) );
 		} else {
 			self::directory( $posts );
 		}
@@ -325,13 +375,18 @@ class Opml {
 	}
 
 	/**
-	 * The OPML URL of a post.
+	 * The OPML URL of a post, or of one of its blogrolls.
 	 *
-	 * @param \WP_Post $post Post object.
+	 * @param \WP_Post $post   Post object.
+	 * @param string   $anchor HTML anchor of one blogroll block, or empty for all.
 	 * @return string OPML URL.
 	 */
-	public static function opml_url( $post ) {
-		return \add_query_arg( 'opml', '', \get_permalink( $post ) );
+	public static function opml_url( $post, $anchor = '' ) {
+		$args = array( 'opml' => '' );
+		if ( '' !== $anchor ) {
+			$args[ self::GROUP ] = $anchor;
+		}
+		return \add_query_arg( $args, \get_permalink( $post ) );
 	}
 
 	/**
@@ -369,6 +424,7 @@ class Opml {
 		$post = self::blogroll_post();
 		if ( $post ) {
 			self::print_discovery_link( $post );
+			self::print_group_links( $post );
 		}
 
 		// A static front page is singular as well, so it gets both: its own
@@ -393,15 +449,51 @@ class Opml {
 	 * @param \WP_Post $post Post with a blogroll block.
 	 */
 	private static function print_discovery_link( $post ) {
-		$title = self::title( $post );
+		self::print_links( self::opml_url( $post ), \get_permalink( $post ), self::title( $post ) );
+	}
+
+	/**
+	 * Print the rel="blogroll" links of the single blogrolls on a page.
+	 *
+	 * Only a page with more than one gets them, and only for blocks with
+	 * an anchor: without one there is no address to point at.
+	 *
+	 * @param \WP_Post $post Post with blogroll blocks.
+	 */
+	private static function print_group_links( $post ) {
+		$groups = self::extract_groups( $post );
+		if ( \count( $groups ) < 2 ) {
+			return;
+		}
+
+		foreach ( $groups as $group ) {
+			if ( '' === $group['anchor'] ) {
+				continue;
+			}
+			self::print_links(
+				self::opml_url( $post, $group['anchor'] ),
+				\get_permalink( $post ) . '#' . $group['anchor'],
+				self::group_title( $group, $post )
+			);
+		}
+	}
+
+	/**
+	 * Print a pair of rel="blogroll" links, the OPML and its HTML page.
+	 *
+	 * @param string $opml_url URL of the OPML.
+	 * @param string $html_url URL of the page.
+	 * @param string $title    Title of both.
+	 */
+	private static function print_links( $opml_url, $html_url, $title ) {
 		\printf(
 			'<link rel="blogroll" type="text/xml" href="%s" title="%s" />' . "\n",
-			\esc_url( self::opml_url( $post ) ),
+			\esc_url( $opml_url ),
 			\esc_attr( $title )
 		);
 		\printf(
 			'<link rel="blogroll" type="text/html" href="%s" title="%s" />' . "\n",
-			\esc_url( \get_permalink( $post ) ),
+			\esc_url( $html_url ),
 			\esc_attr( $title )
 		);
 	}

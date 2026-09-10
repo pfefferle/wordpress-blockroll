@@ -55,6 +55,11 @@ can have several, on one page or spread over many.
 If you have more than one on a page, give each one a name. The names then group the
 entries in the list people subscribe to, so a reader can tell them apart.
 
+To link to one of them, give the block an HTML anchor, under Advanced in the block
+settings. Then `https://example.com/links/#podcasts` jumps to that list, and
+`https://example.com/links/?opml&blockroll-group=podcasts` is the subscription list of
+that one alone. The download link under the list uses it too.
+
 ### How do I add a link?
 
 Paste the address of the site and the plugin fills in the rest: name, description, icon,

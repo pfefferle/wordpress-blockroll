@@ -100,7 +100,7 @@ export default function Edit( { attributes, setAttributes } ) {
 						__nextHasNoMarginBottom
 						label={ __( 'Name', 'blockroll' ) }
 						help={ __(
-							'Used to group this list when a page has more than one blogroll. Renaming the block does the same.',
+							'Used to group this list when a page has more than one blogroll. Renaming the block does the same. To link to this list on its own, set an HTML anchor under Advanced.',
 							'blockroll'
 						) }
 						placeholder={ __( 'Blogroll', 'blockroll' ) }

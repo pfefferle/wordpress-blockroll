@@ -241,4 +241,77 @@ class Test_Render extends WP_UnitTestCase {
 	public function test_empty_links_renders_nothing() {
 		$this->assertSame( '', trim( $this->render_block_html( array( 'links' => array() ) ) ) );
 	}
+
+	public function test_anchor_becomes_the_id_of_the_block() {
+		$html = $this->render_block_html(
+			array(
+				'anchor' => 'podcasts',
+				'links'  => array(
+					array(
+						'url'  => 'https://a.example/',
+						'name' => 'A',
+					),
+				),
+			)
+		);
+		$this->assertStringContainsString( 'id="podcasts"', $html );
+
+		$html = $this->render_block_html(
+			array(
+				'links' => array(
+					array(
+						'url'  => 'https://a.example/',
+						'name' => 'A',
+					),
+				),
+			)
+		);
+		$this->assertStringNotContainsString( ' id=', $html );
+	}
+
+	public function test_sort_and_pager_links_jump_back_to_the_anchor() {
+		$attrs = array(
+			'anchor'  => 'podcasts',
+			'perPage' => 1,
+			'links'   => array(
+				array(
+					'url'   => 'https://a.example/',
+					'name'  => 'A',
+					'added' => '2026-08-01',
+				),
+				array(
+					'url'   => 'https://b.example/',
+					'name'  => 'B',
+					'added' => '2026-08-02',
+				),
+			),
+		);
+		$html = $this->render_block_html( $attrs );
+		$this->assertMatchesRegularExpression( '/href="[^"]*blockroll-sort=added[^"]*#podcasts"/', $html );
+		$this->assertMatchesRegularExpression( '/href="[^"]*blockroll-page=2[^"]*#podcasts"/', $html );
+	}
+
+	public function test_opml_link_points_at_the_group_when_the_page_has_several() {
+		global $post;
+		$content = '<!-- wp:blockroll/blogroll {"anchor":"blogs","links":[{"url":"https://a.example/","name":"A"}]} /--><!-- wp:blockroll/blogroll {"anchor":"podcasts","links":[{"url":"https://b.example/","name":"B"}]} /-->';
+		$post    = self::factory()->post->create_and_get( array( 'post_content' => $content ) ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		$attrs   = array(
+			'anchor' => 'podcasts',
+			'links'  => array(
+				array(
+					'url'  => 'https://b.example/',
+					'name' => 'B',
+				),
+			),
+		);
+
+		$html = $this->render_block_html( $attrs );
+		$this->assertStringContainsString( esc_url( \Blockroll\Opml::opml_url( $post, 'podcasts' ) ), $html );
+
+		// A single blogroll on the page is the page's OPML, anchor or not.
+		$post = self::factory()->post->create_and_get( array( 'post_content' => '<!-- wp:blockroll/blogroll {"anchor":"podcasts","links":[{"url":"https://b.example/","name":"B"}]} /-->' ) ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		$html = $this->render_block_html( $attrs );
+		$this->assertStringContainsString( esc_url( \Blockroll\Opml::opml_url( $post ) ), $html );
+		$this->assertStringNotContainsString( \Blockroll\Opml::GROUP, $html );
+	}
 }
