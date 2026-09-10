@@ -49,8 +49,21 @@ class Anchors {
 			return;
 		}
 		$post = \get_queried_object();
-		if ( $post instanceof \WP_Post ) {
-			self::migrate( $post );
+		if ( ! $post instanceof \WP_Post || ! self::migrate( $post ) ) {
+			return;
+		}
+
+		// A page request holds the post twice: the queried object comes from
+		// get_page_by_path(), the loop from the posts query. Bring the loop's
+		// copies up to date too, so this very view renders the anchors.
+		global $wp_query;
+		$copies   = $wp_query->posts;
+		$copies[] = $wp_query->post;
+		$copies[] = $GLOBALS['post'] ?? null;
+		foreach ( $copies as $copy ) {
+			if ( $copy instanceof \WP_Post && $copy->ID === $post->ID ) {
+				$copy->post_content = $post->post_content;
+			}
 		}
 	}
 
@@ -89,12 +102,8 @@ class Anchors {
 				// Add the anchor to the JSON as it is, rather than encoding
 				// the attributes again: PHP escapes slashes and non-ASCII
 				// characters differently than the editor does.
-				$json = '"anchor":' . \wp_json_encode( $anchor );
-				if ( $attributes ) {
-					$json = '{' . $json . ',' . \substr( $found[1], 1 );
-				} else {
-					$json = '{' . $json . '}';
-				}
+				$json  = '{"anchor":' . \wp_json_encode( $anchor );
+				$json .= $attributes ? ',' . \substr( $found[1], 1 ) : '}';
 
 				return '<!-- wp:blockroll/blogroll ' . $json . ' ' . $found[2];
 			},

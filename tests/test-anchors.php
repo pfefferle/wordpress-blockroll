@@ -93,7 +93,7 @@ class Test_Anchors extends WP_UnitTestCase {
 	}
 
 	public function test_migrate_does_not_create_a_revision_or_touch_the_modified_date() {
-		$post = self::factory()->post->create_and_get( array( 'post_content' => '<!-- wp:blockroll/blogroll {' . self::LINKS . '} /-->' ) );
+		$post      = self::factory()->post->create_and_get( array( 'post_content' => '<!-- wp:blockroll/blogroll {' . self::LINKS . '} /-->' ) );
 		$modified  = $post->post_modified_gmt;
 		$revisions = count( wp_get_post_revisions( $post->ID ) );
 		\Blockroll\Anchors::migrate( $post );
@@ -117,6 +117,27 @@ class Test_Anchors extends WP_UnitTestCase {
 		\Blockroll\Anchors::migrate_queried_post();
 		$this->assertStringContainsString( '"anchor":"podcasts"', get_queried_object()->post_content );
 		$this->assertStringContainsString( '"anchor":"podcasts"', get_post( $id )->post_content );
+	}
+
+	public function test_a_page_view_updates_the_loop_copy_of_the_post() {
+		// A page request holds the post twice: the queried object comes from
+		// get_page_by_path(), the loop from the posts query.
+		$id = self::factory()->post->create(
+			array(
+				'post_type'    => 'page',
+				'post_name'    => 'lists',
+				'post_content' => '<!-- wp:blockroll/blogroll {"metadata":{"name":"Podcasts"},' . self::LINKS . '} /-->',
+			)
+		);
+		$this->go_to( get_permalink( $id ) );
+		\Blockroll\Anchors::migrate_queried_post();
+
+		global $wp_query;
+		$this->assertStringContainsString( '"anchor":"podcasts"', $wp_query->posts[0]->post_content );
+		$this->assertStringContainsString( '"anchor":"podcasts"', $GLOBALS['post']->post_content );
+
+		the_post();
+		$this->assertStringContainsString( 'id="podcasts"', apply_filters( 'the_content', get_the_content() ) );
 	}
 
 	public function test_a_preview_is_not_migrated() {

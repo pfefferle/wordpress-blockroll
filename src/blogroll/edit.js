@@ -1,11 +1,17 @@
 /**
  * WordPress dependencies
  */
-import { __ } from '@wordpress/i18n';
-import { useState } from '@wordpress/element';
-import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
+import { __, sprintf } from '@wordpress/i18n';
+import { useEffect, useRef, useState } from '@wordpress/element';
+import { useDispatch, useSelect } from '@wordpress/data';
+import {
+	InspectorControls,
+	store as blockEditorStore,
+	useBlockProps,
+} from '@wordpress/block-editor';
 import {
 	Button,
+	Notice,
 	PanelBody,
 	Placeholder,
 	RangeControl,
@@ -21,6 +27,7 @@ import { arrowDown, arrowUp, pencil, trash } from '@wordpress/icons';
 import LinkForm from './components/link-form';
 import ImportModal from './components/import-modal';
 import { move } from './utils';
+import { slugOf, uniqueAnchor } from './anchors';
 
 /**
  * Block edit component.
@@ -28,9 +35,11 @@ import { move } from './utils';
  * @param {Object}   props               Block props.
  * @param {Object}   props.attributes    Block attributes.
  * @param {Function} props.setAttributes Attribute setter.
+ * @param {string}   props.clientId      Client ID of the block.
  */
-export default function Edit( { attributes, setAttributes } ) {
+export default function Edit( { attributes, setAttributes, clientId } ) {
 	const {
+		anchor,
 		links,
 		sortBy,
 		perPage,
@@ -53,6 +62,56 @@ export default function Edit( { attributes, setAttributes } ) {
 			metadata: Object.keys( next ).length ? next : undefined,
 		} );
 	};
+
+	// The anchor is the address of this list: the id of the block and the
+	// group of its OPML. It is generated from the name, like the Heading block
+	// derives its anchor from the heading text, and made unique against every
+	// other anchor on the page. An anchor set by hand under Advanced is left
+	// alone. The server does the same for pages saved before this existed.
+	const name = metadata?.name || '';
+	const taken = useSelect(
+		( select ) => {
+			const { getClientIdsWithDescendants, getBlockAttributes } =
+				select( blockEditorStore );
+			return getClientIdsWithDescendants()
+				.filter( ( id ) => id !== clientId )
+				.map( ( id ) => getBlockAttributes( id )?.anchor )
+				.filter( Boolean );
+		},
+		[ clientId ]
+	);
+	const { __unstableMarkNextChangeAsNotPersistent } =
+		useDispatch( blockEditorStore );
+	const generate = ( forName ) => uniqueAnchor( slugOf( forName ), taken );
+
+	// A block without an anchor gets one: a fresh block, or one saved before
+	// anchors existed. Not an undo step, nobody typed anything.
+	useEffect( () => {
+		if ( ! anchor ) {
+			__unstableMarkNextChangeAsNotPersistent();
+			setAttributes( { anchor: generate( name ) } );
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [ anchor ] );
+
+	// A rename, from the field below or from the block's own Rename, moves
+	// the anchor along while it is still the generated one.
+	const previousName = useRef( name );
+	useEffect( () => {
+		if ( previousName.current === name ) {
+			return;
+		}
+		const wasGenerated =
+			! anchor || anchor === generate( previousName.current );
+		previousName.current = name;
+		if ( wasGenerated ) {
+			setAttributes( { anchor: generate( name ) } );
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [ name ] );
+
+	const hasTwin = !! anchor && taken.includes( anchor );
+
 	const [ editing, setEditing ] = useState( null ); // Index, 'new', or null.
 	const [ isImporting, setIsImporting ] = useState( false );
 
@@ -99,14 +158,26 @@ export default function Edit( { attributes, setAttributes } ) {
 						__next40pxDefaultSize
 						__nextHasNoMarginBottom
 						label={ __( 'Name', 'blockroll' ) }
-						help={ __(
-							'Used to group this list when a page has more than one blogroll. Renaming the block does the same. To link to this list on its own, set an HTML anchor under Advanced.',
-							'blockroll'
+						help={ sprintf(
+							/* translators: %s: the anchor of the block */
+							__(
+								'Groups this list when a page has more than one blogroll, and gives it its address: #%s. Renaming the block does the same. The address can be changed under Advanced.',
+								'blockroll'
+							),
+							anchor || generate( name )
 						) }
 						placeholder={ __( 'Blogroll', 'blockroll' ) }
-						value={ metadata?.name || '' }
+						value={ name }
 						onChange={ setName }
 					/>
+					{ hasTwin && (
+						<Notice status="warning" isDismissible={ false }>
+							{ __(
+								'Another block on this page has the same HTML anchor. Links and subscriptions would reach that one instead. Change the anchor under Advanced.',
+								'blockroll'
+							) }
+						</Notice>
+					) }
 					<SelectControl
 						__next40pxDefaultSize
 						__nextHasNoMarginBottom

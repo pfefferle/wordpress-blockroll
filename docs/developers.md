@@ -49,6 +49,15 @@ pointing at its group OPML and at `{page}#{anchor}`. The block supports the HTML
 and renders it as the `id` of its wrapper. Feeds carry the same information as `<source:blogroll>`. The directory
 address is never advertised, since it is a list of OPMLs rather than a blogroll.
 
+The anchor is generated from the block name, the way the Heading block derives its
+anchor from the heading text: the editor slugs the name and makes it unique against
+every other anchor on the page, appending `-1`, `-2` if needed. An anchor set by hand
+under Advanced is left alone. Pages saved before anchors existed are migrated lazily:
+on the first singular view or OPML request, `Anchors::migrate()` writes the missing
+anchors into the blogroll block comments only, with the same rules, directly into
+`post_content` so there is no revision, no modified date and no save hook for a
+change nobody made.
+
 Two REST routes back the editor, because a browser cannot fetch other people's sites
 itself:
 
