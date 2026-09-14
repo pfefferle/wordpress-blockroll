@@ -15,7 +15,7 @@ export const FALLBACK = 'blogroll';
  * @return {string} Slug.
  */
 export function slugOf( name ) {
-	return cleanForSlug( name || '' ) || FALLBACK;
+	return cleanForSlug( name ) || FALLBACK;
 }
 
 /**

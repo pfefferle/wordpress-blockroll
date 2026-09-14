@@ -161,8 +161,11 @@ class Opml {
 	 * without the block needing a title of its own.
 	 *
 	 * Anchors missing from pages saved before they existed are added on
-	 * the fly, the same way they are when the page renders. The result is
-	 * kept for the request: the head, every block and the OPML ask for it.
+	 * the fly, the same way they are when the page renders, so every group
+	 * has one. The result is kept for the request: the head, every block
+	 * and the OPML ask for it. The content is part of the key, because a
+	 * request can hold a post twice, before and after its anchors were
+	 * written.
 	 *
 	 * @param \WP_Post $post Post object.
 	 * @return array List of arrays with a "name", an "anchor" and a "links" key.
@@ -170,10 +173,8 @@ class Opml {
 	public static function extract_groups( $post ) {
 		static $cache = array();
 
-		$content = Anchors::add( $post->post_content );
-		$key     = $post->ID . ':' . \md5( $content );
-		if ( isset( $cache[ $key ] ) ) {
-			return $cache[ $key ];
+		if ( isset( $cache[ $post->ID ] ) && $cache[ $post->ID ]['content'] === $post->post_content ) {
+			return $cache[ $post->ID ]['groups'];
 		}
 
 		$groups = array();
@@ -200,9 +201,12 @@ class Opml {
 				}
 			}
 		};
-		$walker( \parse_blocks( $content ) );
+		$walker( \parse_blocks( Anchors::add( $post->post_content ) ) );
 
-		$cache[ $key ] = $groups;
+		$cache[ $post->ID ] = array(
+			'content' => $post->post_content,
+			'groups'  => $groups,
+		);
 		return $groups;
 	}
 
@@ -349,21 +353,6 @@ class Opml {
 	}
 
 	/**
-	 * The queried post, when it has a blogroll.
-	 *
-	 * @return \WP_Post|null Post with a blogroll block, or null.
-	 */
-	private static function blogroll_post() {
-		if ( ! \is_singular() ) {
-			return null;
-		}
-
-		$post = \get_queried_object();
-
-		return Index::has_blogroll( $post ) ? $post : null;
-	}
-
-	/**
 	 * Whether this request is the site root, where the directory lives.
 	 *
 	 * @return bool True on the front page or the blog home.
@@ -387,7 +376,7 @@ class Opml {
 
 		// The well-known URL asks for the directory, whatever page it lands on.
 		$directory = self::DIRECTORY === $opml;
-		$post      = $directory ? null : self::blogroll_post();
+		$post      = $directory ? null : Index::queried_post();
 		$posts     = ( ! $post && ( $directory || self::is_blogroll_root() ) ) ? Index::get_posts() : array();
 
 		if ( ! $post && ! $posts ) {
@@ -464,10 +453,11 @@ class Opml {
 	 * list of OPMLs, not a blogroll, so it is never advertised.
 	 */
 	public static function discovery_link() {
-		$post = self::blogroll_post();
+		$post = Index::queried_post();
 		if ( $post ) {
-			self::print_discovery_link( $post );
-			self::print_group_links( $post );
+			$title = self::title( $post );
+			self::print_links( self::opml_url( $post ), \get_permalink( $post ), $title );
+			self::print_group_links( $post, $title );
 		}
 
 		// A static front page is singular as well, so it gets both: its own
@@ -498,22 +488,19 @@ class Opml {
 	/**
 	 * Print the rel="blogroll" links of the single blogrolls on a page.
 	 *
-	 * Only a page with more than one gets them, and only for blocks with
-	 * an anchor: without one there is no address to point at.
+	 * Only a page with more than one gets them, see is_grouped().
 	 *
-	 * @param \WP_Post $post Post with blogroll blocks.
+	 * @param \WP_Post $post       Post with blogroll blocks.
+	 * @param string   $page_title Title of the page, see title().
 	 */
-	private static function print_group_links( $post ) {
-		if ( ! self::is_grouped( $post ) ) {
+	private static function print_group_links( $post, $page_title ) {
+		$groups = self::extract_groups( $post );
+		if ( \count( $groups ) < 2 ) {
 			return;
 		}
 
-		$permalink  = \get_permalink( $post );
-		$page_title = self::title( $post );
-		foreach ( self::extract_groups( $post ) as $group ) {
-			if ( '' === $group['anchor'] ) {
-				continue;
-			}
+		$permalink = \get_permalink( $post );
+		foreach ( $groups as $group ) {
 			self::print_links(
 				self::opml_url( $post, $group['anchor'] ),
 				$permalink . '#' . $group['anchor'],

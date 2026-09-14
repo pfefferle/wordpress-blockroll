@@ -48,8 +48,8 @@ class Anchors {
 	 * behind it is left alone as well.
 	 */
 	public static function migrate_queried_post() {
-		if ( \is_singular() && ! \is_preview() ) {
-			self::migrate( \get_queried_object() );
+		if ( ! \is_preview() ) {
+			self::migrate( Index::queried_post() );
 		}
 	}
 
@@ -60,11 +60,11 @@ class Anchors {
 	 * it: no revision, no modified date, no save hooks for a change nobody
 	 * made.
 	 *
-	 * @param \WP_Post $post Post object.
+	 * @param \WP_Post|null $post Post object, or null for none.
 	 * @return bool Whether anything was written.
 	 */
 	public static function migrate( $post ) {
-		if ( ! $post instanceof \WP_Post || 'revision' === $post->post_type || ! Index::has_blogroll( $post ) ) {
+		if ( ! $post || 'revision' === $post->post_type || ! Index::has_blogroll( $post ) ) {
 			return false;
 		}
 
@@ -105,7 +105,7 @@ class Anchors {
 		return \preg_replace_callback(
 			self::BLOCK,
 			function ( $found ) use ( &$taken, $content ) {
-				$attributes = isset( $found[1] ) && '' !== $found[1] ? \json_decode( $found[1], true ) : array();
+				$attributes = '' !== $found[1] ? \json_decode( $found[1], true ) : array();
 				if ( ! \is_array( $attributes ) || ! empty( $attributes['anchor'] ) ) {
 					return $found[0];
 				}
@@ -116,9 +116,8 @@ class Anchors {
 				$anchor  = self::unique( self::slug( (string) ( $attributes['metadata']['name'] ?? '' ) ), $taken );
 				$taken[] = $anchor;
 
-				// Add the anchor to the JSON as it is, rather than encoding
-				// the attributes again: PHP escapes slashes and non-ASCII
-				// characters differently than the editor does.
+				// Add the anchor to the JSON as it is: decoding and encoding
+				// the attributes again would not keep them byte for byte.
 				$json  = '{"anchor":' . \wp_json_encode( $anchor );
 				$json .= $attributes ? ',' . \substr( $found[1], 1 ) : '}';
 
@@ -135,8 +134,7 @@ class Anchors {
 	 * @return string Slug.
 	 */
 	public static function slug( $name ) {
-		$slug = \sanitize_title( $name );
-		return '' !== $slug ? $slug : self::FALLBACK;
+		return \sanitize_title( $name, self::FALLBACK );
 	}
 
 	/**
@@ -172,8 +170,12 @@ class Anchors {
 				$taken[] = \json_decode( '"' . $anchor . '"' );
 			}
 		}
-		if ( \preg_match_all( '/\sid="([^"]*)"/', $content, $matches ) ) {
-			$taken = \array_merge( $taken, $matches[1] );
+		$html = new \WP_HTML_Tag_Processor( $content );
+		while ( $html->next_tag() ) {
+			$id = $html->get_attribute( 'id' );
+			if ( \is_string( $id ) ) {
+				$taken[] = $id;
+			}
 		}
 		return $taken;
 	}
