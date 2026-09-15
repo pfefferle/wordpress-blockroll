@@ -1,8 +1,8 @@
 /**
  * WordPress dependencies
  */
-import { __ } from '@wordpress/i18n';
-import { useState } from '@wordpress/element';
+import { __, sprintf } from '@wordpress/i18n';
+import { useEffect, useState } from '@wordpress/element';
 import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
 import {
 	Button,
@@ -14,6 +14,7 @@ import {
 	ToggleControl,
 } from '@wordpress/components';
 import { arrowDown, arrowUp, pencil, trash } from '@wordpress/icons';
+import apiFetch from '@wordpress/api-fetch';
 
 /**
  * Internal dependencies
@@ -32,6 +33,7 @@ import { move } from './utils';
 export default function Edit( { attributes, setAttributes } ) {
 	const {
 		links,
+		source,
 		sortBy,
 		perPage,
 		showAvatars,
@@ -55,6 +57,85 @@ export default function Edit( { attributes, setAttributes } ) {
 	};
 	const [ editing, setEditing ] = useState( null ); // Index, 'new', or null.
 	const [ isImporting, setIsImporting ] = useState( false );
+	const [ sources, setSources ] = useState( [
+		{ label: __( 'Manual links', 'blockroll' ), value: 'manual' },
+	] );
+	const [ previewLinks, setPreviewLinks ] = useState( [] );
+	const [ isPreviewLoading, setIsPreviewLoading ] = useState( false );
+	const [ previewError, setPreviewError ] = useState( null );
+	const [ hasLoadedSources, setHasLoadedSources ] = useState( false );
+	const manualSource = 'manual';
+	const sourceIsAvailable = sources.some( ( item ) => source === item.value );
+	const currentSource =
+		! source || ( hasLoadedSources && ! sourceIsAvailable )
+			? manualSource
+			: source;
+	const serializedAttributes = JSON.stringify( attributes );
+	const externalSources = sources.filter(
+		( item ) => manualSource !== item.value
+	);
+	const selectedSource =
+		sources.find( ( item ) => currentSource === item.value ) ||
+		sources[ 0 ];
+
+	useEffect( () => {
+		apiFetch( { path: '/blockroll/v1/sources' } )
+			.then( ( response ) => {
+				if ( Array.isArray( response ) ) {
+					setSources( response );
+					setHasLoadedSources( true );
+				}
+			} )
+			.catch( () => {} );
+	}, [] );
+
+	useEffect( () => {
+		let isCurrent = true;
+		if ( manualSource === currentSource ) {
+			setPreviewLinks( [] );
+			setPreviewError( null );
+			setIsPreviewLoading( false );
+			return () => {
+				isCurrent = false;
+			};
+		}
+
+		setIsPreviewLoading( true );
+		setPreviewError( null );
+		apiFetch( {
+			path:
+				`/blockroll/v1/sources/${ currentSource }/links?attributes=` +
+				encodeURIComponent( serializedAttributes ),
+		} )
+			.then( ( response ) => {
+				if ( isCurrent ) {
+					setPreviewLinks(
+						Array.isArray( response ) ? response : []
+					);
+				}
+			} )
+			.catch( ( error ) => {
+				if ( isCurrent ) {
+					setPreviewLinks( [] );
+					setPreviewError(
+						error.message ||
+							__(
+								'The source preview could not be loaded.',
+								'blockroll'
+							)
+					);
+				}
+			} )
+			.finally( () => {
+				if ( isCurrent ) {
+					setIsPreviewLoading( false );
+				}
+			} );
+
+		return () => {
+			isCurrent = false;
+		};
+	}, [ currentSource, serializedAttributes ] );
 
 	const saveLink = ( link ) => {
 		const next = [ ...links ];
@@ -63,13 +144,14 @@ export default function Edit( { attributes, setAttributes } ) {
 		} else {
 			next[ editing ] = link;
 		}
-		setAttributes( { links: next } );
+		setAttributes( { links: next, source: manualSource } );
 		setEditing( null );
 	};
 
 	const importLinks = ( imported ) => {
 		const known = new Set( links.map( ( link ) => link.url ) );
 		setAttributes( {
+			source: manualSource,
 			links: [
 				...links,
 				...imported.filter( ( link ) => ! known.has( link.url ) ),
@@ -88,7 +170,124 @@ export default function Edit( { attributes, setAttributes } ) {
 			>
 				{ __( 'Import links', 'blockroll' ) }
 			</Button>
+			{ ! links.length &&
+				manualSource === currentSource &&
+				externalSources.map( ( item ) => (
+					<Button
+						key={ item.value }
+						variant="secondary"
+						onClick={ () =>
+							setAttributes( { source: item.value } )
+						}
+					>
+						{ sprintf(
+							/* translators: %s: Source name. */
+							__( 'Use %s', 'blockroll' ),
+							item.label
+						) }
+					</Button>
+				) ) }
 		</div>
+	);
+
+	let emptyState = null;
+	if ( manualSource === currentSource && ! links.length ) {
+		emptyState = (
+			<Placeholder
+				icon="admin-links"
+				label={ __( 'Blogroll', 'blockroll' ) }
+				instructions={ __(
+					'Share a list of the blogs and sites you follow.',
+					'blockroll'
+				) }
+			>
+				{ actions }
+			</Placeholder>
+		);
+	}
+
+	const switchToManualButton = (
+		<div className="blockroll-editor-actions">
+			<Button
+				variant="secondary"
+				onClick={ () => setAttributes( { source: manualSource } ) }
+			>
+				{ __( 'Use manual links', 'blockroll' ) }
+			</Button>
+		</div>
+	);
+
+	const renderEditorList = ( listLinks, isReadOnly = false ) => (
+		<ul className="blockroll-editor-list">
+			{ listLinks.map( ( link, index ) => (
+				<li key={ link.url }>
+					{ showAvatars &&
+						( link.photo ? (
+							<img
+								src={ link.photo }
+								alt=""
+								width="32"
+								height="32"
+							/>
+						) : (
+							<span className="blockroll-editor-list__no-photo" />
+						) ) }
+					<span className="blockroll-editor-list__text">
+						<strong>{ link.name || link.url }</strong>
+						<small>
+							{ link.url }
+							{ link.xfn?.length > 0 &&
+								' · ' + link.xfn.join( ' ' ) }
+						</small>
+					</span>
+					{ ! isReadOnly && (
+						<span className="blockroll-editor-list__actions">
+							<Button
+								size="compact"
+								icon={ arrowUp }
+								label={ __( 'Move up', 'blockroll' ) }
+								disabled={ 0 === index }
+								onClick={ () =>
+									setAttributes( {
+										links: move( links, index, index - 1 ),
+									} )
+								}
+							/>
+							<Button
+								size="compact"
+								icon={ arrowDown }
+								label={ __( 'Move down', 'blockroll' ) }
+								disabled={ index === links.length - 1 }
+								onClick={ () =>
+									setAttributes( {
+										links: move( links, index, index + 1 ),
+									} )
+								}
+							/>
+							<Button
+								size="compact"
+								icon={ pencil }
+								label={ __( 'Edit', 'blockroll' ) }
+								onClick={ () => setEditing( index ) }
+							/>
+							<Button
+								size="compact"
+								icon={ trash }
+								label={ __( 'Remove', 'blockroll' ) }
+								isDestructive
+								onClick={ () =>
+									setAttributes( {
+										links: links.filter(
+											( unused, i ) => i !== index
+										),
+									} )
+								}
+							/>
+						</span>
+					) }
+				</li>
+			) ) }
+		</ul>
 	);
 
 	return (
@@ -191,97 +390,52 @@ export default function Edit( { attributes, setAttributes } ) {
 				/>
 			) }
 
-			{ ! links.length ? (
-				<Placeholder
-					icon="admin-links"
-					label={ __( 'Blogroll', 'blockroll' ) }
-					instructions={ __(
-						'Share a list of the blogs and sites you follow.',
-						'blockroll'
-					) }
-				>
-					{ actions }
-				</Placeholder>
-			) : (
+			{ manualSource !== currentSource ? (
 				<div className="blockroll-editor">
-					<ul className="blockroll-editor-list">
-						{ links.map( ( link, index ) => (
-							<li key={ link.url }>
-								{ showAvatars &&
-									( link.photo ? (
-										<img
-											src={ link.photo }
-											alt=""
-											width="32"
-											height="32"
-										/>
-									) : (
-										<span className="blockroll-editor-list__no-photo" />
-									) ) }
-								<span className="blockroll-editor-list__text">
-									<strong>{ link.name || link.url }</strong>
-									<small>
-										{ link.url }
-										{ link.xfn?.length > 0 &&
-											' · ' + link.xfn.join( ' ' ) }
-									</small>
-								</span>
-								<span className="blockroll-editor-list__actions">
-									<Button
-										size="compact"
-										icon={ arrowUp }
-										label={ __( 'Move up', 'blockroll' ) }
-										disabled={ 0 === index }
-										onClick={ () =>
-											setAttributes( {
-												links: move(
-													links,
-													index,
-													index - 1
-												),
-											} )
-										}
-									/>
-									<Button
-										size="compact"
-										icon={ arrowDown }
-										label={ __( 'Move down', 'blockroll' ) }
-										disabled={ index === links.length - 1 }
-										onClick={ () =>
-											setAttributes( {
-												links: move(
-													links,
-													index,
-													index + 1
-												),
-											} )
-										}
-									/>
-									<Button
-										size="compact"
-										icon={ pencil }
-										label={ __( 'Edit', 'blockroll' ) }
-										onClick={ () => setEditing( index ) }
-									/>
-									<Button
-										size="compact"
-										icon={ trash }
-										label={ __( 'Remove', 'blockroll' ) }
-										isDestructive
-										onClick={ () =>
-											setAttributes( {
-												links: links.filter(
-													( unused, i ) => i !== index
-												),
-											} )
-										}
-									/>
-								</span>
-							</li>
-						) ) }
-					</ul>
-					{ actions }
+					<Placeholder
+						icon="admin-links"
+						label={ selectedSource.label }
+						instructions={
+							isPreviewLoading
+								? __( 'Loading source preview…', 'blockroll' )
+								: sprintf(
+										/* translators: %d: Number of previewed links. */
+										__(
+											'%d links will be shown when the block is rendered.',
+											'blockroll'
+										),
+										previewLinks.length
+								  )
+						}
+					>
+						{ switchToManualButton }
+					</Placeholder>
+					{ selectedSource.help && (
+						<p>
+							{ selectedSource.help }
+							{ selectedSource.helpUrl && (
+								<>
+									{ ' ' }
+									<a href={ selectedSource.helpUrl }>
+										{ __( 'Manage source', 'blockroll' ) }
+									</a>
+								</>
+							) }
+						</p>
+					) }
+					{ previewError && <p>{ previewError }</p> }
+					{ ! previewError &&
+						! isPreviewLoading &&
+						!! previewLinks.length &&
+						renderEditorList( previewLinks, true ) }
 				</div>
+			) : (
+				emptyState || (
+					<div className="blockroll-editor">
+						{ renderEditorList( links ) }
+						{ actions }
+					</div>
+				)
 			) }
 		</div>
 	);

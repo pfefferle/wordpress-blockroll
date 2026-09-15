@@ -11,6 +11,7 @@
 	"supports": { "html": false, "align": true },
 	"attributes": {
 		"links": { "type": "array", "default": [] },
+		"source": { "type": "string", "default": "manual" },
 		"sortBy": { "type": "string", "default": "name", "enum": [ "name", "added", "manual" ] },
 		"perPage": { "type": "number", "default": 0 },
 		"showAvatars": { "type": "boolean", "default": true },
