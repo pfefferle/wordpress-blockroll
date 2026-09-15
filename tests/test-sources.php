@@ -31,6 +31,21 @@ class Test_Sources extends WP_UnitTestCase {
 		$this->assertSame( 'Test Source', $sources['test-source'] );
 	}
 
+	public function test_all_supports_numeric_source_slugs() {
+		add_filter(
+			'blockroll_sources',
+			function ( $sources ) {
+				$sources['123'] = 'Numeric Source';
+				return $sources;
+			}
+		);
+
+		$sources = \Blockroll\Sources::all();
+
+		$this->assertArrayHasKey( '123', $sources );
+		$this->assertSame( 'Numeric Source', $sources['123'] );
+	}
+
 	public function test_help_returns_filtered_help() {
 		$this->register_test_source();
 		add_filter(
@@ -141,6 +156,42 @@ class Test_Sources extends WP_UnitTestCase {
 		$this->assertSame( 'https://source.example/', $links[0]['url'] );
 		$this->assertSame( 'Source Link', $links[0]['name'] );
 		$this->assertSame( 'https://source.example/feed/', $links[0]['feedUrl'] );
+	}
+
+	public function test_links_supports_numeric_source_slugs() {
+		add_filter(
+			'blockroll_sources',
+			function ( $sources ) {
+				$sources['123'] = 'Numeric Source';
+				return $sources;
+			}
+		);
+		add_filter(
+			'blockroll_source_links',
+			function ( $links, $source ) {
+				if ( '123' !== $source ) {
+					return $links;
+				}
+
+				return array(
+					array(
+						'url'  => 'https://numeric.example/',
+						'name' => 'Numeric Source Link',
+					),
+				);
+			},
+			10,
+			2
+		);
+
+		$links = \Blockroll\Sources::links(
+			array(
+				'source' => '123',
+			)
+		);
+
+		$this->assertCount( 1, $links );
+		$this->assertSame( 'https://numeric.example/', $links[0]['url'] );
 	}
 
 	public function test_links_falls_back_to_manual_for_unknown_source() {
@@ -255,6 +306,36 @@ class Test_Sources extends WP_UnitTestCase {
 		$this->assertSame( 'https://source.example/', $data[0]['url'] );
 		$this->assertSame( 'Source Link', $data[0]['name'] );
 		$this->assertSame( 'https://source.example/feed/', $data[0]['feedUrl'] );
+	}
+
+	public function test_links_route_passes_block_attributes_to_source_provider() {
+		$this->register_test_source();
+		add_filter(
+			'blockroll_source_links',
+			function ( $links, $source, $attributes ) {
+				if ( 'test-source' !== $source ) {
+					return $links;
+				}
+
+				return array(
+					array(
+						'url'  => 'https://source.example/',
+						'name' => $attributes['metadata']['name'] ?? '',
+					),
+				);
+			},
+			20,
+			3
+		);
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+
+		$request = new WP_REST_Request( 'GET', '/blockroll/v1/sources/test-source/links' );
+		$request->set_param( 'attributes', wp_json_encode( array( 'metadata' => array( 'name' => 'Preview Name' ) ) ) );
+		$response = rest_do_request( $request );
+		$data     = $response->get_data();
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( 'Preview Name', $data[0]['name'] );
 	}
 
 	public function test_links_route_rejects_unknown_source() {

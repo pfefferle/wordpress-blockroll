@@ -41,13 +41,17 @@ class Sources {
 		 */
 		$sources = \apply_filters( 'blockroll_sources', $sources );
 
-		return \array_filter(
-			(array) $sources,
-			function ( $label, $slug ) {
-				return \sanitize_key( $slug ) === $slug && \is_scalar( $label );
-			},
-			\ARRAY_FILTER_USE_BOTH
-		);
+		$valid_sources = array();
+		foreach ( (array) $sources as $slug => $label ) {
+			$slug = (string) $slug;
+			if ( \sanitize_key( $slug ) !== $slug || ! \is_scalar( $label ) ) {
+				continue;
+			}
+
+			$valid_sources[ $slug ] = $label;
+		}
+
+		return $valid_sources;
 	}
 
 	/**

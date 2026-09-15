@@ -54,12 +54,19 @@ class Sources_Controller extends \WP_REST_Controller {
 					'callback'            => array( $this, 'get_links' ),
 					'permission_callback' => array( $this, 'get_items_permissions_check' ),
 					'args'                => array(
-						'source' => array(
+						'source'     => array(
 							'description'       => \__( 'The source slug.', 'blockroll' ),
 							'type'              => 'string',
 							'required'          => true,
 							'validate_callback' => function ( $source ) {
 								return \sanitize_key( $source ) === $source;
+							},
+						),
+						'attributes' => array(
+							'description'       => \__( 'Serialized block attributes for source previews.', 'blockroll' ),
+							'type'              => 'string',
+							'validate_callback' => function ( $attributes ) {
+								return \is_array( \json_decode( $attributes, true ) );
 							},
 						),
 					),
@@ -78,7 +85,7 @@ class Sources_Controller extends \WP_REST_Controller {
 		$sources = array();
 		foreach ( Sources::all() as $value => $label ) {
 			$sources[] = array(
-				'value'   => $value,
+				'value'   => (string) $value,
 				'label'   => (string) $label,
 				'help'    => Sources::help( $value ),
 				'helpUrl' => Sources::help_url( $value ),
@@ -105,13 +112,13 @@ class Sources_Controller extends \WP_REST_Controller {
 			);
 		}
 
-		return \rest_ensure_response(
-			Sources::links(
-				array(
-					'source' => $source,
-				)
-			)
-		);
+		$attributes = \json_decode( (string) $request->get_param( 'attributes' ), true );
+		if ( ! \is_array( $attributes ) ) {
+			$attributes = array();
+		}
+		$attributes['source'] = $source;
+
+		return \rest_ensure_response( Sources::links( $attributes ) );
 	}
 
 	/**

@@ -63,8 +63,14 @@ export default function Edit( { attributes, setAttributes } ) {
 	const [ previewLinks, setPreviewLinks ] = useState( [] );
 	const [ isPreviewLoading, setIsPreviewLoading ] = useState( false );
 	const [ previewError, setPreviewError ] = useState( null );
+	const [ hasLoadedSources, setHasLoadedSources ] = useState( false );
 	const manualSource = 'manual';
-	const currentSource = source || manualSource;
+	const sourceIsAvailable = sources.some( ( item ) => source === item.value );
+	const currentSource =
+		! source || ( hasLoadedSources && ! sourceIsAvailable )
+			? manualSource
+			: source;
+	const serializedAttributes = JSON.stringify( attributes );
 	const externalSources = sources.filter(
 		( item ) => manualSource !== item.value
 	);
@@ -77,6 +83,7 @@ export default function Edit( { attributes, setAttributes } ) {
 			.then( ( response ) => {
 				if ( Array.isArray( response ) ) {
 					setSources( response );
+					setHasLoadedSources( true );
 				}
 			} )
 			.catch( () => {} );
@@ -96,7 +103,9 @@ export default function Edit( { attributes, setAttributes } ) {
 		setIsPreviewLoading( true );
 		setPreviewError( null );
 		apiFetch( {
-			path: `/blockroll/v1/sources/${ currentSource }/links`,
+			path:
+				`/blockroll/v1/sources/${ currentSource }/links?attributes=` +
+				encodeURIComponent( serializedAttributes ),
 		} )
 			.then( ( response ) => {
 				if ( isCurrent ) {
@@ -126,7 +135,7 @@ export default function Edit( { attributes, setAttributes } ) {
 		return () => {
 			isCurrent = false;
 		};
-	}, [ currentSource ] );
+	}, [ currentSource, serializedAttributes ] );
 
 	const saveLink = ( link ) => {
 		const next = [ ...links ];
