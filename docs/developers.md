@@ -48,14 +48,15 @@ itself:
 
 * `POST blockroll/v1/discover` takes a URL and returns feed, name, description and photo.
 * `POST blockroll/v1/import` takes an OPML file, paste, or URL and returns links.
-* `GET blockroll/v1/sources` returns source choices contributed through
-  `blockroll_sources`.
+* `GET blockroll/v1/sources` returns a collection of source choices contributed
+  through `blockroll_sources`.
 
 Plugins can provide dynamic block sources without storing their links in the post
 content. Add a label with `blockroll_sources`, then return link arrays for that slug
 with `blockroll_source_links`. Returned links use the same shape as saved links:
 `url`, `name`, `description`, `feedUrl`, `photo`, `xfn`, and `added`. The render path
-and OPML export both normalize those links before output.
+and OPML export both normalize those links before output. Source slugs should use
+lowercase letters, digits, dashes and underscores so they survive `sanitize_key()`.
 
 ```php
 add_filter(

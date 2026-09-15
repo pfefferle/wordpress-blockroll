@@ -44,7 +44,7 @@ class Sources {
 		return \array_filter(
 			(array) $sources,
 			function ( $label, $slug ) {
-				return '' !== \sanitize_key( $slug ) && \is_scalar( $label );
+				return \sanitize_key( $slug ) === $slug && \is_scalar( $label );
 			},
 			\ARRAY_FILTER_USE_BOTH
 		);
@@ -58,9 +58,9 @@ class Sources {
 	 */
 	public static function links( $attributes ) {
 		$source = self::source( $attributes );
-		$links  = (array) ( $attributes['links'] ?? array() );
-
-		if ( self::MANUAL !== $source ) {
+		if ( self::MANUAL === $source ) {
+			$links = (array) ( $attributes['links'] ?? array() );
+		} else {
 			/**
 			 * Provide links for a selected blogroll source.
 			 *

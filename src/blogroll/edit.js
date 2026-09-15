@@ -72,8 +72,8 @@ export default function Edit( { attributes, setAttributes } ) {
 	useEffect( () => {
 		apiFetch( { path: '/blockroll/v1/sources' } )
 			.then( ( response ) => {
-				if ( Array.isArray( response.sources ) ) {
-					setSources( response.sources );
+				if ( Array.isArray( response ) ) {
+					setSources( response );
 				}
 			} )
 			.catch( () => {} );
@@ -133,20 +133,7 @@ export default function Edit( { attributes, setAttributes } ) {
 	);
 
 	let emptyState = null;
-	if ( ! links.length && manualSource === currentSource ) {
-		emptyState = (
-			<Placeholder
-				icon="admin-links"
-				label={ __( 'Blogroll', 'blockroll' ) }
-				instructions={ __(
-					'Share a list of the blogs and sites you follow.',
-					'blockroll'
-				) }
-			>
-				{ actions }
-			</Placeholder>
-		);
-	} else if ( ! links.length ) {
+	if ( manualSource !== currentSource ) {
 		emptyState = (
 			<Placeholder
 				icon="admin-links"
@@ -166,6 +153,19 @@ export default function Edit( { attributes, setAttributes } ) {
 						{ __( 'Use manual links', 'blockroll' ) }
 					</Button>
 				</div>
+			</Placeholder>
+		);
+	} else if ( ! links.length ) {
+		emptyState = (
+			<Placeholder
+				icon="admin-links"
+				label={ __( 'Blogroll', 'blockroll' ) }
+				instructions={ __(
+					'Share a list of the blogs and sites you follow.',
+					'blockroll'
+				) }
+			>
+				{ actions }
 			</Placeholder>
 		);
 	}

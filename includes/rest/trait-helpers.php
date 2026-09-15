@@ -29,6 +29,16 @@ trait Helpers {
 	}
 
 	/**
+	 * Whether the current user may list endpoint items.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return true|\WP_Error True when allowed.
+	 */
+	public function get_items_permissions_check( $request ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Signature of WP_REST_Controller.
+		return $this->create_item_permissions_check( $request );
+	}
+
+	/**
 	 * Schema of a URL argument.
 	 *
 	 * @param string $description Argument description.
