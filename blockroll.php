@@ -82,5 +82,25 @@ function activate() {
 	function () {
 		( new Rest\Discovery_Controller() )->register_routes();
 		( new Rest\Import_Controller() )->register_routes();
+		\register_rest_route(
+			'blockroll/v1',
+			'/sources',
+			array(
+				'methods'             => \WP_REST_Server::READABLE,
+				'permission_callback' => function () {
+					return \current_user_can( 'edit_posts' );
+				},
+				'callback'            => function () {
+					$sources = array();
+					foreach ( Sources::all() as $value => $label ) {
+						$sources[] = array(
+							'label' => (string) $label,
+							'value' => $value,
+						);
+					}
+					return \rest_ensure_response( array( 'sources' => $sources ) );
+				},
+			)
+		);
 	}
 );

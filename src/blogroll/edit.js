@@ -1,8 +1,8 @@
 /**
  * WordPress dependencies
  */
-import { __ } from '@wordpress/i18n';
-import { useState } from '@wordpress/element';
+import { __, sprintf } from '@wordpress/i18n';
+import { useEffect, useState } from '@wordpress/element';
 import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
 import {
 	Button,
@@ -14,6 +14,7 @@ import {
 	ToggleControl,
 } from '@wordpress/components';
 import { arrowDown, arrowUp, pencil, trash } from '@wordpress/icons';
+import apiFetch from '@wordpress/api-fetch';
 
 /**
  * Internal dependencies
@@ -32,6 +33,7 @@ import { move } from './utils';
 export default function Edit( { attributes, setAttributes } ) {
 	const {
 		links,
+		source,
 		sortBy,
 		perPage,
 		showAvatars,
@@ -55,6 +57,27 @@ export default function Edit( { attributes, setAttributes } ) {
 	};
 	const [ editing, setEditing ] = useState( null ); // Index, 'new', or null.
 	const [ isImporting, setIsImporting ] = useState( false );
+	const [ sources, setSources ] = useState( [
+		{ label: __( 'Manual links', 'blockroll' ), value: 'manual' },
+	] );
+	const manualSource = 'manual';
+	const currentSource = source || manualSource;
+	const externalSources = sources.filter(
+		( item ) => manualSource !== item.value
+	);
+	const selectedSource =
+		sources.find( ( item ) => currentSource === item.value ) ||
+		sources[ 0 ];
+
+	useEffect( () => {
+		apiFetch( { path: '/blockroll/v1/sources' } )
+			.then( ( response ) => {
+				if ( Array.isArray( response.sources ) ) {
+					setSources( response.sources );
+				}
+			} )
+			.catch( () => {} );
+	}, [] );
 
 	const saveLink = ( link ) => {
 		const next = [ ...links ];
@@ -63,13 +86,14 @@ export default function Edit( { attributes, setAttributes } ) {
 		} else {
 			next[ editing ] = link;
 		}
-		setAttributes( { links: next } );
+		setAttributes( { links: next, source: manualSource } );
 		setEditing( null );
 	};
 
 	const importLinks = ( imported ) => {
 		const known = new Set( links.map( ( link ) => link.url ) );
 		setAttributes( {
+			source: manualSource,
 			links: [
 				...links,
 				...imported.filter( ( link ) => ! known.has( link.url ) ),
@@ -88,8 +112,63 @@ export default function Edit( { attributes, setAttributes } ) {
 			>
 				{ __( 'Import links', 'blockroll' ) }
 			</Button>
+			{ ! links.length &&
+				manualSource === currentSource &&
+				externalSources.map( ( item ) => (
+					<Button
+						key={ item.value }
+						variant="secondary"
+						onClick={ () =>
+							setAttributes( { source: item.value } )
+						}
+					>
+						{ sprintf(
+							/* translators: %s: Source name. */
+							__( 'Use %s', 'blockroll' ),
+							item.label
+						) }
+					</Button>
+				) ) }
 		</div>
 	);
+
+	let emptyState = null;
+	if ( ! links.length && manualSource === currentSource ) {
+		emptyState = (
+			<Placeholder
+				icon="admin-links"
+				label={ __( 'Blogroll', 'blockroll' ) }
+				instructions={ __(
+					'Share a list of the blogs and sites you follow.',
+					'blockroll'
+				) }
+			>
+				{ actions }
+			</Placeholder>
+		);
+	} else if ( ! links.length ) {
+		emptyState = (
+			<Placeholder
+				icon="admin-links"
+				label={ selectedSource.label }
+				instructions={ __(
+					'This source will be shown when the block is rendered.',
+					'blockroll'
+				) }
+			>
+				<div className="blockroll-editor-actions">
+					<Button
+						variant="secondary"
+						onClick={ () =>
+							setAttributes( { source: manualSource } )
+						}
+					>
+						{ __( 'Use manual links', 'blockroll' ) }
+					</Button>
+				</div>
+			</Placeholder>
+		);
+	}
 
 	return (
 		<div { ...useBlockProps() }>
@@ -191,18 +270,7 @@ export default function Edit( { attributes, setAttributes } ) {
 				/>
 			) }
 
-			{ ! links.length ? (
-				<Placeholder
-					icon="admin-links"
-					label={ __( 'Blogroll', 'blockroll' ) }
-					instructions={ __(
-						'Share a list of the blogs and sites you follow.',
-						'blockroll'
-					) }
-				>
-					{ actions }
-				</Placeholder>
-			) : (
+			{ emptyState || (
 				<div className="blockroll-editor">
 					<ul className="blockroll-editor-list">
 						{ links.map( ( link, index ) => (

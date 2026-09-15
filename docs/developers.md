@@ -48,6 +48,47 @@ itself:
 
 * `POST blockroll/v1/discover` takes a URL and returns feed, name, description and photo.
 * `POST blockroll/v1/import` takes an OPML file, paste, or URL and returns links.
+* `GET blockroll/v1/sources` returns source choices contributed through
+  `blockroll_sources`.
+
+Plugins can provide dynamic block sources without storing their links in the post
+content. Add a label with `blockroll_sources`, then return link arrays for that slug
+with `blockroll_source_links`. Returned links use the same shape as saved links:
+`url`, `name`, `description`, `feedUrl`, `photo`, `xfn`, and `added`. The render path
+and OPML export both normalize those links before output.
+
+```php
+add_filter(
+	'blockroll_sources',
+	function ( $sources ) {
+		$sources['my-reader'] = __( 'My Reader', 'my-plugin' );
+		return $sources;
+	}
+);
+
+add_filter(
+	'blockroll_source_links',
+	function ( $links, $source, $attributes ) {
+		if ( 'my-reader' !== $source ) {
+			return $links;
+		}
+
+		return array(
+			array(
+				'url'         => 'https://example.com/',
+				'name'        => 'Example',
+				'description' => 'A site from another plugin.',
+				'feedUrl'     => 'https://example.com/feed/',
+				'photo'       => 'https://example.com/avatar.jpg',
+				'xfn'         => array(),
+				'added'       => '2026-09-15',
+			),
+		);
+	},
+	10,
+	3
+);
+```
 
 Which pages have a blogroll is kept in a private taxonomy, updated on save. The link
 data still lives in the block, the taxonomy is only an index.

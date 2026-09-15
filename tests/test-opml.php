@@ -64,6 +64,49 @@ class Test_Opml extends WP_UnitTestCase {
 		$this->assertSame( 'https://b.example/', $links[1]['url'] );
 	}
 
+	public function test_extract_groups_uses_source_filter_links() {
+		add_filter(
+			'blockroll_sources',
+			function ( $sources ) {
+				$sources['test-source'] = 'Test Source';
+				return $sources;
+			}
+		);
+		add_filter(
+			'blockroll_source_links',
+			function ( $links, $source ) {
+				if ( 'test-source' !== $source ) {
+					return $links;
+				}
+
+				return array(
+					array(
+						'url'     => 'https://source.example/',
+						'name'    => 'Source Link',
+						'feedUrl' => 'https://source.example/feed/',
+					),
+				);
+			},
+			10,
+			2
+		);
+
+		$post = self::factory()->post->create_and_get(
+			array(
+				'post_content' => '<!-- wp:blockroll/blogroll {"source":"test-source","links":[{"url":"https://manual.example/","name":"Manual Link"}]} /-->',
+			)
+		);
+
+		$groups = \Blockroll\Opml::extract_groups( $post );
+
+		remove_all_filters( 'blockroll_sources' );
+		remove_all_filters( 'blockroll_source_links' );
+
+		$this->assertCount( 1, $groups );
+		$this->assertSame( 'https://source.example/', $groups[0]['links'][0]['url'] );
+		$this->assertSame( 'https://source.example/feed/', $groups[0]['links'][0]['feedUrl'] );
+	}
+
 	public function test_page_opml_contains_outline() {
 		$post = self::factory()->post->create_and_get( array( 'post_content' => self::BLOCK ) );
 		ob_start();

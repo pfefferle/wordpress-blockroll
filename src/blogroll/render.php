@@ -11,17 +11,12 @@
  */
 
 use Blockroll\Links;
+use Blockroll\Sources;
 use Blockroll\Xfn;
 
 defined( 'ABSPATH' ) || exit;
 
-$blockroll_links = array_map( array( Links::class, 'normalize' ), $attributes['links'] );
-$blockroll_links = array_filter(
-	$blockroll_links,
-	function ( $link ) {
-		return '' !== $link['url'];
-	}
-);
+$blockroll_links = Sources::links( $attributes );
 
 $blockroll_sortable = $attributes['showSort'];
 
