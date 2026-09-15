@@ -60,6 +60,35 @@ class Test_Sources extends WP_UnitTestCase {
 		$this->assertSame( '', \Blockroll\Sources::help( 'missing-source' ) );
 	}
 
+	public function test_help_url_returns_filtered_url() {
+		$this->register_test_source();
+		add_filter(
+			'blockroll_source_help_url',
+			function ( $url, $source ) {
+				if ( 'test-source' === $source ) {
+					return 'https://example.com/settings/';
+				}
+
+				return $url;
+			},
+			10,
+			2
+		);
+
+		$this->assertSame( 'https://example.com/settings/', \Blockroll\Sources::help_url( 'test-source' ) );
+	}
+
+	public function test_help_url_returns_empty_string_for_unknown_source() {
+		add_filter(
+			'blockroll_source_help_url',
+			function () {
+				return 'https://example.com/settings/';
+			}
+		);
+
+		$this->assertSame( '', \Blockroll\Sources::help_url( 'missing-source' ) );
+	}
+
 	public function test_all_drops_invalid_source() {
 		add_filter(
 			'blockroll_sources',
@@ -166,6 +195,7 @@ class Test_Sources extends WP_UnitTestCase {
 		$this->assertSame( 'manual', $data[0]['value'] );
 		$this->assertSame( 'Manual links', $data[0]['label'] );
 		$this->assertSame( '', $data[0]['help'] );
+		$this->assertSame( '', $data[0]['helpUrl'] );
 	}
 
 	public function test_route_includes_filtered_source() {
@@ -174,6 +204,14 @@ class Test_Sources extends WP_UnitTestCase {
 			'blockroll_source_help',
 			function ( $help, $source ) {
 				return 'test-source' === $source ? 'Test help.' : $help;
+			},
+			10,
+			2
+		);
+		add_filter(
+			'blockroll_source_help_url',
+			function ( $url, $source ) {
+				return 'test-source' === $source ? 'https://example.com/settings/' : $url;
 			},
 			10,
 			2
@@ -187,9 +225,10 @@ class Test_Sources extends WP_UnitTestCase {
 		$this->assertSame( 200, $response->get_status() );
 		$this->assertContains(
 			array(
-				'value' => 'test-source',
-				'label' => 'Test Source',
-				'help'  => 'Test help.',
+				'value'   => 'test-source',
+				'label'   => 'Test Source',
+				'help'    => 'Test help.',
+				'helpUrl' => 'https://example.com/settings/',
 			),
 			$data
 		);

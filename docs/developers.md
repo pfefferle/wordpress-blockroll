@@ -60,7 +60,8 @@ with `blockroll_source_links`. Returned links use the same shape as saved links:
 and OPML export both normalize those links before output. Source slugs should use
 lowercase letters, digits, dashes and underscores so they survive `sanitize_key()`.
 Use `blockroll_source_help` to show source-specific help text in the editor when that
-source is selected.
+source is selected. Use `blockroll_source_help_url` to add a link to the place where
+the source can be managed.
 
 ```php
 add_filter(
@@ -102,6 +103,19 @@ add_filter(
 		}
 
 		return __( 'Manage this source in My Reader.', 'my-plugin' );
+	},
+	10,
+	2
+);
+
+add_filter(
+	'blockroll_source_help_url',
+	function ( $url, $source ) {
+		if ( 'my-reader' !== $source ) {
+			return $url;
+		}
+
+		return admin_url( 'admin.php?page=my-reader' );
 	},
 	10,
 	2

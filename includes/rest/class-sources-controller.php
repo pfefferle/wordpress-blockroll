@@ -78,9 +78,10 @@ class Sources_Controller extends \WP_REST_Controller {
 		$sources = array();
 		foreach ( Sources::all() as $value => $label ) {
 			$sources[] = array(
-				'value' => $value,
-				'label' => (string) $label,
-				'help'  => Sources::help( $value ),
+				'value'   => $value,
+				'label'   => (string) $label,
+				'help'    => Sources::help( $value ),
+				'helpUrl' => Sources::help_url( $value ),
 			);
 		}
 
@@ -128,17 +129,22 @@ class Sources_Controller extends \WP_REST_Controller {
 			'title'      => 'blockroll-source',
 			'type'       => 'object',
 			'properties' => array(
-				'value' => array(
+				'value'   => array(
 					'description' => \__( 'The source slug.', 'blockroll' ),
 					'type'        => 'string',
 				),
-				'label' => array(
+				'label'   => array(
 					'description' => \__( 'The source label.', 'blockroll' ),
 					'type'        => 'string',
 				),
-				'help'  => array(
+				'help'    => array(
 					'description' => \__( 'Help text shown when the source is selected.', 'blockroll' ),
 					'type'        => 'string',
+				),
+				'helpUrl' => array(
+					'description' => \__( 'Help URL shown when the source is selected.', 'blockroll' ),
+					'type'        => 'string',
+					'format'      => 'uri',
 				),
 			),
 		);

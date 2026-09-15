@@ -74,6 +74,29 @@ class Sources {
 	}
 
 	/**
+	 * Get a help URL for a source.
+	 *
+	 * @param string $source Source slug.
+	 * @return string Source help URL.
+	 */
+	public static function help_url( $source ) {
+		$source = \sanitize_key( $source );
+		if ( self::MANUAL === $source || ! isset( self::all()[ $source ] ) ) {
+			return '';
+		}
+
+		/**
+		 * Filter the URL linked from source help text in the editor.
+		 *
+		 * @param string $url    Help URL.
+		 * @param string $source Selected source slug.
+		 */
+		$url = \apply_filters( 'blockroll_source_help_url', '', $source );
+
+		return \is_scalar( $url ) ? \esc_url_raw( (string) $url ) : '';
+	}
+
+	/**
 	 * Resolve and normalize the links for a block's selected source.
 	 *
 	 * @param array $attributes Block attributes.
