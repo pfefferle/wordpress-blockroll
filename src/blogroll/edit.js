@@ -401,6 +401,7 @@ export default function Edit( { attributes, setAttributes } ) {
 					>
 						{ switchToManualButton }
 					</Placeholder>
+					{ selectedSource.help && <p>{ selectedSource.help }</p> }
 					{ previewError && <p>{ previewError }</p> }
 					{ ! previewError &&
 						! isPreviewLoading &&

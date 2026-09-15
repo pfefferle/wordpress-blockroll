@@ -51,6 +51,29 @@ class Sources {
 	}
 
 	/**
+	 * Get help text for a source.
+	 *
+	 * @param string $source Source slug.
+	 * @return string Source help text.
+	 */
+	public static function help( $source ) {
+		$source = \sanitize_key( $source );
+		if ( self::MANUAL === $source || ! isset( self::all()[ $source ] ) ) {
+			return '';
+		}
+
+		/**
+		 * Filter help text shown in the editor for a selected blogroll source.
+		 *
+		 * @param string $help   Help text.
+		 * @param string $source Selected source slug.
+		 */
+		$help = \apply_filters( 'blockroll_source_help', '', $source );
+
+		return \is_scalar( $help ) ? (string) $help : '';
+	}
+
+	/**
 	 * Resolve and normalize the links for a block's selected source.
 	 *
 	 * @param array $attributes Block attributes.

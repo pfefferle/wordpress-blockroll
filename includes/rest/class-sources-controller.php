@@ -80,6 +80,7 @@ class Sources_Controller extends \WP_REST_Controller {
 			$sources[] = array(
 				'value' => $value,
 				'label' => (string) $label,
+				'help'  => Sources::help( $value ),
 			);
 		}
 
@@ -133,6 +134,10 @@ class Sources_Controller extends \WP_REST_Controller {
 				),
 				'label' => array(
 					'description' => \__( 'The source label.', 'blockroll' ),
+					'type'        => 'string',
+				),
+				'help'  => array(
+					'description' => \__( 'Help text shown when the source is selected.', 'blockroll' ),
 					'type'        => 'string',
 				),
 			),

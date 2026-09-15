@@ -31,6 +31,35 @@ class Test_Sources extends WP_UnitTestCase {
 		$this->assertSame( 'Test Source', $sources['test-source'] );
 	}
 
+	public function test_help_returns_filtered_help() {
+		$this->register_test_source();
+		add_filter(
+			'blockroll_source_help',
+			function ( $help, $source ) {
+				if ( 'test-source' === $source ) {
+					return 'Manage this source elsewhere.';
+				}
+
+				return $help;
+			},
+			10,
+			2
+		);
+
+		$this->assertSame( 'Manage this source elsewhere.', \Blockroll\Sources::help( 'test-source' ) );
+	}
+
+	public function test_help_returns_empty_string_for_unknown_source() {
+		add_filter(
+			'blockroll_source_help',
+			function () {
+				return 'Unknown help.';
+			}
+		);
+
+		$this->assertSame( '', \Blockroll\Sources::help( 'missing-source' ) );
+	}
+
 	public function test_all_drops_invalid_source() {
 		add_filter(
 			'blockroll_sources',
@@ -136,10 +165,19 @@ class Test_Sources extends WP_UnitTestCase {
 		$this->assertCount( 1, $data );
 		$this->assertSame( 'manual', $data[0]['value'] );
 		$this->assertSame( 'Manual links', $data[0]['label'] );
+		$this->assertSame( '', $data[0]['help'] );
 	}
 
 	public function test_route_includes_filtered_source() {
 		$this->register_test_source();
+		add_filter(
+			'blockroll_source_help',
+			function ( $help, $source ) {
+				return 'test-source' === $source ? 'Test help.' : $help;
+			},
+			10,
+			2
+		);
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
 
 		$request  = new WP_REST_Request( 'GET', '/blockroll/v1/sources' );
@@ -151,6 +189,7 @@ class Test_Sources extends WP_UnitTestCase {
 			array(
 				'value' => 'test-source',
 				'label' => 'Test Source',
+				'help'  => 'Test help.',
 			),
 			$data
 		);
