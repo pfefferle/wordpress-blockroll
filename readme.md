@@ -55,6 +55,13 @@ can have several, on one page or spread over many.
 If you have more than one on a page, give each one a name. The names then group the
 entries in the list people subscribe to, so a reader can tell them apart.
 
+Every list also gets an address of its own, made from its name. A blogroll named
+"Podcasts" can be linked as `https://example.com/links/#podcasts`, and
+`https://example.com/links/?opml&group=podcasts` is the subscription list of that one
+alone. The download link under the list uses it too. If you want a different address,
+change the HTML anchor under Advanced in the block settings. Lists made before this
+version get their address the first time the page is viewed.
+
 ### How do I add a link?
 
 Paste the address of the site and the plugin fills in the rest: name, description, icon,
