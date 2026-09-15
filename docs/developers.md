@@ -50,6 +50,8 @@ itself:
 * `POST blockroll/v1/import` takes an OPML file, paste, or URL and returns links.
 * `GET blockroll/v1/sources` returns a collection of source choices contributed
   through `blockroll_sources`.
+* `GET blockroll/v1/sources/{source}/links` returns normalized links for a
+  registered source so the editor can preview dynamic sources.
 
 Plugins can provide dynamic block sources without storing their links in the post
 content. Add a label with `blockroll_sources`, then return link arrays for that slug

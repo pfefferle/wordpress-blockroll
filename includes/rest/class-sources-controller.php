@@ -45,6 +45,27 @@ class Sources_Controller extends \WP_REST_Controller {
 				'schema' => array( $this, 'get_public_item_schema' ),
 			)
 		);
+		\register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/(?P<source>[\w-]+)/links',
+			array(
+				array(
+					'methods'             => \WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_links' ),
+					'permission_callback' => array( $this, 'get_items_permissions_check' ),
+					'args'                => array(
+						'source' => array(
+							'description'       => \__( 'The source slug.', 'blockroll' ),
+							'type'              => 'string',
+							'required'          => true,
+							'validate_callback' => function ( $source ) {
+								return \sanitize_key( $source ) === $source;
+							},
+						),
+					),
+				),
+			)
+		);
 	}
 
 	/**
@@ -63,6 +84,32 @@ class Sources_Controller extends \WP_REST_Controller {
 		}
 
 		return \rest_ensure_response( $sources );
+	}
+
+	/**
+	 * Get normalized preview links for a source.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error Source links, or an error for an unknown source.
+	 */
+	public function get_links( $request ) {
+		$source  = \sanitize_key( $request['source'] );
+		$sources = Sources::all();
+		if ( Sources::MANUAL === $source || ! isset( $sources[ $source ] ) ) {
+			return new \WP_Error(
+				'blockroll_unknown_source',
+				\__( 'Unknown source.', 'blockroll' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		return \rest_ensure_response(
+			Sources::links(
+				array(
+					'source' => $source,
+				)
+			)
+		);
 	}
 
 	/**

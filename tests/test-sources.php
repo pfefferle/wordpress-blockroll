@@ -156,6 +156,39 @@ class Test_Sources extends WP_UnitTestCase {
 		);
 	}
 
+	public function test_links_route_requires_auth() {
+		$this->register_test_source();
+		$request  = new WP_REST_Request( 'GET', '/blockroll/v1/sources/test-source/links' );
+		$response = rest_do_request( $request );
+
+		$this->assertSame( 401, $response->get_status() );
+	}
+
+	public function test_links_route_returns_registered_source_links() {
+		$this->register_test_source();
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+
+		$request  = new WP_REST_Request( 'GET', '/blockroll/v1/sources/test-source/links' );
+		$response = rest_do_request( $request );
+		$data     = $response->get_data();
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertCount( 1, $data );
+		$this->assertSame( 'https://source.example/', $data[0]['url'] );
+		$this->assertSame( 'Source Link', $data[0]['name'] );
+		$this->assertSame( 'https://source.example/feed/', $data[0]['feedUrl'] );
+	}
+
+	public function test_links_route_rejects_unknown_source() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+
+		$request  = new WP_REST_Request( 'GET', '/blockroll/v1/sources/missing-source/links' );
+		$response = rest_do_request( $request );
+
+		$this->assertSame( 404, $response->get_status() );
+		$this->assertSame( 'blockroll_unknown_source', $response->as_error()->get_error_code() );
+	}
+
 	/**
 	 * Register a source and its link provider for tests.
 	 */
