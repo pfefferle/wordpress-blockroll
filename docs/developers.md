@@ -65,6 +65,79 @@ itself:
 
 * `POST blockroll/v1/discover` takes a URL and returns feed, name, description and photo.
 * `POST blockroll/v1/import` takes an OPML file, paste, or URL and returns links.
+* `GET blockroll/v1/sources` returns a collection of source choices contributed
+  through `blockroll_sources`.
+* `GET blockroll/v1/sources/{source}/links` returns normalized links for a
+  registered source so the editor can preview dynamic sources.
+
+Plugins can provide dynamic block sources without storing their links in the post
+content. Add a label with `blockroll_sources`, then return link arrays for that slug
+with `blockroll_source_links`. Returned links use the same shape as saved links:
+`url`, `name`, `description`, `feedUrl`, `photo`, `xfn`, and `added`. The render path
+and OPML export both normalize those links before output. Source slugs should use
+lowercase letters, digits, dashes and underscores so they survive `sanitize_key()`.
+Use `blockroll_source_help` to show source-specific help text in the editor when that
+source is selected. Use `blockroll_source_help_url` to add a link to the place where
+the source can be managed.
+
+```php
+add_filter(
+	'blockroll_sources',
+	function ( $sources ) {
+		$sources['my-reader'] = __( 'My Reader', 'my-plugin' );
+		return $sources;
+	}
+);
+
+add_filter(
+	'blockroll_source_links',
+	function ( $links, $source, $attributes ) {
+		if ( 'my-reader' !== $source ) {
+			return $links;
+		}
+
+		return array(
+			array(
+				'url'         => 'https://example.com/',
+				'name'        => 'Example',
+				'description' => 'A site from another plugin.',
+				'feedUrl'     => 'https://example.com/feed/',
+				'photo'       => 'https://example.com/avatar.jpg',
+				'xfn'         => array(),
+				'added'       => '2026-09-15',
+			),
+		);
+	},
+	10,
+	3
+);
+
+add_filter(
+	'blockroll_source_help',
+	function ( $help, $source ) {
+		if ( 'my-reader' !== $source ) {
+			return $help;
+		}
+
+		return __( 'Manage this source in My Reader.', 'my-plugin' );
+	},
+	10,
+	2
+);
+
+add_filter(
+	'blockroll_source_help_url',
+	function ( $url, $source ) {
+		if ( 'my-reader' !== $source ) {
+			return $url;
+		}
+
+		return admin_url( 'admin.php?page=my-reader' );
+	},
+	10,
+	2
+);
+```
 
 Which pages have a blogroll is kept in a private taxonomy, updated on save. The link
 data still lives in the block, the taxonomy is only an index.

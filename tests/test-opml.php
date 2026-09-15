@@ -18,6 +18,40 @@ class Test_Opml extends WP_UnitTestCase {
 		$this->assertSame( 'https://a.example/', $links[0]['url'] );
 	}
 
+	public function test_extract_links_uses_registered_source_links() {
+		add_filter(
+			'blockroll_sources',
+			function ( $sources ) {
+				$sources['test-source'] = 'Test Source';
+				return $sources;
+			}
+		);
+		add_filter(
+			'blockroll_source_links',
+			function ( $links, $source ) {
+				if ( 'test-source' !== $source ) {
+					return $links;
+				}
+
+				return array(
+					array(
+						'url'     => 'https://source.example/',
+						'name'    => 'Source Link',
+						'feedUrl' => 'https://source.example/feed/',
+					),
+				);
+			},
+			10,
+			2
+		);
+
+		$post  = self::factory()->post->create_and_get( array( 'post_content' => '<!-- wp:blockroll/blogroll {"source":"test-source"} /-->' ) );
+		$links = \Blockroll\Opml::extract_links( $post );
+
+		$this->assertCount( 1, $links );
+		$this->assertSame( 'https://source.example/', $links[0]['url'] );
+	}
+
 	const TWO_NAMED_BLOCKS = '<!-- wp:blockroll/blogroll {"metadata":{"name":"Blogs"},"links":[{"url":"https://a.example/","name":"A","feedUrl":"https://a.example/feed/"}]} /--><!-- wp:blockroll/blogroll {"metadata":{"name":"Podcasts"},"links":[{"url":"https://b.example/","name":"B","feedUrl":"https://b.example/feed/"}]} /-->';
 
 	public function test_one_blogroll_stays_flat() {

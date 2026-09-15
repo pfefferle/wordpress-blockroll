@@ -85,5 +85,6 @@ function activate() {
 	function () {
 		( new Rest\Discovery_Controller() )->register_routes();
 		( new Rest\Import_Controller() )->register_routes();
+		( new Rest\Sources_Controller() )->register_routes();
 	}
 );

@@ -99,6 +99,42 @@ class Test_Render extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( '<script>', $html );
 	}
 
+	public function test_renders_registered_source_links() {
+		add_filter(
+			'blockroll_sources',
+			function ( $sources ) {
+				$sources['test-source'] = 'Test Source';
+				return $sources;
+			}
+		);
+		add_filter(
+			'blockroll_source_links',
+			function ( $links, $source ) {
+				if ( 'test-source' !== $source ) {
+					return $links;
+				}
+
+				return array(
+					array(
+						'url'  => 'https://source.example/',
+						'name' => 'Source Link',
+					),
+				);
+			},
+			10,
+			2
+		);
+
+		$html = $this->render_block_html(
+			array(
+				'source' => 'test-source',
+			)
+		);
+
+		$this->assertStringContainsString( 'https://source.example/', $html );
+		$this->assertStringContainsString( 'Source Link', $html );
+	}
+
 	const TWO_DATED_LINKS = array(
 		array(
 			'url'   => 'https://a.example/',
