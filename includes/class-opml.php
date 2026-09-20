@@ -232,7 +232,7 @@ class Opml {
 
 		foreach ( $groups as $group ) {
 			if ( $grouped ) {
-				$lines[] = "\t\t" . '<outline text="' . \esc_attr( self::group_name( $group ) ) . '">';
+				$lines[] = "\t\t" . '<outline text="' . \esc_xml( self::group_name( $group ) ) . '">';
 				foreach ( $group['links'] as $link ) {
 					$lines[] = self::link_outline( $link, "\t\t\t" );
 				}
@@ -256,9 +256,9 @@ class Opml {
 	 * @return string The escaped element.
 	 */
 	private static function link_outline( $link, $indent = "\t\t" ) {
-		$attributes = \sprintf( ' text="%s" type="rss"', \esc_attr( $link['name'] ? $link['name'] : $link['url'] ) );
+		$attributes = \sprintf( ' text="%s" type="rss"', \esc_xml( $link['name'] ? $link['name'] : $link['url'] ) );
 		if ( $link['description'] ) {
-			$attributes .= \sprintf( ' description="%s"', \esc_attr( $link['description'] ) );
+			$attributes .= \sprintf( ' description="%s"', \esc_xml( $link['description'] ) );
 		}
 		if ( $link['feedUrl'] ) {
 			$attributes .= \sprintf( ' xmlUrl="%s"', \esc_url( $link['feedUrl'] ) );
