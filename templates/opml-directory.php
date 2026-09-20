@@ -37,7 +37,7 @@ foreach ( $args['posts'] as $blockroll_post ) {
 	</head>
 	<body>
 <?php foreach ( $args['posts'] as $blockroll_post ) : ?>
-		<outline text="<?php echo esc_attr( \Blockroll\Opml::title( $blockroll_post ) ); ?>" type="include" url="<?php echo esc_url( \Blockroll\Opml::opml_url( $blockroll_post ) ); ?>" />
+		<outline text="<?php echo esc_xml( \Blockroll\Opml::title( $blockroll_post ) ); ?>" type="include" url="<?php echo esc_url( \Blockroll\Opml::opml_url( $blockroll_post ) ); ?>" />
 <?php endforeach; ?>
 	</body>
 </opml>
