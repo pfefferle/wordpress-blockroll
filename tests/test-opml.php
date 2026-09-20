@@ -111,6 +111,47 @@ class Test_Opml extends WP_UnitTestCase {
 		$this->assertSame( 'rss', (string) $outline['type'] );
 	}
 
+	/**
+	 * A description fetched from a site can contain HTML named entities
+	 * like &rsquo;, which XML does not know. See issue #20.
+	 */
+	public function test_html_entities_in_link_attributes_become_valid_xml() {
+		$post = self::factory()->post->create_and_get(
+			array( 'post_content' => '<!-- wp:blockroll/blogroll {"links":[{"url":"https://a.example/","name":"Tom&hellip;","description":"Hi, I&rsquo;m Tom"}]} /-->' )
+		);
+		ob_start();
+		\Blockroll\Opml::for_post( $post );
+		$xml = ob_get_clean();
+		$this->assertStringNotContainsString( '&rsquo;', $xml );
+		$outline = ( new SimpleXMLElement( $xml ) )->body->outline[0];
+		$this->assertSame( 'Tom…', (string) $outline['text'] );
+		$this->assertSame( 'Hi, I’m Tom', (string) $outline['description'] );
+	}
+
+	public function test_html_entities_in_group_names_become_valid_xml() {
+		$post = self::factory()->post->create_and_get(
+			array( 'post_content' => '<!-- wp:blockroll/blogroll {"metadata":{"name":"Tom&rsquo;s blogs"},"links":[{"url":"https://a.example/","name":"A"}]} /--><!-- wp:blockroll/blogroll {"metadata":{"name":"Podcasts"},"links":[{"url":"https://b.example/","name":"B"}]} /-->' )
+		);
+		ob_start();
+		\Blockroll\Opml::for_post( $post );
+		$doc = new SimpleXMLElement( ob_get_clean() );
+		$this->assertSame( 'Tom’s blogs', (string) $doc->body->outline[0]['text'] );
+	}
+
+	public function test_html_entities_in_directory_titles_become_valid_xml() {
+		self::factory()->post->create(
+			array(
+				'post_content' => self::BLOCK,
+				'post_title'   => 'Tom&rsquo;s blogroll',
+				'post_author'  => 0,
+			)
+		);
+		ob_start();
+		\Blockroll\Opml::directory();
+		$doc = new SimpleXMLElement( ob_get_clean() );
+		$this->assertSame( 'Tom’s blogroll', (string) $doc->body->outline[0]['text'] );
+	}
+
 	public function test_directory_lists_pages_not_links() {
 		$id = self::factory()->post->create( array( 'post_content' => self::BLOCK ) );
 		ob_start();
