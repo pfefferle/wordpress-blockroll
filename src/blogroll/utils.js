@@ -70,3 +70,22 @@ export function migrateLinks( attributes ) {
 			.map( linkBlockAttributes ),
 	];
 }
+
+/**
+ * Whether two addresses point at the same site: scheme, "www.", case
+ * and a trailing slash do not make a difference.
+ *
+ * @param {string} a One address.
+ * @param {string} b Another address.
+ * @return {boolean} True for the same site.
+ */
+export function sameSite( a, b ) {
+	const key = ( url ) =>
+		String( url || '' )
+			.trim()
+			.toLowerCase()
+			.replace( /^[a-z][a-z0-9+.-]*:\/\//, '' )
+			.replace( /^www\./, '' )
+			.replace( /\/+$/, '' );
+	return key( a ) !== '' && key( a ) === key( b );
+}

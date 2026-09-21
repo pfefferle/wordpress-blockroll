@@ -33,7 +33,7 @@ import { escapeHTML } from '@wordpress/escape-html';
  * Internal dependencies
  */
 import AddLink from './components/add-link';
-import { linkBlockAttributes } from './utils';
+import { linkBlockAttributes, sameSite } from './utils';
 import ImportModal from './components/import-modal';
 import { isGeneratedFrom, slugOf, uniqueAnchor } from './anchors';
 
@@ -295,6 +295,14 @@ export default function Edit( {
 	const { insertBlock, insertBlocks } = useDispatch( blockEditorStore );
 	const [ isAdding, setIsAdding ] = useState( false );
 	const [ addAnchor, setAddAnchor ] = useState();
+	// The addresses in the list right now, for the duplicate check.
+	const isKnown = ( url ) =>
+		registry
+			.select( blockEditorStore )
+			.getBlock( clientId )
+			.innerBlocks.some( ( block ) =>
+				sameSite( block.attributes.url, url )
+			);
 	const addLink = ( link ) => {
 		insertBlock(
 			createBlock( 'blockroll/link', {
@@ -351,6 +359,7 @@ export default function Edit( {
 				<AddLink
 					anchor={ addAnchor }
 					onAdd={ addLink }
+					isKnown={ isKnown }
 					onClose={ () => setIsAdding( false ) }
 				/>
 			) }

@@ -21,16 +21,22 @@ import { mergeDiscovered, toUrl } from '../utils';
  * @param {Object}   props         Component props.
  * @param {Element}  props.anchor  Element the popover is anchored at.
  * @param {Function} props.onAdd   Called with the attributes of the new link.
+ * @param {Function} props.isKnown Whether an address is in the list already.
  * @param {Function} props.onClose Called when the overlay closes.
  */
-export default function AddLink( { anchor, onAdd, onClose } ) {
+export default function AddLink( { anchor, onAdd, isKnown, onClose } ) {
 	const [ input, setInput ] = useState( '' );
 	const [ isBusy, setIsBusy ] = useState( false );
 	const [ error, setError ] = useState( null );
+	const [ isDuplicate, setIsDuplicate ] = useState( false );
 	const value = input.trim();
 
 	const add = () => {
 		const url = toUrl( value );
+		if ( isKnown?.( url ) ) {
+			setIsDuplicate( true );
+			return;
+		}
 		if ( error ) {
 			onAdd( { url } );
 			return;
@@ -74,6 +80,14 @@ export default function AddLink( { anchor, onAdd, onClose } ) {
 						{ error }
 					</Notice>
 				) }
+				{ isDuplicate && (
+					<Notice status="warning" isDismissible={ false }>
+						{ __(
+							'This site is in the list already.',
+							'blockroll'
+						) }
+					</Notice>
+				) }
 				<div className="blockroll-add-link__row">
 					<TextControl
 						__next40pxDefaultSize
@@ -90,6 +104,7 @@ export default function AddLink( { anchor, onAdd, onClose } ) {
 						onChange={ ( next ) => {
 							setInput( next );
 							setError( null );
+							setIsDuplicate( false );
 						} }
 					/>
 					<Button
@@ -97,7 +112,7 @@ export default function AddLink( { anchor, onAdd, onClose } ) {
 						variant="primary"
 						type="submit"
 						isBusy={ isBusy }
-						disabled={ ! value || isBusy }
+						disabled={ ! value || isBusy || isDuplicate }
 					>
 						{ error
 							? __( 'Add anyway', 'blockroll' )
