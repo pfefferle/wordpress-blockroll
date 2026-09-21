@@ -4,9 +4,15 @@ Notes for people who build on the plugin or work on it. Everything a user needs 
 
 ## How it works
 
-The links live in the block attributes, so the whole blogroll travels with the post
-content. Each link holds `url`, `name`, `description`, `feedUrl`, `photo`, an `xfn`
-array, and the date it was added.
+Every link is a block of its own, `blockroll/link`, inside the `blockroll/blogroll`
+block, so the whole blogroll travels with the post content. A link block holds `url`,
+`name`, `description`, `feedUrl`, `photo`, an `xfn` array, and the date it was `added`.
+It has no output of its own: the blogroll renders the whole list on the server, because
+sorting and paging reorder and cut it. Blogrolls saved before 1.3 kept their links in a
+`links` attribute of the blogroll block. The server still reads that attribute when a
+block has no link blocks, so such a post renders without being opened; the editor
+migrates it to link blocks when it is opened (a block deprecation, see
+`src/blogroll/deprecated.js`).
 
 Every entry is marked up as an [h-card](https://microformats.org/wiki/h-card) with
 [XFN](https://gmpg.org/xfn/) relationships on the link, in an

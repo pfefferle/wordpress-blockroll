@@ -66,8 +66,10 @@ this version get their anchor the first time the page is viewed.
 ### How do I add a link?
 
 Paste the address of the site and the plugin fills in the rest: name, description, icon,
-and the feed, if it finds one. Everything stays editable, and links can be reordered by
-dragging.
+and the feed, if it finds one. Every link is a block of its own inside the list, so it
+can be moved, duplicated, copied to another page and edited right where it is: name and
+description in place, the address behind the name, the feed and the relationship in the
+line below, the icon by clicking it.
 
 ### Can I import the subscriptions from my feed reader?
 
