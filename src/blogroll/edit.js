@@ -2,7 +2,12 @@
  * WordPress dependencies
  */
 import { __, sprintf } from '@wordpress/i18n';
-import { useEffect, useRef, useState } from '@wordpress/element';
+import {
+	createInterpolateElement,
+	useEffect,
+	useRef,
+	useState,
+} from '@wordpress/element';
 import { useDispatch, useRegistry, useSelect } from '@wordpress/data';
 import {
 	InspectorControls,
@@ -21,6 +26,7 @@ import {
 import { arrowDown, arrowUp, pencil, trash } from '@wordpress/icons';
 import apiFetch from '@wordpress/api-fetch';
 import { store as noticesStore } from '@wordpress/notices';
+import { escapeHTML } from '@wordpress/escape-html';
 
 /**
  * Internal dependencies
@@ -150,12 +156,13 @@ export default function Edit( { attributes, setAttributes, clientId } ) {
 			sprintf(
 				/* translators: %s: the anchor of the blocks */
 				__(
-					'A Blogroll block has the same anchor, #%s, as another block on this page. Change the HTML anchor under Advanced, so that each block has its own.',
+					'A Blogroll block has the same anchor, <code>#%s</code>, as another block on this page. Change the HTML anchor under Advanced, so that each block has its own.',
 					'blockroll'
 				),
-				anchor
+				escapeHTML( anchor )
 			),
-			{ id, isDismissible: true }
+			// The store takes a string, so the code element goes in as HTML.
+			{ id, isDismissible: true, __unstableHTML: true }
 		);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [ duplicate, anchor ] );
@@ -403,13 +410,16 @@ export default function Edit( { attributes, setAttributes, clientId } ) {
 						__next40pxDefaultSize
 						__nextHasNoMarginBottom
 						label={ __( 'Name', 'blockroll' ) }
-						help={ sprintf(
-							/* translators: %s: the anchor of the block */
-							__(
-								'Groups this list when a page has more than one blogroll, and sets its anchor: #%s. Renaming the block does the same. The HTML anchor can be changed under Advanced.',
-								'blockroll'
+						help={ createInterpolateElement(
+							sprintf(
+								/* translators: %s: the anchor of the block */
+								__(
+									'Groups this list when a page has more than one blogroll, and sets its anchor: <code>#%s</code>. Renaming the block does the same. The HTML anchor can be changed under Advanced.',
+									'blockroll'
+								),
+								anchor || slugOf( name )
 							),
-							anchor || slugOf( name )
+							{ code: <code /> }
 						) }
 						placeholder={ __( 'Blogroll', 'blockroll' ) }
 						value={ name }
