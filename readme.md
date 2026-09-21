@@ -5,7 +5,7 @@
 - Tags: blogroll, podroll, opml, links, feeds
 - Requires at least: 6.5
 - Tested up to: 7.1
-- Stable tag: 1.1.0
+- Stable tag: 1.2.0
 - Requires PHP: 7.4
 - License: GPL-2.0-or-later
 - License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -126,6 +126,15 @@ routes are described in the
 ## Changelog
 
 Project and support maintained on github at [pfefferle/wordpress-blockroll](https://github.com/pfefferle/wordpress-blockroll).
+
+### 1.2.0
+
+* Every list has an anchor of its own now, made from its name, so you can link to one blogroll on a page: `https://example.com/links/#podcasts`. The sorting and paging links jump back to the list instead of the top of the page.
+* Each list on a page with several blogrolls can be subscribed to on its own, with `?opml&group=podcasts`. The download link under a list points at that list, and the file is named after it.
+* Feed readers find every list on a page, not only the page.
+* Lists made before this version get their anchor the first time the page is viewed. If you type an anchor another block already has, the plugin adds a number, like it does with the slug of a post.
+* Other plugins can now offer lists of their own, the Friends plugin for example. Such a list shows up as a choice in an empty block and stays in sync with the plugin it comes from. Contributed by @akirk.
+* Fixed the subscription list breaking when a site describes itself with characters like `’` written as an HTML entity.
 
 ### 1.1.0
 
