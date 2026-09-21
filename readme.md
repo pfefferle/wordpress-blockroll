@@ -59,8 +59,9 @@ Every list also gets an anchor of its own, made from its name. A blogroll named
 "Podcasts" can be linked as `https://example.com/links/#podcasts`, and
 `https://example.com/links/?opml&group=podcasts` is the subscription list of that one
 alone. The download link under the list uses it too. If you want a different anchor,
-change the HTML anchor under Advanced in the block settings. Lists made before this
-version get their anchor the first time the page is viewed.
+change the HTML anchor under Advanced in the block settings; if it is taken on that
+page, the plugin adds a number, like it does with the slug of a post. Lists made before
+this version get their anchor the first time the page is viewed.
 
 ### How do I add a link?
 

@@ -74,8 +74,10 @@ export default function Edit( { attributes, setAttributes, clientId } ) {
 	// The anchor is the address of this list: the id of the block and the
 	// group of its OPML. It is generated from the name, like the Heading block
 	// derives its anchor from the heading text, and made unique against every
-	// other anchor on the page. An anchor set by hand under Advanced is left
-	// alone. The server does the same for pages saved before this existed.
+	// other anchor on the page. An anchor set by hand under Advanced is kept,
+	// but made unique the same way, like the slug of a post: the user does
+	// not have to check the rest of the page. The server does the same for
+	// pages saved before this existed.
 	const name = metadata?.name || '';
 	const registry = useRegistry();
 	const { __unstableMarkNextChangeAsNotPersistent } =
@@ -84,27 +86,39 @@ export default function Edit( { attributes, setAttributes, clientId } ) {
 	// several blocks mount in one pass, each has to see the anchors the ones
 	// before it just set, or two lists with the same name end up with the
 	// same one.
-	const takenAnchors = () => {
+	const takenAnchors = ( onlyBefore = false ) => {
 		const { getClientIdsWithDescendants, getBlockAttributes } =
 			registry.select( blockEditorStore );
-		return getClientIdsWithDescendants()
-			.filter( ( id ) => id !== clientId )
+		const ids = getClientIdsWithDescendants();
+		const others = onlyBefore
+			? ids.slice( 0, ids.indexOf( clientId ) )
+			: ids.filter( ( id ) => id !== clientId );
+		return others
 			.map( ( id ) => getBlockAttributes( id )?.anchor )
 			.filter( Boolean );
 	};
 
-	// A block without an anchor gets one when it mounts: a fresh block, or
-	// one saved before anchors existed. So does a block that arrives with
-	// the anchor of another one, which is what a duplicated block does.
-	// Not an undo step either way, nobody typed anything.
+	// A block without an anchor gets one: a fresh block, or one saved before
+	// anchors existed. A block whose anchor another block has gets a counter:
+	// on mount only the blocks before it count, so a duplicated block gives
+	// way to its original and not the other way round; after that, an anchor
+	// typed under Advanced counts against every other block. Not an undo step
+	// of its own either way.
+	const mounted = useRef( false );
 	useEffect( () => {
-		const taken = takenAnchors();
-		if ( ! anchor || taken.includes( anchor ) ) {
+		const taken = takenAnchors( ! mounted.current );
+		mounted.current = true;
+		if ( ! anchor ) {
 			__unstableMarkNextChangeAsNotPersistent();
-			setAttributes( { anchor: uniqueAnchor( slugOf( name ), taken ) } );
+			setAttributes( {
+				anchor: uniqueAnchor( slugOf( name ), takenAnchors() ),
+			} );
+		} else if ( taken.includes( anchor ) ) {
+			__unstableMarkNextChangeAsNotPersistent();
+			setAttributes( { anchor: uniqueAnchor( anchor, takenAnchors() ) } );
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [] );
+	}, [ anchor ] );
 
 	// A rename, from the field below or from the block's own Rename, moves
 	// the anchor along while it is still the generated one.
@@ -124,8 +138,10 @@ export default function Edit( { attributes, setAttributes, clientId } ) {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [ name ] );
 
-	// Whether an anchor set by hand under Advanced is also the anchor of
-	// another block. The generated ones never collide, see above.
+	// The one collision left: another block taking this anchor later, from
+	// its own HTML anchor field, which knows nothing about this one. That
+	// goes through the editor's own notices, keyed by the anchor so it is
+	// shown once, and taken back as soon as one of the anchors changes.
 	const duplicate = useSelect(
 		( select ) => {
 			const { getClientIdsWithDescendants, getBlockAttributes } =
@@ -141,10 +157,6 @@ export default function Edit( { attributes, setAttributes, clientId } ) {
 		},
 		[ clientId, anchor ]
 	);
-
-	// The collision is reported through the editor's own notices, keyed by
-	// the anchor: both blocks report it, the notice is shown once. It goes
-	// away as soon as one of the anchors changes.
 	const { createWarningNotice, removeNotice } = useDispatch( noticesStore );
 	useEffect( () => {
 		const id = `blockroll-anchor-${ anchor }`;
