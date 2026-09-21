@@ -150,7 +150,7 @@ export default function Edit( { attributes, setAttributes, clientId } ) {
 			sprintf(
 				/* translators: %s: the anchor of the blocks */
 				__(
-					'More than one block on this page has the address #%s. Change it under Advanced, so that each one has its own.',
+					'A Blogroll block shares its address #%s with another block on this page. Change it under Advanced, so that each block has its own.',
 					'blockroll'
 				),
 				anchor
