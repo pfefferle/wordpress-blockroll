@@ -350,4 +350,27 @@ class Test_Render extends WP_UnitTestCase {
 		$this->assertStringContainsString( esc_url( \Blockroll\Opml::opml_url( $post ) ), $html );
 		$this->assertStringNotContainsString( \Blockroll\Opml::GROUP, $html );
 	}
+
+	public function test_download_is_named_after_the_group() {
+		global $post;
+		$content = '<!-- wp:blockroll/blogroll {"anchor":"blogs","links":[{"url":"https://a.example/","name":"A"}]} /--><!-- wp:blockroll/blogroll {"anchor":"podcasts","links":[{"url":"https://b.example/","name":"B"}]} /-->';
+		$post    = self::factory()->post->create_and_get( array( 'post_content' => $content ) ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		$attrs   = array(
+			'anchor' => 'podcasts',
+			'links'  => array(
+				array(
+					'url'  => 'https://b.example/',
+					'name' => 'B',
+				),
+			),
+		);
+
+		$html = $this->render_block_html( $attrs );
+		$this->assertStringContainsString( 'download="podcasts.opml"', $html );
+
+		// The whole page keeps the generic name.
+		$post = self::factory()->post->create_and_get( array( 'post_content' => '<!-- wp:blockroll/blogroll {"anchor":"podcasts","links":[{"url":"https://b.example/","name":"B"}]} /-->' ) ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		$html = $this->render_block_html( $attrs );
+		$this->assertStringContainsString( 'download="blogroll.opml"', $html );
+	}
 }

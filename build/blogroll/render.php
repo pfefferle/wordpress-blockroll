@@ -137,12 +137,17 @@ if ( 'manual' === $attributes['sortBy'] ) {
 	<?php endif; ?>
 	<?php $blockroll_post = get_post(); ?>
 	<?php if ( $attributes['showOpml'] && $blockroll_post ) : ?>
+		<?php
+		// The file of one list is named after it, the whole page stays "blogroll".
+		$blockroll_grouped = \Blockroll\Opml::is_grouped( $blockroll_post );
+		$blockroll_file    = ( $blockroll_grouped && '' !== $blockroll_anchor ? $blockroll_anchor : 'blogroll' ) . '.opml';
+		?>
 		<p class="blockroll-opml">
 			<?php
 			printf(
 				wp_kses(
-					/* translators: %1$s: OPML file URL */
-					__( '<a href="%1$s" download="blogroll.opml">Download</a> or <a href="%1$s">open</a> this blogroll as an OPML file.', 'blockroll' ),
+					/* translators: 1: OPML file URL, 2: file name of the download */
+					__( '<a href="%1$s" download="%2$s">Download</a> or <a href="%1$s">open</a> this blogroll as an OPML file.', 'blockroll' ),
 					array(
 						'a' => array(
 							'href'     => true,
@@ -150,7 +155,8 @@ if ( 'manual' === $attributes['sortBy'] ) {
 						),
 					)
 				),
-				esc_url( \Blockroll\Opml::group_url( $blockroll_post, $blockroll_anchor ) )
+				esc_url( \Blockroll\Opml::opml_url( $blockroll_post, $blockroll_grouped ? $blockroll_anchor : '' ) ),
+				esc_attr( $blockroll_file )
 			);
 			?>
 		</p>
