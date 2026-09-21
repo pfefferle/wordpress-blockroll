@@ -15,9 +15,13 @@
   ],
   "supports": {
     "html": false,
-    "align": true
+    "align": true,
+    "anchor": true
   },
   "attributes": {
+    "anchor": {
+      "type": "string"
+    },
     "links": {
       "type": "array",
       "default": []

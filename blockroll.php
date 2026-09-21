@@ -43,6 +43,7 @@ define( 'BLOCKROLL_PLUGIN_FILE', __FILE__ );
  */
 function init() {
 	Index::register();
+	Anchors::register();
 	Opml::register();
 	Xfn::register();
 	\register_block_type( __DIR__ . '/build/blogroll' );
@@ -72,7 +73,9 @@ function activate() {
 		// flush, and when the plugin is disabled the URL falls back to the
 		// page itself instead of a 404. Only the well-known URL, which has
 		// no page behind it, gets a rewrite rule of its own.
-		$vars[] = 'opml';
+		$vars[] = Opml::QUERY_VAR;
+		// One blogroll of a page, picked by its HTML anchor.
+		$vars[] = Opml::GROUP;
 		return $vars;
 	}
 );

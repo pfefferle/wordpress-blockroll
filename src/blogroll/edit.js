@@ -2,8 +2,18 @@
  * WordPress dependencies
  */
 import { __, sprintf } from '@wordpress/i18n';
-import { useEffect, useState } from '@wordpress/element';
-import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
+import {
+	createInterpolateElement,
+	useEffect,
+	useRef,
+	useState,
+} from '@wordpress/element';
+import { useDispatch, useRegistry, useSelect } from '@wordpress/data';
+import {
+	InspectorControls,
+	store as blockEditorStore,
+	useBlockProps,
+} from '@wordpress/block-editor';
 import {
 	Button,
 	PanelBody,
@@ -15,6 +25,8 @@ import {
 } from '@wordpress/components';
 import { arrowDown, arrowUp, pencil, trash } from '@wordpress/icons';
 import apiFetch from '@wordpress/api-fetch';
+import { store as noticesStore } from '@wordpress/notices';
+import { escapeHTML } from '@wordpress/escape-html';
 
 /**
  * Internal dependencies
@@ -22,6 +34,7 @@ import apiFetch from '@wordpress/api-fetch';
 import LinkForm from './components/link-form';
 import ImportModal from './components/import-modal';
 import { move } from './utils';
+import { isGeneratedFrom, slugOf, uniqueAnchor } from './anchors';
 
 /**
  * Block edit component.
@@ -29,9 +42,17 @@ import { move } from './utils';
  * @param {Object}   props               Block props.
  * @param {Object}   props.attributes    Block attributes.
  * @param {Function} props.setAttributes Attribute setter.
+ * @param {string}   props.clientId      Client ID of the block.
+ * @param {boolean}  props.isSelected    Whether the block is selected.
  */
-export default function Edit( { attributes, setAttributes } ) {
+export default function Edit( {
+	attributes,
+	setAttributes,
+	clientId,
+	isSelected,
+} ) {
 	const {
+		anchor,
 		links,
 		source,
 		sortBy,
@@ -55,6 +76,136 @@ export default function Edit( { attributes, setAttributes } ) {
 			metadata: Object.keys( next ).length ? next : undefined,
 		} );
 	};
+
+	// The anchor is the address of this list: the id of the block and the
+	// group of its OPML. It is generated from the name, like the Heading block
+	// derives its anchor from the heading text, and made unique against every
+	// other anchor on the page. An anchor set by hand under Advanced is kept,
+	// but made unique the same way, like the slug of a post: the user does
+	// not have to check the rest of the page. The server does the same for
+	// pages saved before this existed.
+	const name = metadata?.name || '';
+	const registry = useRegistry();
+	const { __unstableMarkNextChangeAsNotPersistent } =
+		useDispatch( blockEditorStore );
+	// Read from the store at the time it runs, not at render time: when
+	// several blocks mount in one pass, each has to see the anchors the ones
+	// before it just set, or two lists with the same name end up with the
+	// same one.
+	const takenAnchors = () => {
+		const { getClientIdsWithDescendants, getBlockAttributes } =
+			registry.select( blockEditorStore );
+		return getClientIdsWithDescendants()
+			.filter( ( id ) => id !== clientId )
+			.map( ( id ) => getBlockAttributes( id )?.anchor )
+			.filter( Boolean );
+	};
+
+	// A block without an anchor gets one right away: a fresh block, or one
+	// saved before anchors existed. A block whose anchor another block has
+	// gets a counter once it is not selected any more: on mount, or when the
+	// user leaves it after typing under Advanced. Not while typing, the
+	// field would change under their fingers. The block that arrives or is
+	// edited gives way, the one that had the anchor keeps it. Not an undo
+	// step of its own either way.
+	useEffect( () => {
+		if ( ! anchor ) {
+			__unstableMarkNextChangeAsNotPersistent();
+			setAttributes( {
+				anchor: uniqueAnchor( slugOf( name ), takenAnchors() ),
+			} );
+			return;
+		}
+		if ( isSelected ) {
+			return;
+		}
+		const taken = takenAnchors();
+		if ( taken.includes( anchor ) ) {
+			__unstableMarkNextChangeAsNotPersistent();
+			setAttributes( { anchor: uniqueAnchor( anchor, taken ) } );
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [ anchor, isSelected ] );
+
+	// A rename, from the field below or from the block's own Rename, moves
+	// the anchor along while it is still the generated one.
+	const previousName = useRef( name );
+	useEffect( () => {
+		if ( previousName.current === name ) {
+			return;
+		}
+		const wasGenerated =
+			! anchor || isGeneratedFrom( anchor, previousName.current );
+		previousName.current = name;
+		if ( wasGenerated ) {
+			setAttributes( {
+				anchor: uniqueAnchor( slugOf( name ), takenAnchors() ),
+			} );
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [ name ] );
+
+	// The one collision left: another block taking this anchor while this
+	// one is not selected, from its own HTML anchor field, which knows
+	// nothing about this one. That goes through the editor's own notices,
+	// keyed by the anchor so it is shown once. Neither block being typed
+	// in counts, that is the field changing on its way to a value.
+	const collision = useSelect(
+		( select ) => {
+			const {
+				getClientIdsWithDescendants,
+				getBlockAttributes,
+				getSelectedBlockClientId,
+			} = select( blockEditorStore );
+			if ( ! anchor || isSelected ) {
+				return false;
+			}
+			const selected = getSelectedBlockClientId();
+			return getClientIdsWithDescendants().some(
+				( id ) =>
+					id !== clientId &&
+					id !== selected &&
+					getBlockAttributes( id )?.anchor === anchor
+			);
+		},
+		[ clientId, anchor, isSelected ]
+	);
+	const { createWarningNotice, removeNotice } = useDispatch( noticesStore );
+	const noticeId = useRef( null );
+	useEffect( () => {
+		if ( noticeId.current ) {
+			removeNotice( noticeId.current );
+			noticeId.current = null;
+		}
+		if ( ! collision ) {
+			return;
+		}
+		noticeId.current = `blockroll-anchor-${ anchor }`;
+		createWarningNotice(
+			sprintf(
+				/* translators: %s: the anchor of the blocks */
+				__(
+					'A Blogroll block and another block on this page both use the anchor <code>#%s</code>. Change the HTML anchor under Advanced, so that each block has its own.',
+					'blockroll'
+				),
+				escapeHTML( anchor )
+			),
+			// The store takes a string, so the code element goes in as HTML.
+			{ id: noticeId.current, isDismissible: true, __unstableHTML: true }
+		);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [ collision, anchor ] );
+	// A removed block takes its notice with it.
+	useEffect(
+		() => () => {
+			if ( noticeId.current ) {
+				removeNotice( noticeId.current );
+			}
+		},
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[]
+	);
+
 	const [ editing, setEditing ] = useState( null ); // Index, 'new', or null.
 	const [ isImporting, setIsImporting ] = useState( false );
 	const [ sources, setSources ] = useState( [
@@ -298,12 +449,19 @@ export default function Edit( { attributes, setAttributes } ) {
 						__next40pxDefaultSize
 						__nextHasNoMarginBottom
 						label={ __( 'Name', 'blockroll' ) }
-						help={ __(
-							'Used to group this list when a page has more than one blogroll. Renaming the block does the same.',
-							'blockroll'
+						help={ createInterpolateElement(
+							sprintf(
+								/* translators: %s: the anchor of the block */
+								__(
+									'Groups this list when a page has more than one blogroll, and sets its anchor: <code>#%s</code>. Renaming the block does the same. The HTML anchor can be changed under Advanced.',
+									'blockroll'
+								),
+								anchor || slugOf( name )
+							),
+							{ code: <code /> }
 						) }
 						placeholder={ __( 'Blogroll', 'blockroll' ) }
-						value={ metadata?.name || '' }
+						value={ name }
 						onChange={ setName }
 					/>
 					<SelectControl
@@ -374,7 +532,6 @@ export default function Edit( { attributes, setAttributes } ) {
 					/>
 				</PanelBody>
 			</InspectorControls>
-
 			{ null !== editing && (
 				<LinkForm
 					link={ 'new' === editing ? undefined : links[ editing ] }

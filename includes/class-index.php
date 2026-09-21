@@ -60,6 +60,21 @@ class Index {
 	}
 
 	/**
+	 * The queried post of a singular request, when it has a blogroll.
+	 *
+	 * @return \WP_Post|null Post with a blogroll block, or null.
+	 */
+	public static function queried_post() {
+		if ( ! \is_singular() ) {
+			return null;
+		}
+
+		$post = \get_queried_object();
+
+		return self::has_blogroll( $post ) ? $post : null;
+	}
+
+	/**
 	 * All published posts that contain a blogroll block.
 	 *
 	 * @return \WP_Post[] Posts.
