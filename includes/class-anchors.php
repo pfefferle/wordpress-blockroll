@@ -118,8 +118,20 @@ class Anchors {
 
 				// Add the anchor to the JSON as it is: decoding and encoding
 				// the attributes again would not keep them byte for byte.
+				// An empty anchor that is already there, from a code editor
+				// or the REST API, has to go first, or the key is in twice
+				// and the empty one wins.
+				$rest = $found[1];
+				if ( \array_key_exists( 'anchor', $attributes ) ) {
+					unset( $attributes['anchor'] );
+					$scalar = '(?:"(?:[^"\\\\]|\\\\.)*"|null|true|false|-?\\d+(?:\\.\\d+)?)';
+					$rest   = \preg_replace( '/,\\s*"anchor"\\s*:\\s*' . $scalar . '/', '', $rest, 1, $removed );
+					if ( ! $removed ) {
+						$rest = \preg_replace( '/"anchor"\\s*:\\s*' . $scalar . '\\s*,?/', '', $rest, 1 );
+					}
+				}
 				$json  = '{"anchor":' . \wp_json_encode( $anchor );
-				$json .= $attributes ? ',' . \substr( $found[1], 1 ) : '}';
+				$json .= $attributes ? ',' . \substr( $rest, 1 ) : '}';
 
 				return '<!-- wp:blockroll/blogroll ' . $json . ' ' . $found[2];
 			},

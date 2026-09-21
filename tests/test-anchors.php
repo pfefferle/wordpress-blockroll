@@ -79,6 +79,20 @@ class Test_Anchors extends WP_UnitTestCase {
 		$this->assertStringContainsString( '{"anchor":"blogroll-1",', $post->post_content );
 	}
 
+	public function test_an_empty_anchor_is_replaced_not_duplicated() {
+		// A code editor or the REST API can leave the key with nothing in it.
+		$content = '<!-- wp:blockroll/blogroll {"anchor":"","metadata":{"name":"Blogs"},' . self::LINKS . '} /-->'
+			. '<!-- wp:blockroll/blogroll {"anchor":null,"metadata":{"name":"Podcasts"},' . self::LINKS . '} /-->';
+		$once    = \Blockroll\Anchors::add( $content );
+
+		$this->assertSame(
+			'<!-- wp:blockroll/blogroll {"anchor":"blogs","metadata":{"name":"Blogs"},' . self::LINKS . '} /-->'
+			. '<!-- wp:blockroll/blogroll {"anchor":"podcasts","metadata":{"name":"Podcasts"},' . self::LINKS . '} /-->',
+			$once
+		);
+		$this->assertSame( $once, \Blockroll\Anchors::add( $once ), 'A second pass changes nothing.' );
+	}
+
 	public function test_migrate_is_idempotent_and_leaves_complete_pages_alone() {
 		$content = '<!-- wp:blockroll/blogroll {"anchor":"x","metadata":{"name":"Blogs"},' . self::LINKS . '} /-->';
 		$post    = self::factory()->post->create_and_get( array( 'post_content' => $content ) );
