@@ -20,6 +20,7 @@ import {
 /**
  * Internal dependencies
  */
+import { discover } from '../discover';
 import { mergeDiscovered } from '../utils';
 
 /**
@@ -33,12 +34,7 @@ async function enrich( links, onProgress ) {
 	const result = [];
 	for ( const link of links ) {
 		try {
-			const found = await apiFetch( {
-				path: '/blockroll/v1/discover',
-				method: 'POST',
-				data: { url: link.url },
-			} );
-			result.push( mergeDiscovered( link, found ) );
+			result.push( mergeDiscovered( link, await discover( link.url ) ) );
 		} catch {
 			result.push( link );
 		}

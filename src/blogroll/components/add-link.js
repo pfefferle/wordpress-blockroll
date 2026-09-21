@@ -3,13 +3,13 @@
  */
 import { __ } from '@wordpress/i18n';
 import { useState } from '@wordpress/element';
-import apiFetch from '@wordpress/api-fetch';
-import { Button, Notice, Popover, TextControl } from '@wordpress/components';
+import { Button, Popover, TextControl } from '@wordpress/components';
 
 /**
  * Internal dependencies
  */
-import { mergeDiscovered, toUrl } from '../utils';
+import { lookUp } from '../discover';
+import { toUrl } from '../utils';
 
 /**
  * The overlay behind "Add link": an address field, anchored at the button.
@@ -30,6 +30,10 @@ export default function AddLink( { anchor, onAdd, isKnown, onClose } ) {
 	const [ error, setError ] = useState( null );
 	const [ isDuplicate, setIsDuplicate ] = useState( false );
 	const value = input.trim();
+	// A line under the field, like the notes core's overlays show.
+	const message = isDuplicate
+		? __( 'This site is in the list already.', 'blockroll' )
+		: error;
 
 	const add = () => {
 		const url = toUrl( value );
@@ -42,12 +46,8 @@ export default function AddLink( { anchor, onAdd, isKnown, onClose } ) {
 			return;
 		}
 		setIsBusy( true );
-		apiFetch( {
-			path: '/blockroll/v1/discover',
-			method: 'POST',
-			data: { url },
-		} )
-			.then( ( found ) => onAdd( mergeDiscovered( { url }, found ) ) )
+		lookUp( url )
+			.then( onAdd )
 			.catch( ( fetchError ) => {
 				setError(
 					fetchError.message ||
@@ -75,25 +75,14 @@ export default function AddLink( { anchor, onAdd, isKnown, onClose } ) {
 					}
 				} }
 			>
-				{ error && (
-					<Notice status="error" isDismissible={ false }>
-						{ error }
-					</Notice>
-				) }
-				{ isDuplicate && (
-					<Notice status="warning" isDismissible={ false }>
-						{ __(
-							'This site is in the list already.',
-							'blockroll'
-						) }
-					</Notice>
-				) }
-				<div className="blockroll-add-link__row">
+				<div className="blockroll-form__row">
 					<TextControl
 						__next40pxDefaultSize
 						__nextHasNoMarginBottom
 						label={ __( 'Address', 'blockroll' ) }
 						hideLabelFromVision
+						help={ message }
+						className={ message ? 'has-message' : undefined }
 						placeholder="example.com"
 						type="text"
 						inputMode="url"

@@ -1,7 +1,8 @@
 import { registerBlockType } from '@wordpress/blocks';
 import metadata from './block.json';
 import Edit from './edit';
-import { link as icon } from '../icons';
+// Not the link icon: the toolbar has that one for the link overlay.
+import { listItem as icon } from '@wordpress/icons';
 import './editor.scss';
 
 // The blogroll renders the whole list on the server, so a link has no

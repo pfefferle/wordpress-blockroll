@@ -1,15 +1,5 @@
 .wp-block-blockroll-link {
 
-	.blockroll-link__address {
-		display: flex;
-		align-items: flex-start;
-		gap: 8px;
-
-		.components-base-control {
-			flex-grow: 1;
-		}
-	}
-
 	// The rest of the card is styled by the frontend stylesheet.
 	.u-url {
 		display: block;

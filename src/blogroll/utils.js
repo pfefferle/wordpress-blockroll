@@ -27,26 +27,6 @@ export function toUrl( input ) {
 }
 
 /**
- * The attributes of a link block, from a link the way the block stored
- * it in its own attributes before links became blocks, or the way an
- * import or a source delivers it. Only the known fields, filled in.
- *
- * @param {Object} link Raw link.
- * @return {Object} Link block attributes.
- */
-export function linkBlockAttributes( link ) {
-	return {
-		url: link?.url || '',
-		name: link?.name || '',
-		description: link?.description || '',
-		feedUrl: link?.feedUrl || '',
-		photo: link?.photo || '',
-		xfn: Array.isArray( link?.xfn ) ? link.xfn : [],
-		added: link?.added || '',
-	};
-}
-
-/**
  * Whether a blogroll block still has its links in the `links` attribute.
  *
  * @param {Object} attributes Block attributes.
@@ -60,15 +40,22 @@ export function hasLegacyLinks( attributes ) {
  * Move the links of a block's `links` attribute out of it.
  *
  * @param {Object} attributes Block attributes.
- * @return {Array} The attributes without links, and the link block attributes.
+ * @return {Array} The attributes without links, and the links with an address.
  */
 export function migrateLinks( attributes ) {
 	return [
 		{ ...attributes, links: [] },
-		( attributes.links || [] )
-			.filter( ( link ) => link?.url )
-			.map( linkBlockAttributes ),
+		( attributes.links || [] ).filter( ( link ) => link?.url ),
 	];
+}
+
+/**
+ * Today, as the date a link was added.
+ *
+ * @return {string} YYYY-MM-DD.
+ */
+export function today() {
+	return new Date().toISOString().slice( 0, 10 );
 }
 
 /**

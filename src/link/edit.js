@@ -25,13 +25,9 @@ import { link as linkIcon, rss } from '@wordpress/icons';
  * Internal dependencies
  */
 import XfnControl from '../blogroll/components/xfn-control';
-
-/**
- * Today as the date a link was added, the way the form used to set it.
- *
- * @return {string} YYYY-MM-DD.
- */
-const today = () => new Date().toISOString().slice( 0, 10 );
+import { lookUp } from '../blogroll/discover';
+import { toUrl, today } from '../blogroll/utils';
+import OverlayButton from './overlay-button';
 
 /**
  * One link of a blogroll.
@@ -59,17 +55,15 @@ export default function Edit( {
 } ) {
 	const { url, name, description, photo, feedUrl, xfn, added } = attributes;
 	const [ draftUrl, setDraftUrl ] = useState( '' );
+	const [ isLookingUp, setIsLookingUp ] = useState( false );
 	// The link overlay opened from the name leaves the focus there, the
 	// one opened from the toolbar takes it.
 	const [ linkOverlay, setLinkOverlay ] = useState( null ); // 'name' | 'toolbar' | null
-	const isEditingLink = !! linkOverlay;
-	const setIsEditingLink = ( open ) =>
-		setLinkOverlay( open ? 'toolbar' : null );
 	const [ popoverAnchor, setPopoverAnchor ] = useState();
 	// The meta row: 'feed' or 'xfn' while one of its overlays is open.
 	const [ metaOverlay, setMetaOverlay ] = useState( null );
-	const [ feedAnchor, setFeedAnchor ] = useState();
-	const [ xfnAnchor, setXfnAnchor ] = useState();
+	const toggleMeta = ( key ) =>
+		setMetaOverlay( key === metaOverlay ? null : key );
 	// The image menu's toggle, as the menu hands it over on each render.
 	const photoMenu = useRef( {} );
 
@@ -77,27 +71,21 @@ export default function Edit( {
 	// are in the parent document. The menu's own "focus left" check looks
 	// at the iframe's document only, takes the library for outside and
 	// closes; that unmounts the media control, which removes the library
-	// on unmount and leaves an empty modal. So the check is done here,
-	// against the parent document, and the menu is closed through its
-	// own toggle. The blur check runs in a timeout, so the parent's
-	// active element is the one that got the focus.
-	const closePhotoMenuIfFocusOutside = () => {
-		// eslint-disable-next-line @wordpress/no-global-active-element -- The parent document is the point here.
-		const active = document.activeElement;
+	// on unmount and leaves an empty modal. So the same check is done
+	// here against the document the focus went to, and the menu is closed
+	// through its own toggle.
+	const closePhotoMenuIfFocusOutside = ( event ) => {
+		const active = event.target.ownerDocument.activeElement;
 		if (
-			active?.closest(
-				'.block-editor-media-replace-flow__options, .media-modal, [role="dialog"]'
-			)
+			! active?.closest( '[role="dialog"]' ) &&
+			photoMenu.current.isOpen
 		) {
-			return;
-		}
-		if ( photoMenu.current.isOpen ) {
 			photoMenu.current.onToggle();
 		}
 	};
 	const showAvatar = context[ 'blockroll/showAvatars' ] ?? true;
 	const blockProps = useBlockProps( {
-		className: url ? 'h-card' : 'is-placeholder',
+		className: url ? 'h-card' : undefined,
 	} );
 
 	const avatar = photo ? (
@@ -125,19 +113,23 @@ export default function Edit( {
 		</InspectorControls>
 	);
 
+	// A link block without an address, from the inserter or after the
+	// address was removed: the same lookup as "Add link" runs.
 	if ( ! url ) {
 		const add = () => {
-			const value = draftUrl.trim();
-			if ( ! value ) {
-				return;
-			}
-			setAttributes( { url: value, added: added || today() } );
+			const value = toUrl( draftUrl );
+			setIsLookingUp( true );
+			lookUp( value )
+				.catch( () => ( { url: value } ) )
+				.then( ( link ) =>
+					setAttributes( { ...link, added: added || today() } )
+				);
 		};
 		return (
 			<div { ...blockProps }>
 				{ inspector }
 				<form
-					className="blockroll-link__address"
+					className="blockroll-form__row"
 					onSubmit={ ( event ) => {
 						event.preventDefault();
 						add();
@@ -148,16 +140,21 @@ export default function Edit( {
 						__nextHasNoMarginBottom
 						label={ __( 'Address', 'blockroll' ) }
 						hideLabelFromVision
-						placeholder="https://example.com/"
-						type="url"
+						placeholder="example.com"
+						type="text"
+						inputMode="url"
+						autoComplete="off"
+						spellCheck={ false }
 						value={ draftUrl }
+						disabled={ isLookingUp }
 						onChange={ setDraftUrl }
 					/>
 					<Button
 						__next40pxDefaultSize
 						variant="primary"
 						type="submit"
-						disabled={ ! draftUrl.trim() }
+						isBusy={ isLookingUp }
+						disabled={ ! draftUrl.trim() || isLookingUp }
 					>
 						{ __( 'Add', 'blockroll' ) }
 					</Button>
@@ -172,17 +169,19 @@ export default function Edit( {
 				<ToolbarButton
 					icon={ linkIcon }
 					title={ __( 'Link', 'blockroll' ) }
-					isActive={ isEditingLink }
-					onClick={ () => setIsEditingLink( ! isEditingLink ) }
+					isActive={ !! linkOverlay }
+					onClick={ () =>
+						setLinkOverlay( linkOverlay ? null : 'toolbar' )
+					}
 				/>
 			</BlockControls>
 			{ inspector }
-			{ isSelected && isEditingLink && (
+			{ isSelected && linkOverlay && (
 				<Popover
 					anchor={ popoverAnchor }
 					placement="bottom-start"
 					shift
-					onClose={ () => setIsEditingLink( false ) }
+					onClose={ () => setLinkOverlay( null ) }
 					focusOnMount={
 						'toolbar' === linkOverlay ? 'firstElement' : false
 					}
@@ -199,9 +198,9 @@ export default function Edit( {
 								url: next.url || '',
 								name: next.title ?? name,
 							} );
-							setIsEditingLink( false );
+							setLinkOverlay( null );
 						} }
-						onCancel={ () => setIsEditingLink( false ) }
+						onCancel={ () => setLinkOverlay( null ) }
 					/>
 				</Popover>
 			) }
@@ -262,86 +261,62 @@ export default function Edit( {
 					}
 				/>
 				<div className="blockroll-meta">
-					<Button
+					<OverlayButton
 						className="blockroll-feed blockroll-link__meta-button"
-						ref={ setFeedAnchor }
-						aria-expanded={ 'feed' === metaOverlay }
-						onClick={ () =>
-							setMetaOverlay(
-								'feed' === metaOverlay ? null : 'feed'
-							)
+						isOpen={ 'feed' === metaOverlay }
+						onToggle={ () => toggleMeta( 'feed' ) }
+						label={
+							<>
+								<Icon
+									icon={ rss }
+									className="blockroll-feed-icon"
+								/>
+								{ feedUrl
+									? __( 'feed', 'blockroll' )
+									: __( 'Add feed', 'blockroll' ) }
+							</>
 						}
 					>
-						<Icon icon={ rss } className="blockroll-feed-icon" />
-						{ feedUrl
-							? __( 'feed', 'blockroll' )
-							: __( 'Add feed', 'blockroll' ) }
-					</Button>
+						<TextControl
+							__next40pxDefaultSize
+							__nextHasNoMarginBottom
+							label={ __( 'Feed address', 'blockroll' ) }
+							help={ __(
+								'The RSS or Atom feed of the site, for readers who subscribe to your list.',
+								'blockroll'
+							) }
+							type="url"
+							value={ feedUrl }
+							onChange={ ( value ) =>
+								setAttributes( { feedUrl: value } )
+							}
+						/>
+					</OverlayButton>
 					<span className="blockroll-divider" aria-hidden="true">
 						&#183;
 					</span>
-					<Button
+					{ /* The first focusable thing in the token field is a
+					     token's remove button, so the input is focused by
+					     hand once the overlay is placed. focusOnMount stays
+					     on, for the focus trap and the focus return. */ }
+					<OverlayButton
 						className="blockroll-link__meta-button"
-						ref={ setXfnAnchor }
-						aria-expanded={ 'xfn' === metaOverlay }
-						onClick={ () =>
-							setMetaOverlay(
-								'xfn' === metaOverlay ? null : 'xfn'
+						isOpen={ 'xfn' === metaOverlay }
+						onToggle={ () => toggleMeta( 'xfn' ) }
+						focusOnMount
+						label={
+							xfn.length > 0 ? (
+								<ul className="blockroll-xfn">
+									{ xfn.map( ( token ) => (
+										<li key={ token }>{ token }</li>
+									) ) }
+								</ul>
+							) : (
+								__( 'Add relationship', 'blockroll' )
 							)
 						}
 					>
-						{ xfn.length > 0 ? (
-							<ul className="blockroll-xfn">
-								{ xfn.map( ( token ) => (
-									<li key={ token }>{ token }</li>
-								) ) }
-							</ul>
-						) : (
-							__( 'Add relationship', 'blockroll' )
-						) }
-					</Button>
-				</div>
-				{ isSelected && 'feed' === metaOverlay && (
-					<Popover
-						anchor={ feedAnchor }
-						placement="bottom-start"
-						shift
-						onClose={ () => setMetaOverlay( null ) }
-						focusOnMount="firstElement"
-						className="blockroll-link__overlay"
-					>
-						<div className="blockroll-link__overlay-more">
-							<TextControl
-								__next40pxDefaultSize
-								__nextHasNoMarginBottom
-								label={ __( 'Feed address', 'blockroll' ) }
-								help={ __(
-									'The RSS or Atom feed of the site, for readers who subscribe to your list.',
-									'blockroll'
-								) }
-								type="url"
-								value={ feedUrl }
-								onChange={ ( value ) =>
-									setAttributes( { feedUrl: value } )
-								}
-							/>
-						</div>
-					</Popover>
-				) }
-				{ isSelected && 'xfn' === metaOverlay && (
-					<Popover
-						anchor={ xfnAnchor }
-						placement="bottom-start"
-						shift
-						onClose={ () => setMetaOverlay( null ) }
-						focusOnMount={ false }
-						className="blockroll-link__overlay"
-					>
-						{ /* The first focusable thing would be a token's remove
-						     button, so the input is focused by hand, once the
-						     popover is placed and can take focus. */ }
 						<div
-							className="blockroll-link__overlay-more"
 							ref={ ( node ) =>
 								node &&
 								node.ownerDocument.defaultView.requestAnimationFrame(
@@ -356,8 +331,8 @@ export default function Edit( {
 								}
 							/>
 						</div>
-					</Popover>
-				) }
+					</OverlayButton>
+				</div>
 			</div>
 		</>
 	);

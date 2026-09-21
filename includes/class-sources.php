@@ -17,6 +17,11 @@ class Sources {
 	const MANUAL = 'manual';
 
 	/**
+	 * The block that holds one link of a manual blogroll.
+	 */
+	const LINK_BLOCK = 'blockroll/link';
+
+	/**
 	 * Get available source labels.
 	 *
 	 * Plugins can add a source by filtering this array and then providing its
@@ -101,16 +106,10 @@ class Sources {
 	}
 
 	/**
-	 * The block that holds one link of a manual blogroll.
-	 */
-	const LINK_BLOCK = 'blockroll/link';
-
-	/**
 	 * Resolve and normalize the links for a block's selected source.
 	 *
-	 * @param array                     $attributes   Block attributes.
-	 * @param array|\WP_Block_List|null $inner_blocks Inner blocks of the block, as parsed
-	 *                                                arrays or as WP_Block objects.
+	 * @param array $attributes   Block attributes.
+	 * @param array $inner_blocks Parsed inner blocks of the block.
 	 * @return array Normalized links.
 	 */
 	public static function links( $attributes, $inner_blocks = array() ) {
@@ -152,27 +151,16 @@ class Sources {
 	/**
 	 * Collect the attributes of the link blocks among a block's inner blocks.
 	 *
-	 * Other blocks are ignored. Takes both shapes an inner block comes in:
-	 * the parsed array of parse_blocks() and the WP_Block of a render.
+	 * Other blocks are ignored.
 	 *
-	 * @param array|\WP_Block_List|null $inner_blocks Inner blocks.
+	 * @param array $inner_blocks Parsed inner blocks.
 	 * @return array Raw link arrays, in block order.
 	 */
 	private static function link_blocks( $inner_blocks ) {
 		$links = array();
-		if ( ! \is_iterable( $inner_blocks ) ) {
-			return $links;
-		}
-		foreach ( $inner_blocks as $block ) {
-			if ( $block instanceof \WP_Block ) {
-				$name  = $block->name;
-				$attrs = $block->attributes;
-			} else {
-				$name  = $block['blockName'] ?? '';
-				$attrs = $block['attrs'] ?? array();
-			}
-			if ( self::LINK_BLOCK === $name ) {
-				$links[] = (array) $attrs;
+		foreach ( (array) $inner_blocks as $block ) {
+			if ( self::LINK_BLOCK === ( $block['blockName'] ?? '' ) ) {
+				$links[] = (array) ( $block['attrs'] ?? array() );
 			}
 		}
 		return $links;

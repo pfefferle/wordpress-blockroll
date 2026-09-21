@@ -15,7 +15,6 @@ import {
 	useBlockProps,
 	useInnerBlocksProps,
 } from '@wordpress/block-editor';
-import { createBlock } from '@wordpress/blocks';
 import {
 	Button,
 	PanelBody,
@@ -33,7 +32,8 @@ import { escapeHTML } from '@wordpress/escape-html';
  * Internal dependencies
  */
 import AddLink from './components/add-link';
-import { linkBlockAttributes, sameSite } from './utils';
+import { createLinkBlock, LINK_BLOCK } from './link-block';
+import { sameSite, today } from './utils';
 import ImportModal from './components/import-modal';
 import { isGeneratedFrom, slugOf, uniqueAnchor } from './anchors';
 
@@ -299,29 +299,16 @@ export default function Edit( {
 	const isKnown = ( url ) =>
 		registry
 			.select( blockEditorStore )
-			.getBlock( clientId )
-			.innerBlocks.some( ( block ) =>
-				sameSite( block.attributes.url, url )
-			);
+			.getBlocks( clientId )
+			.some( ( block ) => sameSite( block.attributes.url, url ) );
 	const addLink = ( link ) => {
 		insertBlock(
-			createBlock( 'blockroll/link', {
-				...link,
-				added: new Date().toISOString().slice( 0, 10 ),
-			} ),
+			createLinkBlock( { ...link, added: today() } ),
 			undefined,
 			clientId
 		);
 		setIsAdding( false );
 	};
-	const innerBlocksProps = useInnerBlocksProps(
-		{ className: 'blockroll-editor-links' },
-		{
-			allowedBlocks: [ 'blockroll/link' ],
-			templateLock: false,
-			renderAppender: false,
-		}
-	);
 
 	// Imported links become link blocks at the end of the list; addresses
 	// already in it are skipped.
@@ -329,17 +316,12 @@ export default function Edit( {
 		const known = new Set(
 			registry
 				.select( blockEditorStore )
-				.getBlock( clientId )
-				.innerBlocks.map( ( block ) => block.attributes.url )
+				.getBlocks( clientId )
+				.map( ( block ) => block.attributes.url )
 		);
 		const blocks = imported
 			.filter( ( link ) => link.url && ! known.has( link.url ) )
-			.map( ( link ) =>
-				createBlock( 'blockroll/link', linkBlockAttributes( link ) )
-			);
-		if ( manualSource !== currentSource ) {
-			setAttributes( { source: manualSource } );
-		}
+			.map( createLinkBlock );
 		if ( blocks.length ) {
 			insertBlocks( blocks, undefined, clientId );
 		}
@@ -404,6 +386,19 @@ export default function Edit( {
 			</Placeholder>
 		);
 	}
+
+	// The list of link blocks; the placeholder stands in while it is empty.
+	// Rendered whenever the source is manual, empty or not: it is what
+	// registers the block list settings a link block needs to be inserted.
+	const innerBlocksProps = useInnerBlocksProps(
+		{ className: 'blockroll-editor-links' },
+		{
+			allowedBlocks: [ LINK_BLOCK ],
+			templateLock: false,
+			renderAppender: false,
+			placeholder: emptyState,
+		}
+	);
 
 	const switchToManualButton = (
 		<div className="blockroll-editor-actions">
@@ -583,9 +578,6 @@ export default function Edit( {
 				</div>
 			) : (
 				<div className="blockroll-editor">
-					{ emptyState }
-					{ /* Always rendered: it is what registers the block
-					     list settings a link block needs to be inserted. */ }
 					<div { ...innerBlocksProps } />
 					{ ! emptyState && actions }
 				</div>

@@ -46,7 +46,9 @@ function init() {
 	Anchors::register();
 	Opml::register();
 	Xfn::register();
-	\register_block_type( __DIR__ . '/build/blogroll' );
+	// The blogroll renders its list itself, from the attributes of its link
+	// blocks; the link blocks have no output, so core need not render them.
+	\register_block_type( __DIR__ . '/build/blogroll', array( 'skip_inner_blocks' => true ) );
 	\register_block_type( __DIR__ . '/build/link' );
 }
 \add_action( 'init', __NAMESPACE__ . '\init' );
