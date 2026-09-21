@@ -33,6 +33,7 @@ import { escapeHTML } from '@wordpress/escape-html';
  * Internal dependencies
  */
 import AddLink from './components/add-link';
+import { linkBlockAttributes } from './utils';
 import ImportModal from './components/import-modal';
 import { isGeneratedFrom, slugOf, uniqueAnchor } from './anchors';
 
@@ -53,7 +54,6 @@ export default function Edit( {
 } ) {
 	const {
 		anchor,
-		links,
 		source,
 		sortBy,
 		perPage,
@@ -292,7 +292,7 @@ export default function Edit( {
 		( select ) => select( blockEditorStore ).getBlockCount( clientId ),
 		[ clientId ]
 	);
-	const { insertBlock } = useDispatch( blockEditorStore );
+	const { insertBlock, insertBlocks } = useDispatch( blockEditorStore );
 	const [ isAdding, setIsAdding ] = useState( false );
 	const [ addAnchor, setAddAnchor ] = useState();
 	const addLink = ( link ) => {
@@ -315,15 +315,26 @@ export default function Edit( {
 		}
 	);
 
+	// Imported links become link blocks at the end of the list; addresses
+	// already in it are skipped.
 	const importLinks = ( imported ) => {
-		const known = new Set( links.map( ( link ) => link.url ) );
-		setAttributes( {
-			source: manualSource,
-			links: [
-				...links,
-				...imported.filter( ( link ) => ! known.has( link.url ) ),
-			],
-		} );
+		const known = new Set(
+			registry
+				.select( blockEditorStore )
+				.getBlock( clientId )
+				.innerBlocks.map( ( block ) => block.attributes.url )
+		);
+		const blocks = imported
+			.filter( ( link ) => link.url && ! known.has( link.url ) )
+			.map( ( link ) =>
+				createBlock( 'blockroll/link', linkBlockAttributes( link ) )
+			);
+		if ( manualSource !== currentSource ) {
+			setAttributes( { source: manualSource } );
+		}
+		if ( blocks.length ) {
+			insertBlocks( blocks, undefined, clientId );
+		}
 	};
 
 	const actions = (
@@ -563,7 +574,10 @@ export default function Edit( {
 				</div>
 			) : (
 				<div className="blockroll-editor">
-					{ emptyState || <div { ...innerBlocksProps } /> }
+					{ emptyState }
+					{ /* Always rendered: it is what registers the block
+					     list settings a link block needs to be inserted. */ }
+					<div { ...innerBlocksProps } />
 					{ ! emptyState && actions }
 				</div>
 			) }
