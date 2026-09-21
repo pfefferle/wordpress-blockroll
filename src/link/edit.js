@@ -26,7 +26,7 @@ import { link as linkIcon, rss } from '@wordpress/icons';
  */
 import XfnControl from '../blogroll/components/xfn-control';
 import { lookUp } from '../blogroll/discover';
-import { toUrl, today } from '../blogroll/utils';
+import { closeUnlessToggle, toUrl, today } from '../blogroll/utils';
 import OverlayButton from './overlay-button';
 
 /**
@@ -60,6 +60,25 @@ export default function Edit( {
 	// one opened from the toolbar takes it.
 	const [ linkOverlay, setLinkOverlay ] = useState( null ); // 'name' | 'toolbar' | null
 	const [ popoverAnchor, setPopoverAnchor ] = useState();
+	const [ linkToggle, setLinkToggle ] = useState();
+	const linkOverlayRef = useRef();
+	// The overlay opened from the name closes when the focus leaves the
+	// name for anything but the overlay itself. The blur runs before the
+	// next element has the focus, so the check waits a moment.
+	const closeLinkOverlayOnBlur = () => {
+		if ( 'name' !== linkOverlay ) {
+			return;
+		}
+		setTimeout( () => {
+			const overlay = linkOverlayRef.current;
+			if (
+				! overlay ||
+				! overlay.contains( overlay.ownerDocument.activeElement )
+			) {
+				setLinkOverlay( null );
+			}
+		} );
+	};
 	// The meta row: 'feed' or 'xfn' while one of its overlays is open.
 	const [ metaOverlay, setMetaOverlay ] = useState( null );
 	const toggleMeta = ( key ) =>
@@ -167,6 +186,7 @@ export default function Edit( {
 		<>
 			<BlockControls group="block">
 				<ToolbarButton
+					ref={ setLinkToggle }
 					icon={ linkIcon }
 					title={ __( 'Link', 'blockroll' ) }
 					isActive={ !! linkOverlay }
@@ -182,26 +202,31 @@ export default function Edit( {
 					placement="bottom-start"
 					shift
 					onClose={ () => setLinkOverlay( null ) }
+					onFocusOutside={ closeUnlessToggle( linkToggle, () =>
+						setLinkOverlay( null )
+					) }
 					focusOnMount={
 						'toolbar' === linkOverlay ? 'firstElement' : false
 					}
 					className="blockroll-link__overlay"
 				>
-					<LinkControl
-						value={ { url, title: name } }
-						settings={ [] }
-						hasTextControl
-						forceIsEditingLink
-						showInitialSuggestions={ false }
-						onChange={ ( next ) => {
-							setAttributes( {
-								url: next.url || '',
-								name: next.title ?? name,
-							} );
-							setLinkOverlay( null );
-						} }
-						onCancel={ () => setLinkOverlay( null ) }
-					/>
+					<div ref={ linkOverlayRef }>
+						<LinkControl
+							value={ { url, title: name } }
+							settings={ [] }
+							hasTextControl
+							forceIsEditingLink
+							showInitialSuggestions={ false }
+							onChange={ ( next ) => {
+								setAttributes( {
+									url: next.url || '',
+									name: next.title ?? name,
+								} );
+								setLinkOverlay( null );
+							} }
+							onCancel={ () => setLinkOverlay( null ) }
+						/>
+					</div>
 				</Popover>
 			) }
 			<div { ...blockProps }>
@@ -240,6 +265,8 @@ export default function Edit( {
 				<RichText
 					ref={ setPopoverAnchor }
 					onFocus={ () => setLinkOverlay( 'name' ) }
+					onBlur={ closeLinkOverlayOnBlur }
+					disableLineBreaks
 					tagName="a"
 					className="u-url p-name"
 					href={ url }
@@ -250,6 +277,7 @@ export default function Edit( {
 					onChange={ ( value ) => setAttributes( { name: value } ) }
 				/>
 				<RichText
+					disableLineBreaks
 					tagName="p"
 					className="p-note"
 					value={ description }

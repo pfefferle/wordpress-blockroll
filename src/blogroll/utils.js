@@ -76,3 +76,23 @@ export function sameSite( a, b ) {
 			.replace( /\/+$/, '' );
 	return key( a ) !== '' && key( a ) === key( b );
 }
+
+/**
+ * A "focus left the overlay" handler for a Popover with a toggle button.
+ *
+ * A click on the toggle blurs the overlay first; closing on that blur and
+ * toggling on the click would reopen it. So the close is skipped while
+ * the focus is on the toggle, like core's Dropdown does it.
+ *
+ * @param {Element}  toggle The button that opens and closes the overlay.
+ * @param {Function} close  Closes the overlay.
+ * @return {Function} The handler.
+ */
+export function closeUnlessToggle( toggle, close ) {
+	return () => {
+		if ( toggle && toggle.ownerDocument.activeElement === toggle ) {
+			return;
+		}
+		close();
+	};
+}

@@ -2,14 +2,14 @@
  * WordPress dependencies
  */
 import { __ } from '@wordpress/i18n';
-import { useState } from '@wordpress/element';
+import { useEffect, useRef, useState } from '@wordpress/element';
 import { Button, Popover, TextControl } from '@wordpress/components';
 
 /**
  * Internal dependencies
  */
 import { lookUp } from '../discover';
-import { toUrl } from '../utils';
+import { closeUnlessToggle, toUrl } from '../utils';
 
 /**
  * The overlay behind "Add link": an address field, anchored at the button.
@@ -30,6 +30,14 @@ export default function AddLink( { anchor, onAdd, isKnown, onClose } ) {
 	const [ error, setError ] = useState( null );
 	const [ isDuplicate, setIsDuplicate ] = useState( false );
 	const value = input.trim();
+	// A lookup still running when the overlay closes must not add its link.
+	const isClosed = useRef( false );
+	useEffect(
+		() => () => {
+			isClosed.current = true;
+		},
+		[]
+	);
 	// A line under the field, like the notes core's overlays show.
 	const message = isDuplicate
 		? __( 'This site is in the list already.', 'blockroll' )
@@ -47,7 +55,11 @@ export default function AddLink( { anchor, onAdd, isKnown, onClose } ) {
 		}
 		setIsBusy( true );
 		lookUp( url )
-			.then( onAdd )
+			.then( ( link ) => {
+				if ( ! isClosed.current ) {
+					onAdd( link );
+				}
+			} )
 			.catch( ( fetchError ) => {
 				setError(
 					fetchError.message ||
@@ -63,6 +75,7 @@ export default function AddLink( { anchor, onAdd, isKnown, onClose } ) {
 			placement="bottom-start"
 			offset={ 8 }
 			onClose={ onClose }
+			onFocusOutside={ closeUnlessToggle( anchor, onClose ) }
 			focusOnMount="firstElement"
 			className="blockroll-add-link"
 		>

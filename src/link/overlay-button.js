@@ -5,6 +5,11 @@ import { useState } from '@wordpress/element';
 import { Button, Popover } from '@wordpress/components';
 
 /**
+ * Internal dependencies
+ */
+import { closeUnlessToggle } from '../blogroll/utils';
+
+/**
  * A button in the card with an overlay under it, like an inline link in
  * a paragraph: the meta row's feed and relationship.
  *
@@ -42,6 +47,7 @@ export default function OverlayButton( {
 					placement="bottom-start"
 					shift
 					onClose={ onToggle }
+					onFocusOutside={ closeUnlessToggle( anchor, onToggle ) }
 					focusOnMount={ focusOnMount }
 					className="blockroll-link__overlay"
 				>

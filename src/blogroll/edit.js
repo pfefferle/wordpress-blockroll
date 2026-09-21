@@ -313,14 +313,16 @@ export default function Edit( {
 	// Imported links become link blocks at the end of the list; addresses
 	// already in it are skipped.
 	const importLinks = ( imported ) => {
-		const known = new Set(
-			registry
-				.select( blockEditorStore )
-				.getBlocks( clientId )
-				.map( ( block ) => block.attributes.url )
-		);
+		const known = registry
+			.select( blockEditorStore )
+			.getBlocks( clientId )
+			.map( ( block ) => block.attributes.url );
 		const blocks = imported
-			.filter( ( link ) => link.url && ! known.has( link.url ) )
+			.filter(
+				( link ) =>
+					link.url &&
+					! known.some( ( url ) => sameSite( url, link.url ) )
+			)
 			.map( createLinkBlock );
 		if ( blocks.length ) {
 			insertBlocks( blocks, undefined, clientId );
