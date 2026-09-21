@@ -8,7 +8,14 @@
 	"description": "Share a list of the blogs and sites you follow.",
 	"textdomain": "blockroll",
 	"keywords": [ "blogroll", "links", "opml", "xfn" ],
-	"supports": { "html": false, "align": true, "anchor": true },
+	"supports": {
+		"html": false,
+		"align": true,
+		"anchor": true,
+		"color": { "text": true, "background": true, "link": true, "gradients": true },
+		"spacing": { "margin": true, "padding": true },
+		"typography": { "fontSize": true, "lineHeight": true }
+	},
 	"attributes": {
 		"anchor": { "type": "string" },
 		"links": { "type": "array", "default": [] },

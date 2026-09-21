@@ -373,4 +373,38 @@ class Test_Render extends WP_UnitTestCase {
 		$html = $this->render_block_html( $attrs );
 		$this->assertStringContainsString( 'download="blogroll.opml"', $html );
 	}
+
+	public function test_wrapper_carries_style_supports() {
+		$html = $this->render_block_html(
+			array(
+				'links'           => array(
+					array(
+						'url'  => 'https://a.example/',
+						'name' => 'A',
+					),
+				),
+				'textColor'       => 'contrast',
+				'backgroundColor' => 'base',
+				'gradient'        => 'vivid-cyan-blue-to-vivid-purple',
+				'fontSize'        => 'small',
+				'style'           => array(
+					'elements'   => array( 'link' => array( 'color' => array( 'text' => '#c00' ) ) ),
+					'spacing'    => array( 'padding' => array( 'top' => '1em' ) ),
+					'typography' => array( 'lineHeight' => '1.8' ),
+				),
+			)
+		);
+
+		$this->assertStringContainsString( 'has-contrast-color', $html );
+		$this->assertStringContainsString( 'has-base-background-color', $html );
+		$this->assertStringContainsString( 'has-vivid-cyan-blue-to-vivid-purple-gradient-background', $html );
+		$this->assertStringContainsString( 'has-small-font-size', $html );
+		// Link color is not a class: the wrapper gets a wp-elements-* class and
+		// the rule goes into the block supports stylesheet.
+		$this->assertMatchesRegularExpression( '/class="[^"]*wp-elements-[a-f0-9]+/', $html );
+		$css = wp_style_engine_get_stylesheet_from_context( 'block-supports' );
+		$this->assertMatchesRegularExpression( '/\.wp-elements-[a-f0-9]+ a[^{]*\{color:#c00;?\}/', $css );
+		$this->assertStringContainsString( 'padding-top:1em', $html );
+		$this->assertStringContainsString( 'line-height:1.8', $html );
+	}
 }
