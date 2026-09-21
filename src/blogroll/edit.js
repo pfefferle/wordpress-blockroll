@@ -13,7 +13,9 @@ import {
 	InspectorControls,
 	store as blockEditorStore,
 	useBlockProps,
+	useInnerBlocksProps,
 } from '@wordpress/block-editor';
+import { createBlock } from '@wordpress/blocks';
 import {
 	Button,
 	PanelBody,
@@ -23,7 +25,6 @@ import {
 	TextControl,
 	ToggleControl,
 } from '@wordpress/components';
-import { arrowDown, arrowUp, pencil, trash } from '@wordpress/icons';
 import apiFetch from '@wordpress/api-fetch';
 import { store as noticesStore } from '@wordpress/notices';
 import { escapeHTML } from '@wordpress/escape-html';
@@ -31,9 +32,8 @@ import { escapeHTML } from '@wordpress/escape-html';
 /**
  * Internal dependencies
  */
-import LinkForm from './components/link-form';
+import AddLink from './components/add-link';
 import ImportModal from './components/import-modal';
-import { move } from './utils';
 import { isGeneratedFrom, slugOf, uniqueAnchor } from './anchors';
 
 /**
@@ -206,7 +206,6 @@ export default function Edit( {
 		[]
 	);
 
-	const [ editing, setEditing ] = useState( null ); // Index, 'new', or null.
 	const [ isImporting, setIsImporting ] = useState( false );
 	const [ sources, setSources ] = useState( [
 		{ label: __( 'Manual links', 'blockroll' ), value: 'manual' },
@@ -288,16 +287,33 @@ export default function Edit( {
 		};
 	}, [ currentSource, serializedAttributes ] );
 
-	const saveLink = ( link ) => {
-		const next = [ ...links ];
-		if ( 'new' === editing ) {
-			next.push( link );
-		} else {
-			next[ editing ] = link;
-		}
-		setAttributes( { links: next, source: manualSource } );
-		setEditing( null );
+	// The links of a manual list are blocks of their own.
+	const linkCount = useSelect(
+		( select ) => select( blockEditorStore ).getBlockCount( clientId ),
+		[ clientId ]
+	);
+	const { insertBlock } = useDispatch( blockEditorStore );
+	const [ isAdding, setIsAdding ] = useState( false );
+	const [ addAnchor, setAddAnchor ] = useState();
+	const addLink = ( link ) => {
+		insertBlock(
+			createBlock( 'blockroll/link', {
+				...link,
+				added: new Date().toISOString().slice( 0, 10 ),
+			} ),
+			undefined,
+			clientId
+		);
+		setIsAdding( false );
 	};
+	const innerBlocksProps = useInnerBlocksProps(
+		{ className: 'blockroll-editor-links' },
+		{
+			allowedBlocks: [ 'blockroll/link' ],
+			templateLock: false,
+			renderAppender: false,
+		}
+	);
 
 	const importLinks = ( imported ) => {
 		const known = new Set( links.map( ( link ) => link.url ) );
@@ -312,16 +328,28 @@ export default function Edit( {
 
 	const actions = (
 		<div className="blockroll-editor-actions">
-			<Button variant="primary" onClick={ () => setEditing( 'new' ) }>
+			<Button
+				variant="primary"
+				ref={ setAddAnchor }
+				aria-expanded={ isAdding }
+				onClick={ () => setIsAdding( ! isAdding ) }
+			>
 				{ __( 'Add link', 'blockroll' ) }
 			</Button>
+			{ isAdding && (
+				<AddLink
+					anchor={ addAnchor }
+					onAdd={ addLink }
+					onClose={ () => setIsAdding( false ) }
+				/>
+			) }
 			<Button
 				variant="secondary"
 				onClick={ () => setIsImporting( true ) }
 			>
 				{ __( 'Import links', 'blockroll' ) }
 			</Button>
-			{ ! links.length &&
+			{ ! linkCount &&
 				manualSource === currentSource &&
 				externalSources.map( ( item ) => (
 					<Button
@@ -342,7 +370,7 @@ export default function Edit( {
 	);
 
 	let emptyState = null;
-	if ( manualSource === currentSource && ! links.length ) {
+	if ( manualSource === currentSource && ! linkCount ) {
 		emptyState = (
 			<Placeholder
 				icon="admin-links"
@@ -368,9 +396,9 @@ export default function Edit( {
 		</div>
 	);
 
-	const renderEditorList = ( listLinks, isReadOnly = false ) => (
+	const renderEditorList = ( listLinks ) => (
 		<ul className="blockroll-editor-list">
-			{ listLinks.map( ( link, index ) => (
+			{ listLinks.map( ( link ) => (
 				<li key={ link.url }>
 					{ showAvatars &&
 						( link.photo ? (
@@ -391,51 +419,6 @@ export default function Edit( {
 								' · ' + link.xfn.join( ' ' ) }
 						</small>
 					</span>
-					{ ! isReadOnly && (
-						<span className="blockroll-editor-list__actions">
-							<Button
-								size="compact"
-								icon={ arrowUp }
-								label={ __( 'Move up', 'blockroll' ) }
-								disabled={ 0 === index }
-								onClick={ () =>
-									setAttributes( {
-										links: move( links, index, index - 1 ),
-									} )
-								}
-							/>
-							<Button
-								size="compact"
-								icon={ arrowDown }
-								label={ __( 'Move down', 'blockroll' ) }
-								disabled={ index === links.length - 1 }
-								onClick={ () =>
-									setAttributes( {
-										links: move( links, index, index + 1 ),
-									} )
-								}
-							/>
-							<Button
-								size="compact"
-								icon={ pencil }
-								label={ __( 'Edit', 'blockroll' ) }
-								onClick={ () => setEditing( index ) }
-							/>
-							<Button
-								size="compact"
-								icon={ trash }
-								label={ __( 'Remove', 'blockroll' ) }
-								isDestructive
-								onClick={ () =>
-									setAttributes( {
-										links: links.filter(
-											( unused, i ) => i !== index
-										),
-									} )
-								}
-							/>
-						</span>
-					) }
 				</li>
 			) ) }
 		</ul>
@@ -532,14 +515,6 @@ export default function Edit( {
 					/>
 				</PanelBody>
 			</InspectorControls>
-			{ null !== editing && (
-				<LinkForm
-					link={ 'new' === editing ? undefined : links[ editing ] }
-					onSave={ saveLink }
-					onCancel={ () => setEditing( null ) }
-				/>
-			) }
-
 			{ isImporting && (
 				<ImportModal
 					onImport={ importLinks }
@@ -584,15 +559,13 @@ export default function Edit( {
 					{ ! previewError &&
 						! isPreviewLoading &&
 						!! previewLinks.length &&
-						renderEditorList( previewLinks, true ) }
+						renderEditorList( previewLinks ) }
 				</div>
 			) : (
-				emptyState || (
-					<div className="blockroll-editor">
-						{ renderEditorList( links ) }
-						{ actions }
-					</div>
-				)
+				<div className="blockroll-editor">
+					{ emptyState || <div { ...innerBlocksProps } /> }
+					{ ! emptyState && actions }
+				</div>
 			) }
 		</div>
 	);

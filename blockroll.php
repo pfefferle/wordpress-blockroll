@@ -47,6 +47,7 @@ function init() {
 	Opml::register();
 	Xfn::register();
 	\register_block_type( __DIR__ . '/build/blogroll' );
+	\register_block_type( __DIR__ . '/build/link' );
 }
 \add_action( 'init', __NAMESPACE__ . '\init' );
 

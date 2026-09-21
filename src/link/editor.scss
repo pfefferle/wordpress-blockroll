@@ -1,0 +1,58 @@
+.wp-block-blockroll-link {
+
+	.blockroll-link__address {
+		display: flex;
+		align-items: flex-start;
+		gap: 8px;
+
+		.components-base-control {
+			flex-grow: 1;
+		}
+	}
+
+	// The rest of the card is styled by the frontend stylesheet.
+	.u-url {
+		display: block;
+	}
+
+	// The image is a button here; it takes the place the image has on
+	// the site and the image inside loses its own margin.
+	&.h-card .blockroll-link__photo {
+		grid-row: 1 / span 2;
+		align-self: start;
+		height: auto;
+		padding: 0;
+		margin-right: 0.75em;
+		border-radius: 50%;
+
+		.u-photo,
+		.blockroll-no-photo {
+			margin-right: 0;
+		}
+	}
+
+	// The meta row's parts are buttons here, looking like the text on the site.
+	&.h-card .blockroll-link__meta-button {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25em;
+		height: auto;
+		padding: 0;
+		font: inherit;
+		color: inherit;
+
+		&:hover {
+			text-decoration: underline;
+		}
+	}
+}
+
+.blockroll-link__overlay {
+
+	.blockroll-link__overlay-more {
+		display: grid;
+		gap: 16px;
+		padding: 16px;
+		min-width: 300px;
+	}
+}

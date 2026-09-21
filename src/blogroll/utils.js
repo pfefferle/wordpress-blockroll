@@ -28,3 +28,14 @@ export function mergeDiscovered( link, found ) {
 		photo: link.photo || found.photo,
 	};
 }
+
+/**
+ * A bare domain is fine; it becomes an https address.
+ *
+ * @param {string} input What was typed.
+ * @return {string} An address with a scheme.
+ */
+export function toUrl( input ) {
+	const value = input.trim();
+	return /^[a-z][a-z0-9+.-]*:/i.test( value ) ? value : `https://${ value }`;
+}

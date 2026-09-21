@@ -105,3 +105,23 @@
 	border: 1px dashed #949494;
 	border-radius: 4px;
 }
+
+.blockroll-add-link {
+
+	.blockroll-add-link__form {
+		display: grid;
+		gap: 8px;
+		padding: 8px;
+		width: 360px;
+		max-width: 90vw;
+	}
+
+	.blockroll-add-link__row {
+		display: flex;
+		gap: 8px;
+
+		.components-base-control {
+			flex-grow: 1;
+		}
+	}
+}
