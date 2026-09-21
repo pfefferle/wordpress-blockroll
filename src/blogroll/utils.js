@@ -59,40 +59,17 @@ export function today() {
 }
 
 /**
- * Whether two addresses point at the same site: scheme, "www.", case
- * and a trailing slash do not make a difference.
+ * What makes an address the address of a site: scheme, "www.", case and
+ * a trailing slash do not.
  *
- * @param {string} a One address.
- * @param {string} b Another address.
- * @return {boolean} True for the same site.
+ * @param {string} url An address.
+ * @return {string} The key, empty for no address.
  */
-export function sameSite( a, b ) {
-	const key = ( url ) =>
-		String( url || '' )
-			.trim()
-			.toLowerCase()
-			.replace( /^[a-z][a-z0-9+.-]*:\/\//, '' )
-			.replace( /^www\./, '' )
-			.replace( /\/+$/, '' );
-	return key( a ) !== '' && key( a ) === key( b );
-}
-
-/**
- * A "focus left the overlay" handler for a Popover with a toggle button.
- *
- * A click on the toggle blurs the overlay first; closing on that blur and
- * toggling on the click would reopen it. So the close is skipped while
- * the focus is on the toggle, like core's Dropdown does it.
- *
- * @param {Element}  toggle The button that opens and closes the overlay.
- * @param {Function} close  Closes the overlay.
- * @return {Function} The handler.
- */
-export function closeUnlessToggle( toggle, close ) {
-	return () => {
-		if ( toggle && toggle.ownerDocument.activeElement === toggle ) {
-			return;
-		}
-		close();
-	};
+export function siteKey( url ) {
+	return String( url || '' )
+		.trim()
+		.toLowerCase()
+		.replace( /^[a-z][a-z0-9+.-]*:\/\//, '' )
+		.replace( /^www\./, '' )
+		.replace( /\/+$/, '' );
 }

@@ -9,6 +9,7 @@ import {
 	useState,
 } from '@wordpress/element';
 import { useDispatch, useRegistry, useSelect } from '@wordpress/data';
+import { __experimentalUseFocusOutside as useFocusOutside } from '@wordpress/compose';
 import {
 	InspectorControls,
 	store as blockEditorStore,
@@ -33,7 +34,7 @@ import { escapeHTML } from '@wordpress/escape-html';
  */
 import AddLink from './components/add-link';
 import { createLinkBlock, LINK_BLOCK } from './link-block';
-import { sameSite, today } from './utils';
+import { siteKey, today } from './utils';
 import ImportModal from './components/import-modal';
 import { isGeneratedFrom, slugOf, uniqueAnchor } from './anchors';
 
@@ -295,12 +296,18 @@ export default function Edit( {
 	const { insertBlock, insertBlocks } = useDispatch( blockEditorStore );
 	const [ isAdding, setIsAdding ] = useState( false );
 	const [ addAnchor, setAddAnchor ] = useState();
-	// The addresses in the list right now, for the duplicate check.
-	const isKnown = ( url ) =>
-		registry
-			.select( blockEditorStore )
-			.getBlocks( clientId )
-			.some( ( block ) => sameSite( block.attributes.url, url ) );
+	// The "Add link" overlay closes when the focus leaves the button and
+	// the overlay; a click on the button itself only toggles.
+	const addFocusOutside = useFocusOutside( () => setIsAdding( false ) );
+	// The sites in the list right now, for the duplicate checks.
+	const siteKeys = () =>
+		new Set(
+			registry
+				.select( blockEditorStore )
+				.getBlocks( clientId )
+				.map( ( block ) => siteKey( block.attributes.url ) )
+		);
+	const isKnown = ( url ) => siteKeys().has( siteKey( url ) );
 	const addLink = ( link ) => {
 		insertBlock(
 			createLinkBlock( { ...link, added: today() } ),
@@ -310,19 +317,19 @@ export default function Edit( {
 		setIsAdding( false );
 	};
 
-	// Imported links become link blocks at the end of the list; addresses
-	// already in it are skipped.
+	// Imported links become link blocks at the end of the list; sites
+	// already in it, or twice in the file, are skipped.
 	const importLinks = ( imported ) => {
-		const known = registry
-			.select( blockEditorStore )
-			.getBlocks( clientId )
-			.map( ( block ) => block.attributes.url );
+		const seen = siteKeys();
 		const blocks = imported
-			.filter(
-				( link ) =>
-					link.url &&
-					! known.some( ( url ) => sameSite( url, link.url ) )
-			)
+			.filter( ( link ) => {
+				const key = siteKey( link.url );
+				if ( ! key || seen.has( key ) ) {
+					return false;
+				}
+				seen.add( key );
+				return true;
+			} )
 			.map( createLinkBlock );
 		if ( blocks.length ) {
 			insertBlocks( blocks, undefined, clientId );
@@ -331,22 +338,24 @@ export default function Edit( {
 
 	const actions = (
 		<div className="blockroll-editor-actions">
-			<Button
-				variant="primary"
-				ref={ setAddAnchor }
-				aria-expanded={ isAdding }
-				onClick={ () => setIsAdding( ! isAdding ) }
-			>
-				{ __( 'Add link', 'blockroll' ) }
-			</Button>
-			{ isAdding && (
-				<AddLink
-					anchor={ addAnchor }
-					onAdd={ addLink }
-					isKnown={ isKnown }
-					onClose={ () => setIsAdding( false ) }
-				/>
-			) }
+			<span { ...addFocusOutside }>
+				<Button
+					variant="primary"
+					ref={ setAddAnchor }
+					aria-expanded={ isAdding }
+					onClick={ () => setIsAdding( ! isAdding ) }
+				>
+					{ __( 'Add link', 'blockroll' ) }
+				</Button>
+				{ isAdding && (
+					<AddLink
+						anchor={ addAnchor }
+						onAdd={ addLink }
+						isKnown={ isKnown }
+						onClose={ () => setIsAdding( false ) }
+					/>
+				) }
+			</span>
 			<Button
 				variant="secondary"
 				onClick={ () => setIsImporting( true ) }
@@ -354,7 +363,6 @@ export default function Edit( {
 				{ __( 'Import links', 'blockroll' ) }
 			</Button>
 			{ ! linkCount &&
-				manualSource === currentSource &&
 				externalSources.map( ( item ) => (
 					<Button
 						key={ item.value }

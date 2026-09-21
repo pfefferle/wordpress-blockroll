@@ -60,34 +60,10 @@
 	}
 }
 
-.blockroll-import-intro {
-	margin: 0;
-}
-
-.blockroll-import-tab {
-	padding: 16px 0;
-}
-
-.blockroll-import-upload {
-	position: relative;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	min-height: 100px;
-	border: 1px dashed #949494;
-	border-radius: 4px;
-}
-
-.blockroll-add-link {
-
-	.blockroll-add-link__form {
-		display: grid;
-		gap: 8px;
-		padding: 8px;
-		width: 360px;
-		max-width: 90vw;
-	}
-
+.blockroll-add-link .components-popover__content {
+	padding: 8px;
+	width: 360px;
+	max-width: 90vw;
 }
 
 // A field with its button next to it, in the overlays and the import.
@@ -116,4 +92,22 @@
 	justify-content: flex-end;
 	gap: 8px;
 	margin-top: 8px;
+}
+
+.blockroll-import-intro {
+	margin: 0;
+}
+
+.blockroll-import-tab {
+	padding: 16px 0;
+}
+
+.blockroll-import-upload {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 100px;
+	border: 1px dashed #949494;
+	border-radius: 4px;
 }

@@ -3,13 +3,20 @@
  */
 import { __ } from '@wordpress/i18n';
 import { useEffect, useRef, useState } from '@wordpress/element';
-import { Button, Popover, TextControl } from '@wordpress/components';
+import { Popover } from '@wordpress/components';
 
 /**
  * Internal dependencies
  */
-import { lookUp } from '../discover';
-import { closeUnlessToggle, toUrl } from '../utils';
+import { isAborted, lookUp } from '../discover';
+import { toUrl } from '../utils';
+import AddressForm from './address-form';
+
+/**
+ * Nothing: the overlay's own focus check is off, the wrapper around the
+ * button and the overlay does it.
+ */
+const noop = () => {};
 
 /**
  * The overlay behind "Add link": an address field, anchored at the button.
@@ -29,23 +36,17 @@ export default function AddLink( { anchor, onAdd, isKnown, onClose } ) {
 	const [ isBusy, setIsBusy ] = useState( false );
 	const [ error, setError ] = useState( null );
 	const [ isDuplicate, setIsDuplicate ] = useState( false );
-	const value = input.trim();
-	// A lookup still running when the overlay closes must not add its link.
-	const isClosed = useRef( false );
-	useEffect(
-		() => () => {
-			isClosed.current = true;
-		},
-		[]
-	);
+	// A lookup still running when the overlay closes is cancelled.
+	const controller = useRef( new AbortController() );
+	useEffect( () => () => controller.current.abort(), [] );
 	// A line under the field, like the notes core's overlays show.
 	const message = isDuplicate
 		? __( 'This site is in the list already.', 'blockroll' )
 		: error;
 
 	const add = () => {
-		const url = toUrl( value );
-		if ( isKnown?.( url ) ) {
+		const url = toUrl( input );
+		if ( isKnown( url ) ) {
 			setIsDuplicate( true );
 			return;
 		}
@@ -54,13 +55,12 @@ export default function AddLink( { anchor, onAdd, isKnown, onClose } ) {
 			return;
 		}
 		setIsBusy( true );
-		lookUp( url )
-			.then( ( link ) => {
-				if ( ! isClosed.current ) {
-					onAdd( link );
-				}
-			} )
+		lookUp( url, controller.current.signal )
+			.then( onAdd )
 			.catch( ( fetchError ) => {
+				if ( isAborted( fetchError ) ) {
+					return;
+				}
 				setError(
 					fetchError.message ||
 						__( 'The site could not be reached.', 'blockroll' )
@@ -75,53 +75,24 @@ export default function AddLink( { anchor, onAdd, isKnown, onClose } ) {
 			placement="bottom-start"
 			offset={ 8 }
 			onClose={ onClose }
-			onFocusOutside={ closeUnlessToggle( anchor, onClose ) }
+			onFocusOutside={ noop }
 			focusOnMount="firstElement"
 			className="blockroll-add-link"
 		>
-			<form
-				className="blockroll-add-link__form"
-				onSubmit={ ( event ) => {
-					event.preventDefault();
-					if ( value && ! isBusy ) {
-						add();
-					}
+			<AddressForm
+				value={ input }
+				onChange={ ( next ) => {
+					setInput( next );
+					setError( null );
+					setIsDuplicate( false );
 				} }
-			>
-				<div className="blockroll-form__row">
-					<TextControl
-						__next40pxDefaultSize
-						__nextHasNoMarginBottom
-						label={ __( 'Address', 'blockroll' ) }
-						hideLabelFromVision
-						help={ message }
-						className={ message ? 'has-message' : undefined }
-						placeholder="example.com"
-						type="text"
-						inputMode="url"
-						autoComplete="off"
-						spellCheck={ false }
-						value={ input }
-						disabled={ isBusy }
-						onChange={ ( next ) => {
-							setInput( next );
-							setError( null );
-							setIsDuplicate( false );
-						} }
-					/>
-					<Button
-						__next40pxDefaultSize
-						variant="primary"
-						type="submit"
-						isBusy={ isBusy }
-						disabled={ ! value || isBusy || isDuplicate }
-					>
-						{ error
-							? __( 'Add anyway', 'blockroll' )
-							: __( 'Add', 'blockroll' ) }
-					</Button>
-				</div>
-			</form>
+				onSubmit={ add }
+				isBusy={ isBusy }
+				message={ message }
+				buttonLabel={
+					error ? __( 'Add anyway', 'blockroll' ) : undefined
+				}
+			/>
 		</Popover>
 	);
 }

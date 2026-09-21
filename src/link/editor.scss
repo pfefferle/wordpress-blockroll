@@ -5,6 +5,13 @@
 		display: block;
 	}
 
+	// The wrappers that watch the focus leave no box of their own, so the
+	// grid of the card still sees the name and the meta row's buttons.
+	.blockroll-link__name,
+	.blockroll-meta > span {
+		display: contents;
+	}
+
 	// The image is a button here; it takes the place the image has on
 	// the site and the image inside loses its own margin.
 	&.h-card .blockroll-link__photo {
@@ -37,12 +44,7 @@
 	}
 }
 
-.blockroll-link__overlay {
-
-	.blockroll-link__overlay-more {
-		display: grid;
-		gap: 16px;
-		padding: 16px;
-		min-width: 300px;
-	}
+.blockroll-link__meta-overlay .components-popover__content {
+	padding: 16px;
+	min-width: 300px;
 }

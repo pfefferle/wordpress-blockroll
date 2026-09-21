@@ -25,5 +25,8 @@
 		"@wordpress/notices": "^5.55.0",
 		"@wordpress/scripts": "^34.2.0",
 		"@wordpress/url": "^4.55.0"
+	},
+	"dependencies": {
+		"@wordpress/compose": "^8.8.0"
 	}
 }
