@@ -389,20 +389,6 @@ class Opml {
 	}
 
 	/**
-	 * The OPML URL of one blogroll of a page, for the link under the list.
-	 *
-	 * On a page with a single blogroll that is the page's own OPML, whatever
-	 * the anchor of the block.
-	 *
-	 * @param \WP_Post $post   Post object.
-	 * @param string   $anchor HTML anchor of the block.
-	 * @return string OPML URL.
-	 */
-	public static function group_url( $post, $anchor ) {
-		return self::opml_url( $post, self::is_grouped( $post ) ? $anchor : '' );
-	}
-
-	/**
 	 * The OPML URL of a post, or of one of its blogrolls.
 	 *
 	 * @param \WP_Post $post   Post object.
