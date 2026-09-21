@@ -3,7 +3,7 @@
  */
 import { __, sprintf } from '@wordpress/i18n';
 import { useEffect, useRef, useState } from '@wordpress/element';
-import { useDispatch, useRegistry } from '@wordpress/data';
+import { useDispatch, useRegistry, useSelect } from '@wordpress/data';
 import {
 	InspectorControls,
 	store as blockEditorStore,
@@ -20,6 +20,7 @@ import {
 } from '@wordpress/components';
 import { arrowDown, arrowUp, pencil, trash } from '@wordpress/icons';
 import apiFetch from '@wordpress/api-fetch';
+import { store as noticesStore } from '@wordpress/notices';
 
 /**
  * Internal dependencies
@@ -116,6 +117,48 @@ export default function Edit( { attributes, setAttributes, clientId } ) {
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [ name ] );
+
+	// Whether an anchor set by hand under Advanced is also the anchor of
+	// another block. The generated ones never collide, see above.
+	const duplicate = useSelect(
+		( select ) => {
+			const { getClientIdsWithDescendants, getBlockAttributes } =
+				select( blockEditorStore );
+			return (
+				!! anchor &&
+				getClientIdsWithDescendants().some(
+					( id ) =>
+						id !== clientId &&
+						getBlockAttributes( id )?.anchor === anchor
+				)
+			);
+		},
+		[ clientId, anchor ]
+	);
+
+	// The collision is reported through the editor's own notices, keyed by
+	// the anchor: both blocks report it, the notice is shown once. It goes
+	// away as soon as one of the anchors changes.
+	const { createWarningNotice, removeNotice } = useDispatch( noticesStore );
+	useEffect( () => {
+		const id = `blockroll-anchor-${ anchor }`;
+		if ( ! duplicate ) {
+			removeNotice( id );
+			return;
+		}
+		createWarningNotice(
+			sprintf(
+				/* translators: %s: the anchor of the blocks */
+				__(
+					'More than one block on this page has the address #%s. Change it under Advanced, so that each one has its own.',
+					'blockroll'
+				),
+				anchor
+			),
+			{ id, isDismissible: true }
+		);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [ duplicate, anchor ] );
 
 	const [ editing, setEditing ] = useState( null ); // Index, 'new', or null.
 	const [ isImporting, setIsImporting ] = useState( false );
@@ -440,7 +483,6 @@ export default function Edit( { attributes, setAttributes, clientId } ) {
 					/>
 				</PanelBody>
 			</InspectorControls>
-
 			{ null !== editing && (
 				<LinkForm
 					link={ 'new' === editing ? undefined : links[ editing ] }
