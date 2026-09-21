@@ -156,7 +156,7 @@ export default function Edit( { attributes, setAttributes, clientId } ) {
 			sprintf(
 				/* translators: %s: the anchor of the blocks */
 				__(
-					'A Blogroll block has the same anchor, <code>#%s</code>, as another block on this page. Change the HTML anchor under Advanced, so that each block has its own.',
+					'A Blogroll block and another block on this page both use the anchor <code>#%s</code>. Change the HTML anchor under Advanced, so that each block has its own.',
 					'blockroll'
 				),
 				escapeHTML( anchor )
