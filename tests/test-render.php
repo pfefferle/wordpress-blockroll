@@ -401,9 +401,9 @@ class Test_Render extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'has-small-font-size', $html );
 		// Link color is not a class: the wrapper gets a wp-elements-* class and
 		// the rule goes into the block supports stylesheet.
-		$this->assertMatchesRegularExpression( '/class="[^"]*wp-elements-\d+/', $html );
+		$this->assertMatchesRegularExpression( '/class="[^"]*wp-elements-[a-f0-9]+/', $html );
 		$css = wp_style_engine_get_stylesheet_from_context( 'block-supports' );
-		$this->assertMatchesRegularExpression( '/\.wp-elements-\d+ a[^{]*\{color:#c00;?\}/', $css );
+		$this->assertMatchesRegularExpression( '/\.wp-elements-[a-f0-9]+ a[^{]*\{color:#c00;?\}/', $css );
 		$this->assertStringContainsString( 'padding-top:1em', $html );
 		$this->assertStringContainsString( 'line-height:1.8', $html );
 	}
