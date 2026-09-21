@@ -177,7 +177,7 @@ class Anchors {
 	 */
 	private static function taken( $content ) {
 		$taken = array();
-		if ( \preg_match_all( '/"anchor":"((?:[^"\\\\]|\\\\.)*)"/', $content, $matches ) ) {
+		if ( \preg_match_all( '/"anchor"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"/', $content, $matches ) ) {
 			foreach ( $matches[1] as $anchor ) {
 				$taken[] = \json_decode( '"' . $anchor . '"' );
 			}

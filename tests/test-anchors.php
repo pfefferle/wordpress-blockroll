@@ -93,6 +93,17 @@ class Test_Anchors extends WP_UnitTestCase {
 		$this->assertSame( $once, \Blockroll\Anchors::add( $once ), 'A second pass changes nothing.' );
 	}
 
+	public function test_an_anchor_with_json_whitespace_still_counts_as_taken() {
+		$content = '<!-- wp:blockroll/blogroll {"anchor": "podcasts",' . self::LINKS . '} /-->'
+			. '<!-- wp:blockroll/blogroll {"metadata":{"name":"Podcasts"},' . self::LINKS . '} /-->';
+
+		$this->assertSame(
+			'<!-- wp:blockroll/blogroll {"anchor": "podcasts",' . self::LINKS . '} /-->'
+			. '<!-- wp:blockroll/blogroll {"anchor":"podcasts-1","metadata":{"name":"Podcasts"},' . self::LINKS . '} /-->',
+			\Blockroll\Anchors::add( $content )
+		);
+	}
+
 	public function test_migrate_is_idempotent_and_leaves_complete_pages_alone() {
 		$content = '<!-- wp:blockroll/blogroll {"anchor":"x","metadata":{"name":"Blogs"},' . self::LINKS . '} /-->';
 		$post    = self::factory()->post->create_and_get( array( 'post_content' => $content ) );
