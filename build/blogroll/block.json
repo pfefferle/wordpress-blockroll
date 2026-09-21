@@ -16,7 +16,21 @@
   "supports": {
     "html": false,
     "align": true,
-    "anchor": true
+    "anchor": true,
+    "color": {
+      "text": true,
+      "background": true,
+      "link": true,
+      "gradients": true
+    },
+    "spacing": {
+      "margin": true,
+      "padding": true
+    },
+    "typography": {
+      "fontSize": true,
+      "lineHeight": true
+    }
   },
   "attributes": {
     "anchor": {
