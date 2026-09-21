@@ -61,35 +61,8 @@
 				}
 			}
 
-			.blockroll-editor-list__actions {
-				display: flex;
-				flex-shrink: 0;
-			}
 		}
 	}
-}
-
-.blockroll-form {
-	display: grid;
-	gap: 16px;
-}
-
-.blockroll-form__row {
-	display: flex;
-	align-items: flex-end;
-	gap: 8px;
-
-	> :first-child {
-		flex-grow: 1;
-	}
-}
-
-.blockroll-form__footer {
-	display: flex;
-	align-items: center;
-	justify-content: flex-end;
-	gap: 8px;
-	margin-top: 8px;
 }
 
 .blockroll-import-intro {
