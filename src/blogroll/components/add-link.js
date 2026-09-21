@@ -83,6 +83,7 @@ export default function AddLink( { anchor, onAdd, onClose } ) {
 						placeholder="example.com"
 						type="text"
 						inputMode="url"
+						autoComplete="off"
 						spellCheck={ false }
 						value={ input }
 						disabled={ isBusy }
