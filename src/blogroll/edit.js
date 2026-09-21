@@ -150,7 +150,7 @@ export default function Edit( { attributes, setAttributes, clientId } ) {
 			sprintf(
 				/* translators: %s: the anchor of the blocks */
 				__(
-					'A Blogroll block shares its address #%s with another block on this page. Change it under Advanced, so that each block has its own.',
+					'A Blogroll block has the same anchor, #%s, as another block on this page. Change the HTML anchor under Advanced, so that each block has its own.',
 					'blockroll'
 				),
 				anchor
@@ -406,7 +406,7 @@ export default function Edit( { attributes, setAttributes, clientId } ) {
 						help={ sprintf(
 							/* translators: %s: the anchor of the block */
 							__(
-								'Groups this list when a page has more than one blogroll, and gives it its address: #%s. Renaming the block does the same. The address can be changed under Advanced.',
+								'Groups this list when a page has more than one blogroll, and sets its anchor: #%s. Renaming the block does the same. The HTML anchor can be changed under Advanced.',
 								'blockroll'
 							),
 							anchor || slugOf( name )
