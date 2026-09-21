@@ -418,6 +418,17 @@ class Test_Opml extends WP_UnitTestCase {
 		$this->assertSame( \Blockroll\Opml::title( $post ), (string) $doc->head->title );
 	}
 
+	public function test_ambiguous_group_falls_back_to_the_whole_page() {
+		// Two blocks with the same anchor, as a code editor or the REST API can leave them.
+		$content = '<!-- wp:blockroll/blogroll {"anchor":"podcasts","metadata":{"name":"Blogs"},"links":[{"url":"https://a.example/","name":"A"}]} /--><!-- wp:blockroll/blogroll {"anchor":"podcasts","metadata":{"name":"Podcasts"},"links":[{"url":"https://b.example/","name":"B"}]} /-->';
+		$post    = self::factory()->post->create_and_get( array( 'post_content' => $content ) );
+		ob_start();
+		\Blockroll\Opml::for_post( $post, 'podcasts' );
+		$doc = new SimpleXMLElement( ob_get_clean() );
+		$this->assertCount( 2, $doc->body->outline );
+		$this->assertSame( \Blockroll\Opml::title( $post ), (string) $doc->head->title );
+	}
+
 	public function test_group_query_var_works_with_the_opml_suffix() {
 		$id = self::factory()->post->create(
 			array(

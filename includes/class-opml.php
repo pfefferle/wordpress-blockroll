@@ -296,7 +296,9 @@ class Opml {
 	 * With an anchor, only the block carrying that anchor is printed, as a
 	 * flat list with a title of its own. An anchor no block has falls back
 	 * to the whole page, so a reader keeps getting a list when a block is
-	 * renamed, instead of an error.
+	 * renamed, instead of an error. So does an anchor several blocks have,
+	 * which the editor prevents but a code editor does not: the whole page
+	 * rather than a guess at which of them was meant.
 	 *
 	 * @param \WP_Post $post   Post object.
 	 * @param string   $anchor HTML anchor of one blogroll block, or empty for all.
@@ -306,7 +308,7 @@ class Opml {
 		$title  = self::title( $post );
 
 		$group = '' !== $anchor ? \wp_list_filter( $groups, array( 'anchor' => $anchor ) ) : array();
-		if ( $group ) {
+		if ( 1 === \count( $group ) ) {
 			$groups = array( \reset( $group ) );
 			$title  = self::group_title( $groups[0], $title );
 		}
