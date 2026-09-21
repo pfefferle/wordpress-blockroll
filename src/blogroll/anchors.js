@@ -37,3 +37,21 @@ export function uniqueAnchor( slug, taken ) {
 	}
 	return anchor;
 }
+
+/**
+ * Whether an anchor is the one generated from a name: its slug, or the
+ * slug with a counter. Which counter does not matter, the block that
+ * forced it may be gone by now.
+ *
+ * @param {string} anchor Anchor of the block.
+ * @param {string} name   Block name.
+ * @return {boolean} True for a generated anchor.
+ */
+export function isGeneratedFrom( anchor, name ) {
+	const slug = slugOf( name );
+	return (
+		anchor === slug ||
+		( anchor.startsWith( slug + '-' ) &&
+			/^\d+$/.test( anchor.slice( slug.length + 1 ) ) )
+	);
+}

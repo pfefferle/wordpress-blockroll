@@ -34,7 +34,7 @@ import { escapeHTML } from '@wordpress/escape-html';
 import LinkForm from './components/link-form';
 import ImportModal from './components/import-modal';
 import { move } from './utils';
-import { slugOf, uniqueAnchor } from './anchors';
+import { isGeneratedFrom, slugOf, uniqueAnchor } from './anchors';
 
 /**
  * Block edit component.
@@ -43,8 +43,14 @@ import { slugOf, uniqueAnchor } from './anchors';
  * @param {Object}   props.attributes    Block attributes.
  * @param {Function} props.setAttributes Attribute setter.
  * @param {string}   props.clientId      Client ID of the block.
+ * @param {boolean}  props.isSelected    Whether the block is selected.
  */
-export default function Edit( { attributes, setAttributes, clientId } ) {
+export default function Edit( {
+	attributes,
+	setAttributes,
+	clientId,
+	isSelected,
+} ) {
 	const {
 		anchor,
 		links,
@@ -86,39 +92,40 @@ export default function Edit( { attributes, setAttributes, clientId } ) {
 	// several blocks mount in one pass, each has to see the anchors the ones
 	// before it just set, or two lists with the same name end up with the
 	// same one.
-	const takenAnchors = ( onlyBefore = false ) => {
+	const takenAnchors = () => {
 		const { getClientIdsWithDescendants, getBlockAttributes } =
 			registry.select( blockEditorStore );
-		const ids = getClientIdsWithDescendants();
-		const others = onlyBefore
-			? ids.slice( 0, ids.indexOf( clientId ) )
-			: ids.filter( ( id ) => id !== clientId );
-		return others
+		return getClientIdsWithDescendants()
+			.filter( ( id ) => id !== clientId )
 			.map( ( id ) => getBlockAttributes( id )?.anchor )
 			.filter( Boolean );
 	};
 
-	// A block without an anchor gets one: a fresh block, or one saved before
-	// anchors existed. A block whose anchor another block has gets a counter:
-	// on mount only the blocks before it count, so a duplicated block gives
-	// way to its original and not the other way round; after that, an anchor
-	// typed under Advanced counts against every other block. Not an undo step
-	// of its own either way.
-	const mounted = useRef( false );
+	// A block without an anchor gets one right away: a fresh block, or one
+	// saved before anchors existed. A block whose anchor another block has
+	// gets a counter once it is not selected any more: on mount, or when the
+	// user leaves it after typing under Advanced. Not while typing, the
+	// field would change under their fingers. The block that arrives or is
+	// edited gives way, the one that had the anchor keeps it. Not an undo
+	// step of its own either way.
 	useEffect( () => {
-		const taken = takenAnchors( ! mounted.current );
-		mounted.current = true;
 		if ( ! anchor ) {
 			__unstableMarkNextChangeAsNotPersistent();
 			setAttributes( {
 				anchor: uniqueAnchor( slugOf( name ), takenAnchors() ),
 			} );
-		} else if ( taken.includes( anchor ) ) {
+			return;
+		}
+		if ( isSelected ) {
+			return;
+		}
+		const taken = takenAnchors();
+		if ( taken.includes( anchor ) ) {
 			__unstableMarkNextChangeAsNotPersistent();
-			setAttributes( { anchor: uniqueAnchor( anchor, takenAnchors() ) } );
+			setAttributes( { anchor: uniqueAnchor( anchor, taken ) } );
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [ anchor ] );
+	}, [ anchor, isSelected ] );
 
 	// A rename, from the field below or from the block's own Rename, moves
 	// the anchor along while it is still the generated one.
@@ -127,43 +134,53 @@ export default function Edit( { attributes, setAttributes, clientId } ) {
 		if ( previousName.current === name ) {
 			return;
 		}
-		const taken = takenAnchors();
 		const wasGenerated =
-			! anchor ||
-			anchor === uniqueAnchor( slugOf( previousName.current ), taken );
+			! anchor || isGeneratedFrom( anchor, previousName.current );
 		previousName.current = name;
 		if ( wasGenerated ) {
-			setAttributes( { anchor: uniqueAnchor( slugOf( name ), taken ) } );
+			setAttributes( {
+				anchor: uniqueAnchor( slugOf( name ), takenAnchors() ),
+			} );
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [ name ] );
 
-	// The one collision left: another block taking this anchor later, from
-	// its own HTML anchor field, which knows nothing about this one. That
-	// goes through the editor's own notices, keyed by the anchor so it is
-	// shown once, and taken back as soon as one of the anchors changes.
-	const duplicate = useSelect(
+	// The one collision left: another block taking this anchor while this
+	// one is not selected, from its own HTML anchor field, which knows
+	// nothing about this one. That goes through the editor's own notices,
+	// keyed by the anchor so it is shown once. Neither block being typed
+	// in counts, that is the field changing on its way to a value.
+	const collision = useSelect(
 		( select ) => {
-			const { getClientIdsWithDescendants, getBlockAttributes } =
-				select( blockEditorStore );
-			return (
-				!! anchor &&
-				getClientIdsWithDescendants().some(
-					( id ) =>
-						id !== clientId &&
-						getBlockAttributes( id )?.anchor === anchor
-				)
+			const {
+				getClientIdsWithDescendants,
+				getBlockAttributes,
+				getSelectedBlockClientId,
+			} = select( blockEditorStore );
+			if ( ! anchor || isSelected ) {
+				return false;
+			}
+			const selected = getSelectedBlockClientId();
+			return getClientIdsWithDescendants().some(
+				( id ) =>
+					id !== clientId &&
+					id !== selected &&
+					getBlockAttributes( id )?.anchor === anchor
 			);
 		},
-		[ clientId, anchor ]
+		[ clientId, anchor, isSelected ]
 	);
 	const { createWarningNotice, removeNotice } = useDispatch( noticesStore );
+	const noticeId = useRef( null );
 	useEffect( () => {
-		const id = `blockroll-anchor-${ anchor }`;
-		if ( ! duplicate ) {
-			removeNotice( id );
+		if ( noticeId.current ) {
+			removeNotice( noticeId.current );
+			noticeId.current = null;
+		}
+		if ( ! collision ) {
 			return;
 		}
+		noticeId.current = `blockroll-anchor-${ anchor }`;
 		createWarningNotice(
 			sprintf(
 				/* translators: %s: the anchor of the blocks */
@@ -174,10 +191,20 @@ export default function Edit( { attributes, setAttributes, clientId } ) {
 				escapeHTML( anchor )
 			),
 			// The store takes a string, so the code element goes in as HTML.
-			{ id, isDismissible: true, __unstableHTML: true }
+			{ id: noticeId.current, isDismissible: true, __unstableHTML: true }
 		);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [ duplicate, anchor ] );
+	}, [ collision, anchor ] );
+	// A removed block takes its notice with it.
+	useEffect(
+		() => () => {
+			if ( noticeId.current ) {
+				removeNotice( noticeId.current );
+			}
+		},
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[]
+	);
 
 	const [ editing, setEditing ] = useState( null ); // Index, 'new', or null.
 	const [ isImporting, setIsImporting ] = useState( false );

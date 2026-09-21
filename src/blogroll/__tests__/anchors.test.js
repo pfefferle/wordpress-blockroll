@@ -1,4 +1,4 @@
-import { slugOf, uniqueAnchor } from '../anchors';
+import { isGeneratedFrom, slugOf, uniqueAnchor } from '../anchors';
 
 describe( 'slugOf', () => {
 	it( 'slugs a name', () => {
@@ -20,5 +20,20 @@ describe( 'uniqueAnchor', () => {
 		expect( uniqueAnchor( 'blogs', [ 'blogs', 'blogs-1' ] ) ).toBe(
 			'blogs-2'
 		);
+	} );
+} );
+
+describe( 'isGeneratedFrom', () => {
+	it( 'recognizes the slug of the name, with or without a counter', () => {
+		expect( isGeneratedFrom( 'blogs', 'Blogs' ) ).toBe( true );
+		expect( isGeneratedFrom( 'blogs-1', 'Blogs' ) ).toBe( true );
+		expect( isGeneratedFrom( 'blogs-12', 'Blogs' ) ).toBe( true );
+		expect( isGeneratedFrom( 'blogroll', '' ) ).toBe( true );
+	} );
+
+	it( 'does not take a hand-set anchor for a generated one', () => {
+		expect( isGeneratedFrom( 'blogs-archive', 'Blogs' ) ).toBe( false );
+		expect( isGeneratedFrom( 'my-blogs', 'Blogs' ) ).toBe( false );
+		expect( isGeneratedFrom( 'blogs-', 'Blogs' ) ).toBe( false );
 	} );
 } );
