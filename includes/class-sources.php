@@ -101,15 +101,26 @@ class Sources {
 	}
 
 	/**
+	 * The block that holds one link of a manual blogroll.
+	 */
+	const LINK_BLOCK = 'blockroll/link';
+
+	/**
 	 * Resolve and normalize the links for a block's selected source.
 	 *
-	 * @param array $attributes Block attributes.
+	 * @param array                     $attributes   Block attributes.
+	 * @param array|\WP_Block_List|null $inner_blocks Inner blocks of the block, as parsed
+	 *                                                arrays or as WP_Block objects.
 	 * @return array Normalized links.
 	 */
-	public static function links( $attributes ) {
+	public static function links( $attributes, $inner_blocks = array() ) {
 		$source = self::source( $attributes );
 		if ( self::MANUAL === $source ) {
-			$links = (array) ( $attributes['links'] ?? array() );
+			$links = self::link_blocks( $inner_blocks );
+			if ( ! $links ) {
+				// Blocks saved before links became blocks of their own.
+				$links = (array) ( $attributes['links'] ?? array() );
+			}
 		} else {
 			/**
 			 * Provide links for a selected blogroll source.
@@ -136,6 +147,35 @@ class Sources {
 				}
 			)
 		);
+	}
+
+	/**
+	 * Collect the attributes of the link blocks among a block's inner blocks.
+	 *
+	 * Other blocks are ignored. Takes both shapes an inner block comes in:
+	 * the parsed array of parse_blocks() and the WP_Block of a render.
+	 *
+	 * @param array|\WP_Block_List|null $inner_blocks Inner blocks.
+	 * @return array Raw link arrays, in block order.
+	 */
+	private static function link_blocks( $inner_blocks ) {
+		$links = array();
+		if ( ! \is_iterable( $inner_blocks ) ) {
+			return $links;
+		}
+		foreach ( $inner_blocks as $block ) {
+			if ( $block instanceof \WP_Block ) {
+				$name  = $block->name;
+				$attrs = $block->attributes;
+			} else {
+				$name  = $block['blockName'] ?? '';
+				$attrs = $block['attrs'] ?? array();
+			}
+			if ( self::LINK_BLOCK === $name ) {
+				$links[] = (array) $attrs;
+			}
+		}
+		return $links;
 	}
 
 	/**

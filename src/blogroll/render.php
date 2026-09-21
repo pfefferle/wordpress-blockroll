@@ -7,7 +7,8 @@
  *
  * @package Blockroll
  *
- * @var array $attributes Block attributes.
+ * @var array    $attributes Block attributes.
+ * @var WP_Block $block      The block, with its link blocks as inner blocks.
  */
 
 use Blockroll\Links;
@@ -16,7 +17,7 @@ use Blockroll\Xfn;
 
 defined( 'ABSPATH' ) || exit;
 
-$blockroll_links = Sources::links( $attributes );
+$blockroll_links = Sources::links( $attributes, $block->inner_blocks );
 
 $blockroll_sortable = $attributes['showSort'];
 

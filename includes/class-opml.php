@@ -181,7 +181,7 @@ class Opml {
 		$walker = function ( $blocks ) use ( &$walker, &$groups ) {
 			foreach ( $blocks as $block ) {
 				if ( 'blockroll/blogroll' === $block['blockName'] ) {
-					$links = Sources::links( (array) ( $block['attrs'] ?? array() ) );
+					$links = Sources::links( (array) ( $block['attrs'] ?? array() ), $block['innerBlocks'] ?? array() );
 					if ( $links ) {
 						$groups[] = array(
 							'name'   => \sanitize_text_field( (string) ( $block['attrs']['metadata']['name'] ?? '' ) ),

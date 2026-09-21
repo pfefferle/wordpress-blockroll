@@ -18,6 +18,17 @@ class Test_Opml extends WP_UnitTestCase {
 		$this->assertSame( 'https://a.example/', $links[0]['url'] );
 	}
 
+	public function test_extract_links_from_link_blocks() {
+		$post  = self::factory()->post->create_and_get(
+			array( 'post_content' => '<!-- wp:blockroll/blogroll --><!-- wp:blockroll/link {"url":"https://a.example/","name":"A"} /--><!-- wp:blockroll/link {"url":"https://b.example/","name":"B","xfn":["friend"]} /--><!-- /wp:blockroll/blogroll -->' )
+		);
+		$links = Blockroll\Opml::extract_links( $post );
+
+		$this->assertCount( 2, $links );
+		$this->assertSame( 'https://a.example/', $links[0]['url'] );
+		$this->assertSame( array( 'friend' ), $links[1]['xfn'] );
+	}
+
 	public function test_extract_links_uses_registered_source_links() {
 		add_filter(
 			'blockroll_sources',
