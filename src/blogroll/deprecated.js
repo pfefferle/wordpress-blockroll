@@ -2,8 +2,8 @@
  * Internal dependencies
  */
 import metadata from './block.json';
-import { createLinkBlock, LINK_BLOCK } from './link-block';
-import { hasLegacyLinks, migrateLinks } from './utils';
+import { createLinkBlock } from './link-block';
+import { hasLinkBlocks, isLegacyList, migrateLinks } from './utils';
 
 /**
  * Before 2.0 the links were an attribute of the blogroll; now each is a
@@ -17,24 +17,11 @@ import { hasLegacyLinks, migrateLinks } from './utils';
  * links as blocks already, which is why migrate keeps them.
  */
 
-/**
- * Whether a blogroll holds its links as blocks already.
- *
- * Only link blocks count. Anything else a hand-edited post has in there
- * stays where it is; the server ignores it, too.
- *
- * @param {Object[]} innerBlocks Inner blocks of the blogroll.
- * @return {boolean} True when there is a link block.
- */
-const hasLinkBlocks = ( innerBlocks ) =>
-	( innerBlocks || [] ).some( ( block ) => LINK_BLOCK === block.name );
-
 const v1 = {
 	attributes: metadata.attributes,
 	supports: metadata.supports,
 	save: () => null,
-	isEligible: ( attributes, innerBlocks ) =>
-		hasLegacyLinks( attributes ) && ! hasLinkBlocks( innerBlocks ),
+	isEligible: isLegacyList,
 	migrate: ( attributes, innerBlocks ) => {
 		const [ next, links ] = migrateLinks( attributes );
 		const children = innerBlocks || [];

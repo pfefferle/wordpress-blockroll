@@ -33,8 +33,8 @@ import { escapeHTML } from '@wordpress/escape-html';
  * Internal dependencies
  */
 import AddLink from './components/add-link';
-import { createLinkBlock, LINK_BLOCK } from './link-block';
-import { siteKey, today } from './utils';
+import { createLinkBlock } from './link-block';
+import { LINK_BLOCK, siteKey, today } from './utils';
 import ImportModal from './components/import-modal';
 import { isGeneratedFrom, slugOf, uniqueAnchor } from './anchors';
 
@@ -494,8 +494,10 @@ export default function Edit( {
 		</ul>
 	);
 
+	const blockProps = useBlockProps();
+
 	return (
-		<div { ...useBlockProps() }>
+		<div { ...blockProps }>
 			<InspectorControls>
 				<PanelBody title={ __( 'Blogroll settings', 'blockroll' ) }>
 					<TextControl

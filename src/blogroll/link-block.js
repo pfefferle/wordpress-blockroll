@@ -6,12 +6,7 @@ import { createBlock } from '@wordpress/blocks';
 /**
  * Internal dependencies
  */
-import metadata from '../link/block.json';
-
-/**
- * The block that holds one link of a blogroll.
- */
-export const LINK_BLOCK = metadata.name;
+import { LINK_BLOCK } from './utils';
 
 /**
  * A link block for a link, the way an import, a lookup or the old
