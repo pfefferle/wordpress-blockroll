@@ -81,6 +81,26 @@ class Test_Discovery extends WP_UnitTestCase {
 		$this->assertSame( 'https://c.example/favicon.ico', $result['photo'] );
 	}
 
+	public function test_open_graph_beats_title_and_meta_but_not_the_icon() {
+		$result = \Blockroll\Discovery::from_html( $this->fixture( 'opengraph.html' ), 'https://ann.example/' );
+		$this->assertSame( "Ann's Blog", $result['name'], 'og:site_name names the site' );
+		$this->assertSame( 'The Open Graph description.', $result['description'] );
+		$this->assertSame( 'https://ann.example/favicon.ico', $result['photo'], 'an icon is closer to an avatar than a share image' );
+	}
+
+	public function test_twitter_card_fallback() {
+		$result = \Blockroll\Discovery::from_html( $this->fixture( 'twitter.html' ), 'https://ann.example/' );
+		$this->assertSame( 'Ann on Twitter', $result['name'] );
+		$this->assertSame( 'The Twitter description.', $result['description'] );
+		$this->assertSame( 'https://cdn.example/twitter.png', $result['photo'] );
+	}
+
+	public function test_og_image_when_there_is_no_icon() {
+		$html   = '<html><head><title>T</title><meta property="og:image" content="/share.png"></head><body></body></html>';
+		$result = \Blockroll\Discovery::from_html( $html, 'https://ann.example/' );
+		$this->assertSame( 'https://ann.example/share.png', $result['photo'] );
+	}
+
 	public function test_route_requires_auth() {
 		$request = new WP_REST_Request( 'POST', '/blockroll/v1/discover' );
 		// The site's own address: passes wp_http_validate_url() without a DNS
