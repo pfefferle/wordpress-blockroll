@@ -100,6 +100,8 @@ export default function Edit( {
 		}
 	};
 	const showAvatar = context[ 'blockroll/showAvatars' ] ?? true;
+	const showFeed = isSelected || !! feedUrl;
+	const showXfn = isSelected || xfn.length > 0;
 	const blockProps = useBlockProps( {
 		className: url ? 'h-card' : undefined,
 	} );
@@ -254,93 +256,111 @@ export default function Edit( {
 						}
 					/>
 				</span>
-				<RichText
-					disableLineBreaks
-					tagName="p"
-					className="p-note"
-					value={ description }
-					allowedFormats={ [] }
-					withoutInteractiveFormatting
-					placeholder={ __( 'Description', 'blockroll' ) }
-					onChange={ ( value ) =>
-						setAttributes( { description: value } )
-					}
-				/>
-				<div className="blockroll-meta">
-					<OverlayButton
-						className="blockroll-feed blockroll-link__meta-button"
-						isOpen={ 'feed' === metaOverlay }
-						onToggle={ () => toggleMeta( 'feed' ) }
-						onClose={ closeMeta }
-						label={
-							<>
-								<Icon
-									icon={ rss }
-									className="blockroll-feed-icon"
-								/>
-								{ feedUrl
-									? __( 'feed', 'blockroll' )
-									: __( 'Add feed', 'blockroll' ) }
-							</>
+				{ ( isSelected || description ) && (
+					<RichText
+						disableLineBreaks
+						tagName="p"
+						className="p-note"
+						value={ description }
+						allowedFormats={ [] }
+						withoutInteractiveFormatting
+						placeholder={ __( 'Description', 'blockroll' ) }
+						onChange={ ( value ) =>
+							setAttributes( { description: value } )
 						}
-					>
-						<TextControl
-							__next40pxDefaultSize
-							__nextHasNoMarginBottom
-							label={ __( 'Feed address', 'blockroll' ) }
-							help={ __(
-								'The RSS or Atom feed of the site, for readers who subscribe to your list.',
-								'blockroll'
-							) }
-							type="url"
-							value={ feedUrl }
-							onChange={ ( value ) =>
-								setAttributes( { feedUrl: value } )
-							}
-						/>
-					</OverlayButton>
-					<span className="blockroll-divider" aria-hidden="true">
-						&#183;
-					</span>
-					{ /* The first focusable thing in the token field is a
+					/>
+				) }
+				{ /* Like on the site, what is empty shows only while the block
+				     is selected, as what could be added. */ }
+				{ ( showFeed || showXfn ) && (
+					<div className="blockroll-meta">
+						{ showFeed && (
+							<OverlayButton
+								className="blockroll-feed blockroll-link__meta-button"
+								isOpen={ 'feed' === metaOverlay }
+								onToggle={ () => toggleMeta( 'feed' ) }
+								onClose={ closeMeta }
+								label={
+									<>
+										<Icon
+											icon={ rss }
+											className="blockroll-feed-icon"
+										/>
+										{ feedUrl
+											? __( 'feed', 'blockroll' )
+											: __( 'Add feed', 'blockroll' ) }
+									</>
+								}
+							>
+								<TextControl
+									__next40pxDefaultSize
+									__nextHasNoMarginBottom
+									label={ __( 'Feed address', 'blockroll' ) }
+									help={ __(
+										'The RSS or Atom feed of the site, for readers who subscribe to your list.',
+										'blockroll'
+									) }
+									type="url"
+									value={ feedUrl }
+									onChange={ ( value ) =>
+										setAttributes( { feedUrl: value } )
+									}
+								/>
+							</OverlayButton>
+						) }
+						{ showFeed && showXfn && (
+							<span
+								className="blockroll-divider"
+								aria-hidden="true"
+							>
+								&#183;
+							</span>
+						) }
+						{ /* The first focusable thing in the token field is a
 					     token's remove button, so the input is focused by
 					     hand once the overlay is placed. focusOnMount stays
 					     on, for the focus trap and the focus return. */ }
-					<OverlayButton
-						className="blockroll-link__meta-button"
-						isOpen={ 'xfn' === metaOverlay }
-						onToggle={ () => toggleMeta( 'xfn' ) }
-						onClose={ closeMeta }
-						focusOnMount
-						label={
-							xfn.length > 0 ? (
-								<ul className="blockroll-xfn">
-									{ xfn.map( ( token ) => (
-										<li key={ token }>{ token }</li>
-									) ) }
-								</ul>
-							) : (
-								__( 'Add relationship', 'blockroll' )
-							)
-						}
-					>
-						<div
-							ref={ ( node ) =>
-								node &&
-								node.ownerDocument.defaultView.requestAnimationFrame(
-									() => node.querySelector( 'input' )?.focus()
-								)
-							}
-						>
-							<XfnControl
-								value={ xfn }
-								onChange={ ( value ) =>
-									setAttributes( { xfn: value } )
+						{ showXfn && (
+							<OverlayButton
+								className="blockroll-link__meta-button"
+								isOpen={ 'xfn' === metaOverlay }
+								onToggle={ () => toggleMeta( 'xfn' ) }
+								onClose={ closeMeta }
+								focusOnMount
+								label={
+									xfn.length > 0 ? (
+										<ul className="blockroll-xfn">
+											{ xfn.map( ( token ) => (
+												<li key={ token }>{ token }</li>
+											) ) }
+										</ul>
+									) : (
+										__( 'Add relationship', 'blockroll' )
+									)
 								}
-							/>
-						</div>
-					</OverlayButton>
-				</div>
+							>
+								<div
+									ref={ ( node ) =>
+										node &&
+										node.ownerDocument.defaultView.requestAnimationFrame(
+											() =>
+												node
+													.querySelector( 'input' )
+													?.focus()
+										)
+									}
+								>
+									<XfnControl
+										value={ xfn }
+										onChange={ ( value ) =>
+											setAttributes( { xfn: value } )
+										}
+									/>
+								</div>
+							</OverlayButton>
+						) }
+					</div>
+				) }
 			</div>
 		</>
 	);
