@@ -17,6 +17,11 @@ class Sources {
 	const MANUAL = 'manual';
 
 	/**
+	 * The block that holds one link of a manual blogroll.
+	 */
+	const LINK_BLOCK = 'blockroll/link';
+
+	/**
 	 * Get available source labels.
 	 *
 	 * Plugins can add a source by filtering this array and then providing its
@@ -103,13 +108,18 @@ class Sources {
 	/**
 	 * Resolve and normalize the links for a block's selected source.
 	 *
-	 * @param array $attributes Block attributes.
+	 * @param array $attributes   Block attributes.
+	 * @param array $inner_blocks Parsed inner blocks of the block.
 	 * @return array Normalized links.
 	 */
-	public static function links( $attributes ) {
+	public static function links( $attributes, $inner_blocks = array() ) {
 		$source = self::source( $attributes );
 		if ( self::MANUAL === $source ) {
-			$links = (array) ( $attributes['links'] ?? array() );
+			$links = self::link_blocks( $inner_blocks );
+			if ( ! $links ) {
+				// Blocks saved before links became blocks of their own.
+				$links = (array) ( $attributes['links'] ?? array() );
+			}
 		} else {
 			/**
 			 * Provide links for a selected blogroll source.
@@ -136,6 +146,24 @@ class Sources {
 				}
 			)
 		);
+	}
+
+	/**
+	 * Collect the attributes of the link blocks among a block's inner blocks.
+	 *
+	 * Other blocks are ignored.
+	 *
+	 * @param array $inner_blocks Parsed inner blocks.
+	 * @return array Raw link arrays, in block order.
+	 */
+	private static function link_blocks( $inner_blocks ) {
+		$links = array();
+		foreach ( (array) $inner_blocks as $block ) {
+			if ( self::LINK_BLOCK === ( $block['blockName'] ?? '' ) ) {
+				$links[] = (array) ( $block['attrs'] ?? array() );
+			}
+		}
+		return $links;
 	}
 
 	/**

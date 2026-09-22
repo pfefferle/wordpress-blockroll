@@ -9,10 +9,12 @@ import {
 	useState,
 } from '@wordpress/element';
 import { useDispatch, useRegistry, useSelect } from '@wordpress/data';
+import { __experimentalUseFocusOutside as useFocusOutside } from '@wordpress/compose';
 import {
 	InspectorControls,
 	store as blockEditorStore,
 	useBlockProps,
+	useInnerBlocksProps,
 } from '@wordpress/block-editor';
 import {
 	Button,
@@ -23,7 +25,6 @@ import {
 	TextControl,
 	ToggleControl,
 } from '@wordpress/components';
-import { arrowDown, arrowUp, pencil, trash } from '@wordpress/icons';
 import apiFetch from '@wordpress/api-fetch';
 import { store as noticesStore } from '@wordpress/notices';
 import { escapeHTML } from '@wordpress/escape-html';
@@ -31,10 +32,26 @@ import { escapeHTML } from '@wordpress/escape-html';
 /**
  * Internal dependencies
  */
-import LinkForm from './components/link-form';
+import AddLink from './components/add-link';
+import { createLinkBlock } from './link-block';
+import { LINK_BLOCK, siteKey, today } from './utils';
 import ImportModal from './components/import-modal';
-import { move } from './utils';
 import { isGeneratedFrom, slugOf, uniqueAnchor } from './anchors';
+
+/**
+ * The client IDs of a blogroll's link blocks, without anything else that
+ * may be in it. Reads the names, not the blocks: this runs on every change
+ * of the editor store, and building the blocks would build every link's
+ * attributes with them.
+ *
+ * @param {Object} select   The block editor store.
+ * @param {string} clientId Client ID of the blogroll.
+ * @return {string[]} Client IDs of the link blocks.
+ */
+const linkBlockIds = ( select, clientId ) =>
+	select
+		.getBlockOrder( clientId )
+		.filter( ( id ) => LINK_BLOCK === select.getBlockName( id ) );
 
 /**
  * Block edit component.
@@ -53,7 +70,6 @@ export default function Edit( {
 } ) {
 	const {
 		anchor,
-		links,
 		source,
 		sortBy,
 		perPage,
@@ -206,7 +222,6 @@ export default function Edit( {
 		[]
 	);
 
-	const [ editing, setEditing ] = useState( null ); // Index, 'new', or null.
 	const [ isImporting, setIsImporting ] = useState( false );
 	const [ sources, setSources ] = useState( [
 		{ label: __( 'Manual links', 'blockroll' ), value: 'manual' },
@@ -288,41 +303,111 @@ export default function Edit( {
 		};
 	}, [ currentSource, serializedAttributes ] );
 
-	const saveLink = ( link ) => {
-		const next = [ ...links ];
-		if ( 'new' === editing ) {
-			next.push( link );
-		} else {
-			next[ editing ] = link;
+	// The links of a manual list are blocks of their own.
+	// Two counts: the placeholder stands in for an empty list, which is
+	// when the inner blocks render it, and the links are what the server
+	// renders. They differ only in a hand-edited post that has something
+	// else in here, which both sides ignore.
+	const childCount = useSelect(
+		( select ) => select( blockEditorStore ).getBlockCount( clientId ),
+		[ clientId ]
+	);
+	const linkCount = useSelect(
+		( select ) =>
+			linkBlockIds( select( blockEditorStore ), clientId ).length,
+		[ clientId ]
+	);
+	const { insertBlock, insertBlocks } = useDispatch( blockEditorStore );
+	const [ isAdding, setIsAdding ] = useState( false );
+	const [ addAnchor, setAddAnchor ] = useState();
+	// The "Add link" overlay closes when the focus leaves the button and
+	// the overlay; a click on the button itself only toggles.
+	const addFocusOutside = useFocusOutside( () => setIsAdding( false ) );
+	// The sites in the list right now, for the duplicate checks.
+	const siteKeys = () => {
+		const select = registry.select( blockEditorStore );
+		return new Set(
+			linkBlockIds( select, clientId ).map( ( id ) =>
+				siteKey( select.getBlockAttributes( id )?.url )
+			)
+		);
+	};
+	const isKnown = ( url ) => siteKeys().has( siteKey( url ) );
+	// A list that has links of its own is a manual one, however they got
+	// there: added, imported, pasted or duplicated. Only when its source
+	// is one that is not there right now, a plugin that is deactivated:
+	// the editor and the server both fall back to manual then, and
+	// without this the links would be ignored again the moment it comes
+	// back. Not an undo step of its own; it is saved with the edit that
+	// brought the links.
+	useEffect( () => {
+		if (
+			hasLoadedSources &&
+			! sourceIsAvailable &&
+			manualSource !== source &&
+			linkCount
+		) {
+			__unstableMarkNextChangeAsNotPersistent();
+			setAttributes( { source: manualSource } );
 		}
-		setAttributes( { links: next, source: manualSource } );
-		setEditing( null );
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [ hasLoadedSources, sourceIsAvailable, source, linkCount ] );
+
+	const addLink = ( link ) => {
+		insertBlock(
+			createLinkBlock( { ...link, added: today() } ),
+			undefined,
+			clientId
+		);
+		setIsAdding( false );
 	};
 
+	// Imported links become link blocks at the end of the list; sites
+	// already in it, or twice in the file, are skipped.
 	const importLinks = ( imported ) => {
-		const known = new Set( links.map( ( link ) => link.url ) );
-		setAttributes( {
-			source: manualSource,
-			links: [
-				...links,
-				...imported.filter( ( link ) => ! known.has( link.url ) ),
-			],
-		} );
+		const seen = siteKeys();
+		const blocks = imported
+			.filter( ( link ) => {
+				const key = siteKey( link.url );
+				if ( ! key || seen.has( key ) ) {
+					return false;
+				}
+				seen.add( key );
+				return true;
+			} )
+			.map( createLinkBlock );
+		if ( blocks.length ) {
+			insertBlocks( blocks, undefined, clientId );
+		}
 	};
 
 	const actions = (
 		<div className="blockroll-editor-actions">
-			<Button variant="primary" onClick={ () => setEditing( 'new' ) }>
-				{ __( 'Add link', 'blockroll' ) }
-			</Button>
+			<span { ...addFocusOutside }>
+				<Button
+					variant="primary"
+					ref={ setAddAnchor }
+					aria-expanded={ isAdding }
+					onClick={ () => setIsAdding( ! isAdding ) }
+				>
+					{ __( 'Add link', 'blockroll' ) }
+				</Button>
+				{ isAdding && (
+					<AddLink
+						anchor={ addAnchor }
+						onAdd={ addLink }
+						isKnown={ isKnown }
+						onClose={ () => setIsAdding( false ) }
+					/>
+				) }
+			</span>
 			<Button
 				variant="secondary"
 				onClick={ () => setIsImporting( true ) }
 			>
 				{ __( 'Import links', 'blockroll' ) }
 			</Button>
-			{ ! links.length &&
-				manualSource === currentSource &&
+			{ ! linkCount &&
 				externalSources.map( ( item ) => (
 					<Button
 						key={ item.value }
@@ -342,7 +427,7 @@ export default function Edit( {
 	);
 
 	let emptyState = null;
-	if ( manualSource === currentSource && ! links.length ) {
+	if ( manualSource === currentSource && ! childCount ) {
 		emptyState = (
 			<Placeholder
 				icon="admin-links"
@@ -357,6 +442,19 @@ export default function Edit( {
 		);
 	}
 
+	// The list of link blocks; the placeholder stands in while it is empty.
+	// Rendered whenever the source is manual, empty or not: it is what
+	// registers the block list settings a link block needs to be inserted.
+	const innerBlocksProps = useInnerBlocksProps(
+		{ className: 'blockroll-editor-links' },
+		{
+			allowedBlocks: [ LINK_BLOCK ],
+			templateLock: false,
+			renderAppender: false,
+			placeholder: emptyState,
+		}
+	);
+
 	const switchToManualButton = (
 		<div className="blockroll-editor-actions">
 			<Button
@@ -368,9 +466,9 @@ export default function Edit( {
 		</div>
 	);
 
-	const renderEditorList = ( listLinks, isReadOnly = false ) => (
+	const renderEditorList = ( listLinks ) => (
 		<ul className="blockroll-editor-list">
-			{ listLinks.map( ( link, index ) => (
+			{ listLinks.map( ( link ) => (
 				<li key={ link.url }>
 					{ showAvatars &&
 						( link.photo ? (
@@ -391,58 +489,15 @@ export default function Edit( {
 								' · ' + link.xfn.join( ' ' ) }
 						</small>
 					</span>
-					{ ! isReadOnly && (
-						<span className="blockroll-editor-list__actions">
-							<Button
-								size="compact"
-								icon={ arrowUp }
-								label={ __( 'Move up', 'blockroll' ) }
-								disabled={ 0 === index }
-								onClick={ () =>
-									setAttributes( {
-										links: move( links, index, index - 1 ),
-									} )
-								}
-							/>
-							<Button
-								size="compact"
-								icon={ arrowDown }
-								label={ __( 'Move down', 'blockroll' ) }
-								disabled={ index === links.length - 1 }
-								onClick={ () =>
-									setAttributes( {
-										links: move( links, index, index + 1 ),
-									} )
-								}
-							/>
-							<Button
-								size="compact"
-								icon={ pencil }
-								label={ __( 'Edit', 'blockroll' ) }
-								onClick={ () => setEditing( index ) }
-							/>
-							<Button
-								size="compact"
-								icon={ trash }
-								label={ __( 'Remove', 'blockroll' ) }
-								isDestructive
-								onClick={ () =>
-									setAttributes( {
-										links: links.filter(
-											( unused, i ) => i !== index
-										),
-									} )
-								}
-							/>
-						</span>
-					) }
 				</li>
 			) ) }
 		</ul>
 	);
 
+	const blockProps = useBlockProps();
+
 	return (
-		<div { ...useBlockProps() }>
+		<div { ...blockProps }>
 			<InspectorControls>
 				<PanelBody title={ __( 'Blogroll settings', 'blockroll' ) }>
 					<TextControl
@@ -532,14 +587,6 @@ export default function Edit( {
 					/>
 				</PanelBody>
 			</InspectorControls>
-			{ null !== editing && (
-				<LinkForm
-					link={ 'new' === editing ? undefined : links[ editing ] }
-					onSave={ saveLink }
-					onCancel={ () => setEditing( null ) }
-				/>
-			) }
-
 			{ isImporting && (
 				<ImportModal
 					onImport={ importLinks }
@@ -584,15 +631,13 @@ export default function Edit( {
 					{ ! previewError &&
 						! isPreviewLoading &&
 						!! previewLinks.length &&
-						renderEditorList( previewLinks, true ) }
+						renderEditorList( previewLinks ) }
 				</div>
 			) : (
-				emptyState || (
-					<div className="blockroll-editor">
-						{ renderEditorList( links ) }
-						{ actions }
-					</div>
-				)
+				<div className="blockroll-editor">
+					<div { ...innerBlocksProps } />
+					{ ! emptyState && actions }
+				</div>
 			) }
 		</div>
 	);

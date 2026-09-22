@@ -1,0 +1,23 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "blockroll/link",
+	"title": "Link",
+	"category": "widgets",
+	"description": "One site in a blogroll.",
+	"textdomain": "blockroll",
+	"parent": [ "blockroll/blogroll" ],
+	"supports": { "html": false, "inserter": false, "reusable": false },
+	"usesContext": [ "blockroll/showAvatars" ],
+	"attributes": {
+		"url": { "type": "string", "default": "" },
+		"name": { "type": "string", "default": "" },
+		"description": { "type": "string", "default": "" },
+		"feedUrl": { "type": "string", "default": "" },
+		"photo": { "type": "string", "default": "" },
+		"xfn": { "type": "array", "default": [] },
+		"added": { "type": "string", "default": "" }
+	},
+	"editorScript": "file:./index.js",
+	"editorStyle": "file:./index.css"
+}

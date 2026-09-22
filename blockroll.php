@@ -3,8 +3,8 @@
  * Plugin Name: Blogroll & Podroll Block
  * Plugin URI: https://github.com/pfefferle/wordpress-blockroll
  * Description: Share the blogs and podcasts you follow, and let other people subscribe to your list.
- * Version: 1.2.0
- * Requires at least: 6.5
+ * Version: 2.0.0
+ * Requires at least: 6.8
  * Requires PHP: 7.4
  * Author: Matthias Pfefferle
  * Author URI: https://notiz.blog/
@@ -46,7 +46,10 @@ function init() {
 	Anchors::register();
 	Opml::register();
 	Xfn::register();
-	\register_block_type( __DIR__ . '/build/blogroll' );
+	// The blogroll renders its list itself, from the attributes of its link
+	// blocks; the link blocks have no output, so core need not render them.
+	\register_block_type( __DIR__ . '/build/blogroll', array( 'skip_inner_blocks' => true ) );
+	\register_block_type( __DIR__ . '/build/link' );
 }
 \add_action( 'init', __NAMESPACE__ . '\init' );
 

@@ -4,7 +4,6 @@
 	"name": "blockroll/blogroll",
 	"title": "Blogroll",
 	"category": "widgets",
-	"icon": "admin-links",
 	"description": "Share a list of the blogs and sites you follow.",
 	"textdomain": "blockroll",
 	"keywords": [ "blogroll", "links", "opml", "xfn" ],
@@ -26,6 +25,7 @@
 		"showSort": { "type": "boolean", "default": true },
 		"showOpml": { "type": "boolean", "default": true }
 	},
+	"providesContext": { "blockroll/showAvatars": "showAvatars" },
 	"editorScript": "file:./index.js",
 	"editorStyle": "file:./index.css",
 	"style": "file:./style-index.css",

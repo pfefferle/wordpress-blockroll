@@ -12,18 +12,107 @@ class Test_Render extends WP_UnitTestCase {
 	/**
 	 * Render the block with the given attributes.
 	 *
-	 * @param array $attrs Block attributes.
+	 * @param array $attrs        Block attributes.
+	 * @param array $inner_blocks Parsed inner blocks.
 	 * @return string Rendered HTML.
 	 */
-	private function render_block_html( $attrs ) {
+	private function render_block_html( $attrs, $inner_blocks = array() ) {
 		$block = array(
 			'blockName'    => 'blockroll/blogroll',
+			'attrs'        => $attrs,
+			'innerBlocks'  => $inner_blocks,
+			'innerHTML'    => '',
+			'innerContent' => array_fill( 0, count( $inner_blocks ), null ),
+		);
+		return render_block( $block );
+	}
+
+	/**
+	 * A parsed link block, the way a child of the blogroll is stored.
+	 *
+	 * @param array $attrs Link attributes.
+	 * @return array Parsed block.
+	 */
+	private function link_block( $attrs ) {
+		return array(
+			'blockName'    => 'blockroll/link',
 			'attrs'        => $attrs,
 			'innerBlocks'  => array(),
 			'innerHTML'    => '',
 			'innerContent' => array(),
 		);
-		return render_block( $block );
+	}
+
+	public function test_renders_link_blocks() {
+		$html = $this->render_block_html(
+			array( 'sortBy' => 'manual' ),
+			array(
+				$this->link_block(
+					array(
+						'url'         => 'https://b.example/',
+						'name'        => 'B',
+						'description' => 'Second',
+						'xfn'         => array( 'friend' ),
+					)
+				),
+				$this->link_block( array( 'url' => 'https://a.example/' ) ),
+			)
+		);
+
+		$this->assertSame( 2, substr_count( $html, 'class="h-card"' ) );
+		$this->assertStringContainsString( 'rel="friend noopener"', $html );
+		$this->assertStringContainsString( '<p class="p-note">Second</p>', $html );
+		// Manual order is the order of the blocks.
+		$this->assertLessThan( strpos( $html, 'a.example' ), strpos( $html, 'b.example' ) );
+	}
+
+	public function test_link_blocks_win_over_links_attribute() {
+		$html = $this->render_block_html(
+			array(
+				'links' => array(
+					array(
+						'url'  => 'https://old.example/',
+						'name' => 'Old',
+					),
+				),
+			),
+			array( $this->link_block( array( 'url' => 'https://new.example/' ) ) )
+		);
+
+		$this->assertStringContainsString( 'new.example', $html );
+		$this->assertStringNotContainsString( 'old.example', $html );
+	}
+
+	public function test_links_attribute_still_renders_without_link_blocks() {
+		$html = $this->render_block_html(
+			array(
+				'links' => array(
+					array(
+						'url'  => 'https://old.example/',
+						'name' => 'Old',
+					),
+				),
+			)
+		);
+
+		$this->assertStringContainsString( 'old.example', $html );
+	}
+
+	public function test_other_inner_blocks_are_ignored() {
+		$paragraph = array(
+			'blockName'    => 'core/paragraph',
+			'attrs'        => array( 'url' => 'https://not-a-link.example/' ),
+			'innerBlocks'  => array(),
+			'innerHTML'    => '<p>Hi</p>',
+			'innerContent' => array( '<p>Hi</p>' ),
+		);
+		$html      = $this->render_block_html(
+			array(),
+			array( $paragraph, $this->link_block( array( 'url' => 'https://a.example/' ) ) )
+		);
+
+		$this->assertSame( 1, substr_count( $html, 'class="h-card"' ) );
+		$this->assertStringNotContainsString( 'not-a-link', $html );
 	}
 
 	public function test_renders_h_card_with_xfn() {

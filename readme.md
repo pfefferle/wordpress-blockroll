@@ -3,9 +3,9 @@
 - Contributors: pfefferle
 - Donate link: https://notiz.blog/donate/
 - Tags: blogroll, podroll, opml, links, feeds
-- Requires at least: 6.5
+- Requires at least: 6.8
 - Tested up to: 7.1
-- Stable tag: 1.2.0
+- Stable tag: 2.0.0
 - Requires PHP: 7.4
 - License: GPL-2.0-or-later
 - License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -66,8 +66,10 @@ this version get their anchor the first time the page is viewed.
 ### How do I add a link?
 
 Paste the address of the site and the plugin fills in the rest: name, description, icon,
-and the feed, if it finds one. Everything stays editable, and links can be reordered by
-dragging.
+and the feed, if it finds one. Every link is a block of its own inside the list, so it
+can be moved, duplicated, copied to another page and edited right where it is: name and
+description in place, the address behind the name, the feed and the relationship in the
+line below, the icon by clicking it.
 
 ### Can I import the subscriptions from my feed reader?
 
@@ -126,6 +128,14 @@ routes are described in the
 ## Changelog
 
 Project and support maintained on github at [pfefferle/wordpress-blockroll](https://github.com/pfefferle/wordpress-blockroll).
+
+### 2.0.0
+
+* Every link is a block of its own now. You can move it, duplicate it, copy it to another page, and edit it where it shows: the name and the description in the list, the address behind the name, the feed and the relationships in the line below, the image by clicking it.
+* Adding a link looks the site up and fills in what it finds, and says so when the site is already in the list.
+* Lists made before this version keep working as they are. They get their links as blocks the first time you open the page in the editor, and the file of a page nobody opens again is rendered the way it always was.
+* The list can be styled with the colors, spacing and typography of your theme, like any other block.
+* Needs WordPress 6.8 or newer.
 
 ### 1.2.0
 

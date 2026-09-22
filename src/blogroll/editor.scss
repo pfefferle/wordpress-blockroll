@@ -56,15 +56,17 @@
 					opacity: 0.7;
 				}
 			}
-
-			.blockroll-editor-list__actions {
-				display: flex;
-				flex-shrink: 0;
-			}
 		}
 	}
 }
 
+.blockroll-add-link .components-popover__content {
+	padding: 8px;
+	width: 360px;
+	max-width: 90vw;
+}
+
+// A field with its button next to it, in the overlays and the import.
 .blockroll-form {
 	display: grid;
 	gap: 16px;
@@ -72,11 +74,15 @@
 
 .blockroll-form__row {
 	display: flex;
-	align-items: flex-end;
+	align-items: flex-start;
 	gap: 8px;
 
 	> :first-child {
 		flex-grow: 1;
+	}
+
+	.has-message .components-base-control__help {
+		color: #cc1818;
 	}
 }
 

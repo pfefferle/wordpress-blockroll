@@ -30,7 +30,7 @@ jobs:
         php-versions: ['7.4', '8.3', '8.4']
         include:
           - wp-version: latest
-          - wp-version: '6.3'
+          - wp-version: '6.8'
             php-versions: '7.4'
           - wp-version: trunk
             php-versions: '8.4'

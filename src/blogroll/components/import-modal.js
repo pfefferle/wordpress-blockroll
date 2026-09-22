@@ -20,26 +20,29 @@ import {
 /**
  * Internal dependencies
  */
+import { discover, isAborted } from '../discover';
 import { mergeDiscovered } from '../utils';
+import useAbortOnUnmount from '../use-abort-on-unmount';
 
 /**
  * Fetch details for imported links, one after the other.
  *
- * @param {Array}    links      Imported links.
- * @param {Function} onProgress Called with the number of finished links.
+ * @param {Array}       links      Imported links.
+ * @param {Function}    onProgress Called with the number of finished links.
+ * @param {AbortSignal} signal     Stops the loop when the modal is gone.
  * @return {Promise<Array>} Enriched links.
  */
-async function enrich( links, onProgress ) {
+async function enrich( links, onProgress, signal ) {
 	const result = [];
 	for ( const link of links ) {
 		try {
-			const found = await apiFetch( {
-				path: '/blockroll/v1/discover',
-				method: 'POST',
-				data: { url: link.url },
-			} );
-			result.push( mergeDiscovered( link, found ) );
-		} catch {
+			result.push(
+				mergeDiscovered( link, await discover( link.url, signal ) )
+			);
+		} catch ( error ) {
+			if ( isAborted( error ) ) {
+				throw error;
+			}
 			result.push( link );
 		}
 		onProgress( result.length );
@@ -62,6 +65,8 @@ export default function ImportModal( { onImport, onClose } ) {
 	const [ isBusy, setIsBusy ] = useState( false );
 	const [ progress, setProgress ] = useState( null );
 	const [ error, setError ] = useState( null );
+	// Lookups still running when the modal closes are cancelled.
+	const controller = useAbortOnUnmount();
 
 	const readFile = ( file ) => {
 		if ( file ) {
@@ -79,13 +84,17 @@ export default function ImportModal( { onImport, onClose } ) {
 				path: '/blockroll/v1/import',
 				method: 'POST',
 				data,
+				signal: controller.current.signal,
 			} );
 			const finished = fetchDetails
-				? await enrich( links, setProgress )
+				? await enrich( links, setProgress, controller.current.signal )
 				: links;
 			onImport( finished );
 			onClose();
 		} catch ( importError ) {
+			if ( isAborted( importError ) ) {
+				return;
+			}
 			setError(
 				importError.message ||
 					__( 'The file could not be imported.', 'blockroll' )
