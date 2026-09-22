@@ -66,6 +66,10 @@ export default function Edit( {
 	const [ draftUrl, setDraftUrl ] = useState( '' );
 	const [ isLookingUp, setIsLookingUp ] = useState( false );
 	const [ addressMessage, setAddressMessage ] = useState( null );
+	// The date as it is when a lookup comes back, not as it was when it
+	// started: it can be set in the sidebar while the lookup runs.
+	const addedRef = useRef( added );
+	addedRef.current = added;
 	// A lookup still running when the block is gone is cancelled.
 	const controller = useAbortOnUnmount();
 	// The link overlay opened from the name leaves the focus there, the
@@ -146,7 +150,10 @@ export default function Edit( {
 			setIsLookingUp( true );
 			lookUp( value, controller.current.signal ).then(
 				( link ) => {
-					setAttributes( { ...link, added: added || today() } );
+					setAttributes( {
+						...link,
+						added: addedRef.current || today(),
+					} );
 					setIsLookingUp( false );
 				},
 				( error ) => {
@@ -154,7 +161,10 @@ export default function Edit( {
 					if ( isAborted( error ) ) {
 						return;
 					}
-					setAttributes( { url: value, added: added || today() } );
+					setAttributes( {
+						url: value,
+						added: addedRef.current || today(),
+					} );
 					setIsLookingUp( false );
 				}
 			);
