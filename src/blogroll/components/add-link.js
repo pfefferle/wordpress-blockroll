@@ -2,7 +2,7 @@
  * WordPress dependencies
  */
 import { __ } from '@wordpress/i18n';
-import { useEffect, useRef, useState } from '@wordpress/element';
+import { useState } from '@wordpress/element';
 import { Popover } from '@wordpress/components';
 
 /**
@@ -10,6 +10,7 @@ import { Popover } from '@wordpress/components';
  */
 import { isAborted, lookUp } from '../discover';
 import { toUrl } from '../utils';
+import useAbortOnUnmount from '../use-abort-on-unmount';
 import AddressForm from './address-form';
 
 /**
@@ -37,8 +38,7 @@ export default function AddLink( { anchor, onAdd, isKnown, onClose } ) {
 	const [ error, setError ] = useState( null );
 	const [ isDuplicate, setIsDuplicate ] = useState( false );
 	// A lookup still running when the overlay closes is cancelled.
-	const controller = useRef( new AbortController() );
-	useEffect( () => () => controller.current.abort(), [] );
+	const controller = useAbortOnUnmount();
 	// A line under the field, like the notes core's overlays show.
 	const message = isDuplicate
 		? __( 'This site is in the list already.', 'blockroll' )

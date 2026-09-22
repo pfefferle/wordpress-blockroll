@@ -2,7 +2,7 @@
  * WordPress dependencies
  */
 import { __ } from '@wordpress/i18n';
-import { useEffect, useRef, useState } from '@wordpress/element';
+import { useRef, useState } from '@wordpress/element';
 import { __experimentalUseFocusOutside as useFocusOutside } from '@wordpress/compose';
 import {
 	BlockControls,
@@ -30,6 +30,7 @@ import XfnControl from '../blogroll/components/xfn-control';
 import { isAborted, lookUp } from '../blogroll/discover';
 import { toUrl, today } from '../blogroll/utils';
 import OverlayButton from './overlay-button';
+import useAbortOnUnmount from '../blogroll/use-abort-on-unmount';
 
 /**
  * Nothing: the link overlay's own focus check is off, the wrapper around
@@ -65,8 +66,7 @@ export default function Edit( {
 	const [ draftUrl, setDraftUrl ] = useState( '' );
 	const [ isLookingUp, setIsLookingUp ] = useState( false );
 	// A lookup still running when the block is gone is cancelled.
-	const controller = useRef( new AbortController() );
-	useEffect( () => () => controller.current.abort(), [] );
+	const controller = useAbortOnUnmount();
 	// The link overlay opened from the name leaves the focus there, the
 	// one opened from the toolbar takes it. It closes when the focus
 	// leaves the name, the toolbar button and the overlay; a click on the

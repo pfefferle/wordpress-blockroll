@@ -8,6 +8,10 @@ import { Button, TextControl } from '@wordpress/components';
  * An address field with its button: the "Add link" overlay and a link
  * block that has no address yet.
  *
+ * While the lookup runs the field and the button stay enabled: a
+ * disabled element loses the focus, and the overlay around this form
+ * closes when the focus leaves it.
+ *
  * @param {Object}   props             Component props.
  * @param {string}   props.value       The address as typed.
  * @param {Function} props.onChange    Called with the typed address.
@@ -29,7 +33,9 @@ export default function AddressForm( {
 			className="blockroll-form__row"
 			onSubmit={ ( event ) => {
 				event.preventDefault();
-				onSubmit();
+				if ( ! isBusy ) {
+					onSubmit();
+				}
 			} }
 		>
 			<TextControl
@@ -45,7 +51,7 @@ export default function AddressForm( {
 				autoComplete="off"
 				spellCheck={ false }
 				value={ value }
-				disabled={ isBusy }
+				readOnly={ isBusy }
 				onChange={ onChange }
 			/>
 			<Button
@@ -53,7 +59,8 @@ export default function AddressForm( {
 				variant="primary"
 				type="submit"
 				isBusy={ isBusy }
-				disabled={ ! value.trim() || isBusy }
+				aria-disabled={ isBusy }
+				disabled={ ! value.trim() }
 			>
 				{ buttonLabel || __( 'Add', 'blockroll' ) }
 			</Button>

@@ -2,7 +2,7 @@
  * WordPress dependencies
  */
 import { __, sprintf } from '@wordpress/i18n';
-import { useEffect, useRef, useState } from '@wordpress/element';
+import { useState } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { upload } from '@wordpress/icons';
 import {
@@ -22,6 +22,7 @@ import {
  */
 import { discover, isAborted } from '../discover';
 import { mergeDiscovered } from '../utils';
+import useAbortOnUnmount from '../use-abort-on-unmount';
 
 /**
  * Fetch details for imported links, one after the other.
@@ -65,8 +66,7 @@ export default function ImportModal( { onImport, onClose } ) {
 	const [ progress, setProgress ] = useState( null );
 	const [ error, setError ] = useState( null );
 	// Lookups still running when the modal closes are cancelled.
-	const controller = useRef( new AbortController() );
-	useEffect( () => () => controller.current.abort(), [] );
+	const controller = useAbortOnUnmount();
 
 	const readFile = ( file ) => {
 		if ( file ) {
