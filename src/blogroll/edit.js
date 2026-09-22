@@ -308,7 +308,17 @@ export default function Edit( {
 				.map( ( block ) => siteKey( block.attributes.url ) )
 		);
 	const isKnown = ( url ) => siteKeys().has( siteKey( url ) );
+	// A list that gets links of its own is a manual one. The source can be
+	// one that is not there right now, a plugin that is deactivated: the
+	// editor and the server both fall back to manual then, and without
+	// this the links would be ignored again the moment it comes back.
+	const becomeManual = () => {
+		if ( manualSource !== source ) {
+			setAttributes( { source: manualSource } );
+		}
+	};
 	const addLink = ( link ) => {
+		becomeManual();
 		insertBlock(
 			createLinkBlock( { ...link, added: today() } ),
 			undefined,
@@ -320,6 +330,7 @@ export default function Edit( {
 	// Imported links become link blocks at the end of the list; sites
 	// already in it, or twice in the file, are skipped.
 	const importLinks = ( imported ) => {
+		becomeManual();
 		const seen = siteKeys();
 		const blocks = imported
 			.filter( ( link ) => {
