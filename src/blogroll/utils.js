@@ -23,7 +23,10 @@ export function mergeDiscovered( link, found ) {
  */
 export function toUrl( input ) {
 	const value = input.trim();
-	return /^[a-z][a-z0-9+.-]*:/i.test( value ) ? value : `https://${ value }`;
+	// A colon followed by digits is a port, not a scheme: example.com:8080.
+	const hasScheme =
+		/^[a-z][a-z0-9+.-]*:/i.test( value ) && ! /^[^:/?#]+:\d/.test( value );
+	return hasScheme ? value : `https://${ value }`;
 }
 
 /**

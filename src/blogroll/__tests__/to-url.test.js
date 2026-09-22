@@ -19,3 +19,23 @@ describe( 'toUrl', () => {
 		);
 	} );
 } );
+
+describe( 'toUrl with a port', () => {
+	it( 'treats a port as part of the address, not as a scheme', () => {
+		expect( toUrl( 'example.com:8080' ) ).toBe(
+			'https://example.com:8080'
+		);
+		expect( toUrl( 'localhost:3000/blog' ) ).toBe(
+			'https://localhost:3000/blog'
+		);
+	} );
+
+	it( 'still keeps a real scheme', () => {
+		expect( toUrl( 'https://example.com:8080/' ) ).toBe(
+			'https://example.com:8080/'
+		);
+		expect( toUrl( 'feed:https://a.example/feed/' ) ).toBe(
+			'feed:https://a.example/feed/'
+		);
+	} );
+} );

@@ -337,11 +337,15 @@ export default function Edit( {
 								focusOnMount
 								label={
 									xfn.length > 0 ? (
-										<ul className="blockroll-xfn">
+										// Spans, not the list of the site: a
+										// list is not allowed in a button.
+										<span className="blockroll-xfn">
 											{ xfn.map( ( token ) => (
-												<li key={ token }>{ token }</li>
+												<span key={ token }>
+													{ token }
+												</span>
 											) ) }
-										</ul>
+										</span>
 									) : (
 										__( 'Add relationship', 'blockroll' )
 									)

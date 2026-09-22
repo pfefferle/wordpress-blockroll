@@ -84,6 +84,7 @@ export default function ImportModal( { onImport, onClose } ) {
 				path: '/blockroll/v1/import',
 				method: 'POST',
 				data,
+				signal: controller.current.signal,
 			} );
 			const finished = fetchDetails
 				? await enrich( links, setProgress, controller.current.signal )
