@@ -39,16 +39,19 @@ import ImportModal from './components/import-modal';
 import { isGeneratedFrom, slugOf, uniqueAnchor } from './anchors';
 
 /**
- * The link blocks of a blogroll, without anything else that may be in it.
+ * The client IDs of a blogroll's link blocks, without anything else that
+ * may be in it. Reads the names, not the blocks: this runs on every change
+ * of the editor store, and building the blocks would build every link's
+ * attributes with them.
  *
  * @param {Object} select   The block editor store.
  * @param {string} clientId Client ID of the blogroll.
- * @return {Object[]} The link blocks.
+ * @return {string[]} Client IDs of the link blocks.
  */
-const linkBlocks = ( select, clientId ) =>
+const linkBlockIds = ( select, clientId ) =>
 	select
-		.getBlocks( clientId )
-		.filter( ( block ) => LINK_BLOCK === block.name );
+		.getBlockOrder( clientId )
+		.filter( ( id ) => LINK_BLOCK === select.getBlockName( id ) );
 
 /**
  * Block edit component.
@@ -310,7 +313,8 @@ export default function Edit( {
 		[ clientId ]
 	);
 	const linkCount = useSelect(
-		( select ) => linkBlocks( select( blockEditorStore ), clientId ).length,
+		( select ) =>
+			linkBlockIds( select( blockEditorStore ), clientId ).length,
 		[ clientId ]
 	);
 	const { insertBlock, insertBlocks } = useDispatch( blockEditorStore );
@@ -320,12 +324,14 @@ export default function Edit( {
 	// the overlay; a click on the button itself only toggles.
 	const addFocusOutside = useFocusOutside( () => setIsAdding( false ) );
 	// The sites in the list right now, for the duplicate checks.
-	const siteKeys = () =>
-		new Set(
-			linkBlocks( registry.select( blockEditorStore ), clientId ).map(
-				( block ) => siteKey( block.attributes.url )
+	const siteKeys = () => {
+		const select = registry.select( blockEditorStore );
+		return new Set(
+			linkBlockIds( select, clientId ).map( ( id ) =>
+				siteKey( select.getBlockAttributes( id )?.url )
 			)
 		);
+	};
 	const isKnown = ( url ) => siteKeys().has( siteKey( url ) );
 	// A list that gets links of its own is a manual one. The source can be
 	// one that is not there right now, a plugin that is deactivated: the

@@ -55,9 +55,9 @@ export default function AddLink( { anchor, onAdd, isKnown, onClose } ) {
 			return;
 		}
 		setIsBusy( true );
-		lookUp( url, controller.current.signal )
-			.then( onAdd )
-			.catch( ( fetchError ) => {
+		lookUp( url, controller.current.signal ).then(
+			onAdd,
+			( fetchError ) => {
 				if ( isAborted( fetchError ) ) {
 					return;
 				}
@@ -66,7 +66,8 @@ export default function AddLink( { anchor, onAdd, isKnown, onClose } ) {
 						__( 'The site could not be reached.', 'blockroll' )
 				);
 				setIsBusy( false );
-			} );
+			}
+		);
 	};
 
 	return (

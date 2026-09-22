@@ -137,18 +137,20 @@ export default function Edit( {
 		const add = () => {
 			const value = toUrl( draftUrl );
 			setIsLookingUp( true );
-			lookUp( value, controller.current.signal )
-				.catch( ( error ) => {
+			lookUp( value, controller.current.signal ).then(
+				( link ) => {
+					setAttributes( { ...link, added: added || today() } );
+					setIsLookingUp( false );
+				},
+				( error ) => {
+					// An abort means the block is gone; nothing to set.
 					if ( isAborted( error ) ) {
-						throw error;
+						return;
 					}
-					return { url: value };
-				} )
-				.then( ( link ) =>
-					setAttributes( { ...link, added: added || today() } )
-				)
-				.catch( noop )
-				.finally( () => setIsLookingUp( false ) );
+					setAttributes( { url: value, added: added || today() } );
+					setIsLookingUp( false );
+				}
+			);
 		};
 		return (
 			<div { ...blockProps }>
@@ -206,12 +208,18 @@ export default function Edit( {
 							title={ __( 'Link', 'blockroll' ) }
 							isActive={ !! linkOverlay }
 							onClick={ () =>
-								setLinkOverlay( linkOverlay ? null : 'toolbar' )
+								setLinkOverlay(
+									'toolbar' === linkOverlay ? null : 'toolbar'
+								)
 							}
 						/>
 					</BlockControls>
 					{ isSelected && linkOverlay && (
 						<Popover
+							// Opening it from the toolbar while it is open
+							// from the name mounts it again, so that the
+							// focus moves into it.
+							key={ linkOverlay }
 							anchor={ popoverAnchor }
 							placement="bottom-start"
 							shift
