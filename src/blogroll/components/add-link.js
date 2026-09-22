@@ -9,7 +9,7 @@ import { Popover } from '@wordpress/components';
  * Internal dependencies
  */
 import { isAborted, lookUp } from '../discover';
-import { toUrl } from '../utils';
+import { isSafeUrl, toUrl } from '../utils';
 import useAbortOnUnmount from '../use-abort-on-unmount';
 import AddressForm from './address-form';
 
@@ -37,15 +37,23 @@ export default function AddLink( { anchor, onAdd, isKnown, onClose } ) {
 	const [ isBusy, setIsBusy ] = useState( false );
 	const [ error, setError ] = useState( null );
 	const [ isDuplicate, setIsDuplicate ] = useState( false );
+	const [ isUnsafe, setIsUnsafe ] = useState( false );
 	// A lookup still running when the overlay closes is cancelled.
 	const controller = useAbortOnUnmount();
 	// A line under the field, like the notes core's overlays show.
-	const message = isDuplicate
-		? __( 'This site is in the list already.', 'blockroll' )
-		: error;
+	let message = error;
+	if ( isDuplicate ) {
+		message = __( 'This site is in the list already.', 'blockroll' );
+	} else if ( isUnsafe ) {
+		message = __( 'Only web addresses can be added.', 'blockroll' );
+	}
 
 	const add = () => {
 		const url = toUrl( input );
+		if ( ! isSafeUrl( url ) ) {
+			setIsUnsafe( true );
+			return;
+		}
 		if ( isKnown( url ) ) {
 			setIsDuplicate( true );
 			return;
@@ -86,6 +94,7 @@ export default function AddLink( { anchor, onAdd, isKnown, onClose } ) {
 					setInput( next );
 					setError( null );
 					setIsDuplicate( false );
+					setIsUnsafe( false );
 				} }
 				onSubmit={ add }
 				isBusy={ isBusy }

@@ -28,7 +28,7 @@ import { link as linkIcon, rss } from '@wordpress/icons';
 import AddressForm from '../blogroll/components/address-form';
 import XfnControl from '../blogroll/components/xfn-control';
 import { isAborted, lookUp } from '../blogroll/discover';
-import { toUrl, today } from '../blogroll/utils';
+import { isSafeUrl, toUrl, today } from '../blogroll/utils';
 import OverlayButton from './overlay-button';
 import useAbortOnUnmount from '../blogroll/use-abort-on-unmount';
 
@@ -65,6 +65,7 @@ export default function Edit( {
 	const { url, name, description, photo, feedUrl, xfn, added } = attributes;
 	const [ draftUrl, setDraftUrl ] = useState( '' );
 	const [ isLookingUp, setIsLookingUp ] = useState( false );
+	const [ addressMessage, setAddressMessage ] = useState( null );
 	// A lookup still running when the block is gone is cancelled.
 	const controller = useAbortOnUnmount();
 	// The link overlay opened from the name leaves the focus there, the
@@ -136,6 +137,12 @@ export default function Edit( {
 	if ( ! url ) {
 		const add = () => {
 			const value = toUrl( draftUrl );
+			if ( ! isSafeUrl( value ) ) {
+				setAddressMessage(
+					__( 'Only web addresses can be added.', 'blockroll' )
+				);
+				return;
+			}
 			setIsLookingUp( true );
 			lookUp( value, controller.current.signal ).then(
 				( link ) => {
@@ -157,7 +164,11 @@ export default function Edit( {
 				{ inspector }
 				<AddressForm
 					value={ draftUrl }
-					onChange={ setDraftUrl }
+					message={ addressMessage }
+					onChange={ ( next ) => {
+						setDraftUrl( next );
+						setAddressMessage( null );
+					} }
 					onSubmit={ add }
 					isBusy={ isLookingUp }
 				/>
@@ -238,8 +249,14 @@ export default function Edit( {
 								forceIsEditingLink
 								showInitialSuggestions={ false }
 								onChange={ ( next ) => {
+									// An address a browser must not follow
+									// is not stored; clearing it is fine.
+									const nextUrl = next.url || '';
 									setAttributes( {
-										url: next.url || '',
+										url:
+											! nextUrl || isSafeUrl( nextUrl )
+												? nextUrl
+												: url,
 										name: next.title ?? name,
 									} );
 									closeLinkOverlay();
@@ -254,7 +271,7 @@ export default function Edit( {
 						disableLineBreaks
 						tagName="a"
 						className="u-url p-name"
-						href={ url }
+						href={ isSafeUrl( url ) ? url : undefined }
 						value={ name }
 						allowedFormats={ [] }
 						withoutInteractiveFormatting

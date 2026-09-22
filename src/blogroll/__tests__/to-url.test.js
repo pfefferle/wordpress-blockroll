@@ -1,4 +1,4 @@
-import { toUrl } from '../utils';
+import { isSafeUrl, toUrl } from '../utils';
 
 describe( 'toUrl', () => {
 	it( 'keeps a full address', () => {
@@ -37,5 +37,20 @@ describe( 'toUrl with a port', () => {
 		expect( toUrl( 'feed:https://a.example/feed/' ) ).toBe(
 			'feed:https://a.example/feed/'
 		);
+	} );
+} );
+
+describe( 'isSafeUrl', () => {
+	it( 'takes the web addresses', () => {
+		expect( isSafeUrl( 'https://a.example/' ) ).toBe( true );
+		expect( isSafeUrl( 'http://a.example:8080/x' ) ).toBe( true );
+	} );
+
+	it( 'refuses the others', () => {
+		expect( isSafeUrl( 'javascript:alert(1)' ) ).toBe( false );
+		expect( isSafeUrl( ' JavaScript:alert(1)' ) ).toBe( false );
+		expect( isSafeUrl( 'data:text/html,<script>' ) ).toBe( false );
+		expect( isSafeUrl( 'feed:https://a.example/feed/' ) ).toBe( false );
+		expect( isSafeUrl( '' ) ).toBe( false );
 	} );
 } );

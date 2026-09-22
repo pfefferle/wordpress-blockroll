@@ -62,6 +62,17 @@ export function today() {
 }
 
 /**
+ * Whether an address is one a browser may follow: the web ones. Anything
+ * else, a javascript: address above all, is never linked or stored.
+ *
+ * @param {string} url An address.
+ * @return {boolean} True for http and https.
+ */
+export function isSafeUrl( url ) {
+	return /^https?:\/\//i.test( String( url || '' ).trim() );
+}
+
+/**
  * What makes an address the address of a site: scheme, "www.", case and
  * a trailing slash do not.
  *
