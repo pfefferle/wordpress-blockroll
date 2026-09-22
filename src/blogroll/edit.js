@@ -39,6 +39,18 @@ import ImportModal from './components/import-modal';
 import { isGeneratedFrom, slugOf, uniqueAnchor } from './anchors';
 
 /**
+ * The link blocks of a blogroll, without anything else that may be in it.
+ *
+ * @param {Object} select   The block editor store.
+ * @param {string} clientId Client ID of the blogroll.
+ * @return {Object[]} The link blocks.
+ */
+const linkBlocks = ( select, clientId ) =>
+	select
+		.getBlocks( clientId )
+		.filter( ( block ) => LINK_BLOCK === block.name );
+
+/**
  * Block edit component.
  *
  * @param {Object}   props               Block props.
@@ -289,8 +301,16 @@ export default function Edit( {
 	}, [ currentSource, serializedAttributes ] );
 
 	// The links of a manual list are blocks of their own.
-	const linkCount = useSelect(
+	// Two counts: the placeholder stands in for an empty list, which is
+	// when the inner blocks render it, and the links are what the server
+	// renders. They differ only in a hand-edited post that has something
+	// else in here, which both sides ignore.
+	const childCount = useSelect(
 		( select ) => select( blockEditorStore ).getBlockCount( clientId ),
+		[ clientId ]
+	);
+	const linkCount = useSelect(
+		( select ) => linkBlocks( select( blockEditorStore ), clientId ).length,
 		[ clientId ]
 	);
 	const { insertBlock, insertBlocks } = useDispatch( blockEditorStore );
@@ -302,10 +322,9 @@ export default function Edit( {
 	// The sites in the list right now, for the duplicate checks.
 	const siteKeys = () =>
 		new Set(
-			registry
-				.select( blockEditorStore )
-				.getBlocks( clientId )
-				.map( ( block ) => siteKey( block.attributes.url ) )
+			linkBlocks( registry.select( blockEditorStore ), clientId ).map(
+				( block ) => siteKey( block.attributes.url )
+			)
 		);
 	const isKnown = ( url ) => siteKeys().has( siteKey( url ) );
 	// A list that gets links of its own is a manual one. The source can be
@@ -393,7 +412,7 @@ export default function Edit( {
 	);
 
 	let emptyState = null;
-	if ( manualSource === currentSource && ! linkCount ) {
+	if ( manualSource === currentSource && ! childCount ) {
 		emptyState = (
 			<Placeholder
 				icon="admin-links"
