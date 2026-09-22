@@ -6,7 +6,7 @@ import { createLinkBlock } from './link-block';
 import { hasLegacyLinks, migrateLinks } from './utils';
 
 /**
- * Before 1.3 the links were an attribute of the blogroll; now each is a
+ * Before 2.0 the links were an attribute of the blogroll; now each is a
  * block of its own inside it. The saved markup was empty either way, so
  * the old block is still valid; isEligible makes the editor migrate it
  * anyway. The server keeps reading the attribute for posts nobody opens.

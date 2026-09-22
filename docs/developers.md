@@ -8,7 +8,7 @@ Every link is a block of its own, `blockroll/link`, inside the `blockroll/blogro
 block, so the whole blogroll travels with the post content. A link block holds `url`,
 `name`, `description`, `feedUrl`, `photo`, an `xfn` array, and the date it was `added`.
 It has no output of its own: the blogroll renders the whole list on the server, because
-sorting and paging reorder and cut it. Blogrolls saved before 1.3 kept their links in a
+sorting and paging reorder and cut it. Blogrolls saved before 2.0 kept their links in a
 `links` attribute of the blogroll block. The server still reads that attribute when a
 block has no link blocks, so such a post renders without being opened; the editor
 migrates it to link blocks when it is opened (a block deprecation, see
