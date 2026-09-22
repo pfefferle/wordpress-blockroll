@@ -333,17 +333,27 @@ export default function Edit( {
 		);
 	};
 	const isKnown = ( url ) => siteKeys().has( siteKey( url ) );
-	// A list that gets links of its own is a manual one. The source can be
-	// one that is not there right now, a plugin that is deactivated: the
-	// editor and the server both fall back to manual then, and without
-	// this the links would be ignored again the moment it comes back.
-	const becomeManual = () => {
-		if ( manualSource !== source ) {
+	// A list that has links of its own is a manual one, however they got
+	// there: added, imported, pasted or duplicated. Only when its source
+	// is one that is not there right now, a plugin that is deactivated:
+	// the editor and the server both fall back to manual then, and
+	// without this the links would be ignored again the moment it comes
+	// back. Not an undo step of its own; it is saved with the edit that
+	// brought the links.
+	useEffect( () => {
+		if (
+			hasLoadedSources &&
+			! sourceIsAvailable &&
+			manualSource !== source &&
+			linkCount
+		) {
+			__unstableMarkNextChangeAsNotPersistent();
 			setAttributes( { source: manualSource } );
 		}
-	};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [ hasLoadedSources, sourceIsAvailable, source, linkCount ] );
+
 	const addLink = ( link ) => {
-		becomeManual();
 		insertBlock(
 			createLinkBlock( { ...link, added: today() } ),
 			undefined,
@@ -355,7 +365,6 @@ export default function Edit( {
 	// Imported links become link blocks at the end of the list; sites
 	// already in it, or twice in the file, are skipped.
 	const importLinks = ( imported ) => {
-		becomeManual();
 		const seen = siteKeys();
 		const blocks = imported
 			.filter( ( link ) => {

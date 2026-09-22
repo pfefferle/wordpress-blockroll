@@ -54,3 +54,10 @@ describe( 'isSafeUrl', () => {
 		expect( isSafeUrl( '' ) ).toBe( false );
 	} );
 } );
+
+describe( 'isSafeUrl without a host', () => {
+	it( 'refuses an address that is only a scheme', () => {
+		expect( isSafeUrl( 'https://' ) ).toBe( false );
+		expect( isSafeUrl( 'https://?q=1' ) ).toBe( false );
+	} );
+} );

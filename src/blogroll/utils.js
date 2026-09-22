@@ -69,7 +69,12 @@ export function today() {
  * @return {boolean} True for http and https.
  */
 export function isSafeUrl( url ) {
-	return /^https?:\/\//i.test( String( url || '' ).trim() );
+	try {
+		const { protocol, hostname } = new URL( String( url || '' ).trim() );
+		return /^https?:$/i.test( protocol ) && '' !== hostname;
+	} catch {
+		return false;
+	}
 }
 
 /**
