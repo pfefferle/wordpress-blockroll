@@ -62,17 +62,18 @@ class Discovery {
 			$result['photo']       = self::hcard_url( $xpath, $hcard, 'u-photo', $base_url );
 		}
 
-		// Fallbacks.
+		// Fallbacks: Open Graph and Twitter Cards, then the classic tags.
+		if ( '' === $result['name'] ) {
+			$result['name'] = self::meta( $xpath, array( 'og:site_name', 'og:title', 'twitter:title' ) );
+		}
 		if ( '' === $result['name'] ) {
 			$title          = $xpath->query( '//title' )->item( 0 );
 			$result['name'] = $title ? \sanitize_text_field( $title->textContent ) : ''; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 		}
 		if ( '' === $result['description'] ) {
-			foreach ( $xpath->query( '//meta[@name="description"][@content]' ) as $node ) {
-				$result['description'] = \sanitize_text_field( $node->getAttribute( 'content' ) );
-				break;
-			}
+			$result['description'] = self::meta( $xpath, array( 'og:description', 'twitter:description', 'description' ) );
 		}
+		// An icon is closer to an avatar than a page's share image.
 		if ( '' === $result['photo'] ) {
 			foreach ( $xpath->query( '//link[@rel and @href]' ) as $node ) {
 				if ( self::has_token( $node->getAttribute( 'rel' ), 'icon' ) ) {
@@ -81,8 +82,34 @@ class Discovery {
 				}
 			}
 		}
+		if ( '' === $result['photo'] ) {
+			$image = self::meta( $xpath, array( 'og:image', 'twitter:image' ) );
+			if ( '' !== $image ) {
+				$result['photo'] = self::absolute( $image, $base_url );
+			}
+		}
 
 		return $result;
+	}
+
+	/**
+	 * The content of the first of some meta tags that is there.
+	 *
+	 * Open Graph uses the property attribute, Twitter Cards and the classic
+	 * tags the name attribute; both are looked at for every name.
+	 *
+	 * @param \DOMXPath $xpath The document.
+	 * @param string[]  $names Names, in the order of preference.
+	 * @return string The content, empty when none is there.
+	 */
+	private static function meta( $xpath, $names ) {
+		foreach ( $names as $name ) {
+			$node = $xpath->query( \sprintf( '//meta[(@property="%1$s" or @name="%1$s") and @content]', $name ) )->item( 0 );
+			if ( $node && '' !== \trim( $node->getAttribute( 'content' ) ) ) {
+				return \sanitize_text_field( $node->getAttribute( 'content' ) );
+			}
+		}
+		return '';
 	}
 
 	/**
