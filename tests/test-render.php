@@ -496,4 +496,106 @@ class Test_Render extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'padding-top:1em', $html );
 		$this->assertStringContainsString( 'line-height:1.8', $html );
 	}
+
+	/**
+	 * Two lists on a page share the query, so the sorting and the paging
+	 * say which list they mean: the anchor, in the same query var the
+	 * subscription files use.
+	 */
+	public function test_sort_applies_to_the_named_list_only() {
+		$attrs = array(
+			'anchor' => 'podcasts',
+			'sortBy' => 'manual',
+			'links'  => array(
+				array(
+					'url'  => 'https://b.example/',
+					'name' => 'Beta',
+				),
+				array(
+					'url'  => 'https://a.example/',
+					'name' => 'alpha',
+				),
+			),
+		);
+
+		set_query_var( 'blockroll-sort', 'name' );
+
+		set_query_var( 'group', 'podcasts' );
+		$html = $this->render_block_html( $attrs );
+		$this->assertLessThan( strpos( $html, 'Beta' ), strpos( $html, 'alpha' ), 'the named list is sorted' );
+
+		set_query_var( 'group', 'blogs' );
+		$html = $this->render_block_html( $attrs );
+		$this->assertLessThan( strpos( $html, 'alpha' ), strpos( $html, 'Beta' ), 'another list keeps its own order' );
+
+		// Links from before the lists had names still sort every list.
+		set_query_var( 'group', null );
+		$html = $this->render_block_html( $attrs );
+		$this->assertLessThan( strpos( $html, 'Beta' ), strpos( $html, 'alpha' ) );
+
+		set_query_var( 'blockroll-sort', null );
+	}
+
+	public function test_sort_links_name_their_list() {
+		$html = $this->render_block_html(
+			array(
+				'anchor' => 'podcasts',
+				'links'  => self::TWO_DATED_LINKS,
+			)
+		);
+
+		$this->assertStringContainsString( 'group=podcasts', $html );
+		$this->assertStringContainsString( '#podcasts', $html );
+	}
+
+	public function test_paging_applies_to_the_named_list_only() {
+		$attrs = array(
+			'anchor'  => 'podcasts',
+			'perPage' => 1,
+			'links'   => array(
+				array(
+					'url'  => 'https://a.example/',
+					'name' => 'A',
+				),
+				array(
+					'url'  => 'https://b.example/',
+					'name' => 'B',
+				),
+			),
+		);
+
+		set_query_var( 'blockroll-page', 2 );
+
+		set_query_var( 'group', 'podcasts' );
+		$html = $this->render_block_html( $attrs );
+		$this->assertStringContainsString( 'b.example', $html );
+
+		set_query_var( 'group', 'blogs' );
+		$html = $this->render_block_html( $attrs );
+		$this->assertStringContainsString( 'a.example', $html, 'another list stays on its first page' );
+
+		set_query_var( 'blockroll-page', null );
+		set_query_var( 'group', null );
+	}
+
+	public function test_paging_links_name_their_list() {
+		$html = $this->render_block_html(
+			array(
+				'anchor'  => 'podcasts',
+				'perPage' => 1,
+				'links'   => array(
+					array(
+						'url'  => 'https://a.example/',
+						'name' => 'A',
+					),
+					array(
+						'url'  => 'https://b.example/',
+						'name' => 'B',
+					),
+				),
+			)
+		);
+
+		$this->assertStringContainsString( 'group=podcasts', $html );
+	}
 }

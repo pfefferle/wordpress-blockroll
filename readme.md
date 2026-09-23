@@ -5,7 +5,7 @@
 - Tags: blogroll, podroll, opml, links, feeds
 - Requires at least: 6.8
 - Tested up to: 7.1
-- Stable tag: 2.0.0
+- Stable tag: 2.1.0
 - Requires PHP: 7.4
 - License: GPL-2.0-or-later
 - License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -42,8 +42,9 @@ you have met. It shows up as a small note under the entry, and it is readable fo
 that map who knows whom.
 
 **Sorting and paging for visitors.** Long lists get pages, and visitors can sort by name
-or by what you added last. There is no JavaScript in the list at all, every click is a
-normal page load, and you can switch the sorting off per block.
+or by what you added last. On a page with several lists, sorting or paging one leaves the
+others as they are. There is no JavaScript in the list at all, every click is a normal
+page load, and you can switch the sorting off per block.
 
 ## Frequently Asked Questions
 
@@ -128,6 +129,10 @@ routes are described in the
 ## Changelog
 
 Project and support maintained on github at [pfefferle/wordpress-blockroll](https://github.com/pfefferle/wordpress-blockroll).
+
+### 2.1.0
+
+* Sorting and paging mean one list now. On a page with several blogrolls, sorting one no longer sorts the others, and paging one no longer pages them. The links say which list they mean, with the name every list has anyway: `?blockroll-sort=name&group=podcasts`. Links from before this version still sort and page every list on the page. Reported in #2.
 
 ### 2.0.0
 
