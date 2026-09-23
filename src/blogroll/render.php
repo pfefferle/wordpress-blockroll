@@ -12,6 +12,7 @@
  */
 
 use Blockroll\Links;
+use Blockroll\Opml;
 use Blockroll\Sources;
 use Blockroll\Xfn;
 
@@ -22,12 +23,18 @@ $blockroll_links = Sources::links( $attributes, $block->parsed_block['innerBlock
 $blockroll_sortable = $attributes['showSort'];
 
 // The HTML anchor is the address of this one list. The sorting and paging
-// links carry it, so the reload lands on the list that was clicked, not
-// at the top of the page.
+// links carry it twice: as the fragment, so the reload lands on the list
+// that was clicked, and as the group, the same query var the subscription
+// files use, so that sorting and paging mean this list alone. A query
+// that names no list means every list, the way the links of the versions
+// before this one did.
 $blockroll_anchor   = trim( (string) ( $attributes['anchor'] ?? '' ) );
 $blockroll_fragment = '' !== $blockroll_anchor ? '#' . $blockroll_anchor : '';
+$blockroll_named    = trim( (string) get_query_var( Opml::GROUP ) );
+$blockroll_meant    = '' === $blockroll_named || $blockroll_named === $blockroll_anchor;
+$blockroll_group    = '' !== $blockroll_anchor ? $blockroll_anchor : false;
 
-$blockroll_sort = $blockroll_sortable ? get_query_var( 'blockroll-sort' ) : '';
+$blockroll_sort = $blockroll_sortable && $blockroll_meant ? get_query_var( 'blockroll-sort' ) : '';
 if ( ! in_array( $blockroll_sort, array( 'name', 'added', 'manual' ), true ) ) {
 	$blockroll_sort = $attributes['sortBy'];
 }
@@ -37,7 +44,7 @@ $blockroll_show  = $attributes['showAvatars'];
 $blockroll_per   = (int) $attributes['perPage'];
 $blockroll_total = count( $blockroll_links );
 $blockroll_pages = $blockroll_per > 0 ? max( 1, (int) ceil( $blockroll_total / $blockroll_per ) ) : 1;
-$blockroll_page  = min( max( 1, (int) get_query_var( 'blockroll-page', 1 ) ), $blockroll_pages );
+$blockroll_page  = $blockroll_meant ? min( max( 1, (int) get_query_var( 'blockroll-page', 1 ) ), $blockroll_pages ) : 1;
 $blockroll_dated = (bool) array_filter( wp_list_pluck( $blockroll_links, 'added' ) );
 
 if ( ! $blockroll_links ) {
@@ -47,6 +54,21 @@ if ( ! $blockroll_links ) {
 if ( $blockroll_per > 0 ) {
 	$blockroll_links = array_slice( $blockroll_links, ( $blockroll_page - 1 ) * $blockroll_per, $blockroll_per );
 }
+
+/**
+ * The address of another page of this list.
+ *
+ * @param int $page Page number.
+ * @return string URL.
+ */
+$blockroll_page_url = function ( $page ) use ( $blockroll_group, $blockroll_fragment ) {
+	return add_query_arg(
+		array(
+			'blockroll-page' => $page,
+			Opml::GROUP      => $blockroll_group,
+		)
+	) . $blockroll_fragment;
+};
 
 $blockroll_sorts = array(
 	'name' => __( 'By name', 'blockroll' ),
@@ -70,6 +92,7 @@ if ( 'manual' === $attributes['sortBy'] ) {
 						array(
 							'blockroll-sort' => $blockroll_key,
 							'blockroll-page' => false,
+							Opml::GROUP      => $blockroll_group,
 						)
 					) . $blockroll_fragment;
 					?>
@@ -123,7 +146,7 @@ if ( 'manual' === $attributes['sortBy'] ) {
 	<?php if ( $blockroll_pages > 1 ) : ?>
 		<nav class="blockroll-pager">
 			<?php if ( $blockroll_page > 1 ) : ?>
-				<a href="<?php echo esc_url( add_query_arg( 'blockroll-page', $blockroll_page - 1 ) . $blockroll_fragment ); ?>"><?php esc_html_e( 'Previous', 'blockroll' ); ?></a>
+				<a href="<?php echo esc_url( $blockroll_page_url( $blockroll_page - 1 ) ); ?>"><?php esc_html_e( 'Previous', 'blockroll' ); ?></a>
 			<?php endif; ?>
 			<span>
 			<?php
@@ -132,7 +155,7 @@ if ( 'manual' === $attributes['sortBy'] ) {
 			?>
 			</span>
 			<?php if ( $blockroll_page < $blockroll_pages ) : ?>
-				<a href="<?php echo esc_url( add_query_arg( 'blockroll-page', $blockroll_page + 1 ) . $blockroll_fragment ); ?>"><?php esc_html_e( 'Next', 'blockroll' ); ?></a>
+				<a href="<?php echo esc_url( $blockroll_page_url( $blockroll_page + 1 ) ); ?>"><?php esc_html_e( 'Next', 'blockroll' ); ?></a>
 			<?php endif; ?>
 		</nav>
 	<?php endif; ?>
