@@ -132,7 +132,7 @@ Project and support maintained on github at [pfefferle/wordpress-blockroll](http
 
 ### 2.1.0
 
-* Sorting and paging mean one list now. On a page with several blogrolls, sorting one no longer sorts the others, and paging one no longer pages them. The links say which list they mean, with the name every list has anyway: `?blockroll-sort=name&group=podcasts`. Links from before this version still sort and page every list on the page. Reported by @manuelrodegro in #2.
+* Sorting and paging mean one list now. On a page with several blogrolls, sorting one no longer sorts the others, and paging one no longer pages them. The links say which list they mean, with the name every list has anyway: `?blockroll-sort=name&group=podcasts`. Links from before this version still sort and page every list on the page. Reported in #2.
 
 ### 2.0.0
 
