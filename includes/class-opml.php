@@ -140,21 +140,26 @@ class Opml {
 	}
 
 	/**
-	 * Collect normalized links from all blogroll blocks in a post.
+	 * The links that make up the file of a page, in one flat list.
+	 *
+	 * An unlisted list is not part of it; all_groups() has every list.
 	 *
 	 * @param \WP_Post $post Post object.
 	 * @return array Normalized links.
 	 */
-	public static function extract_links( $post ) {
+	public static function page_links( $post ) {
 		$links = array();
-		foreach ( self::extract_groups( $post ) as $group ) {
+		foreach ( self::listed_groups( $post ) as $group ) {
 			$links = \array_merge( $links, $group['links'] );
 		}
 		return $links;
 	}
 
 	/**
-	 * Collect the blogroll blocks of a post, each with its own name and links.
+	 * Every blogroll of a post, each with its own name, links and address.
+	 *
+	 * Listed or not: what goes into the file of the page is what
+	 * listed_groups() returns.
 	 *
 	 * The name is the one WordPress keeps when a block is renamed in the
 	 * editor, so a page with several blogrolls can say what each one is
@@ -170,7 +175,7 @@ class Opml {
 	 * @param \WP_Post $post Post object.
 	 * @return array List of arrays with a "name", an "anchor" and a "links" key.
 	 */
-	public static function extract_groups( $post ) {
+	public static function all_groups( $post ) {
 		static $cache = array();
 
 		if ( isset( $cache[ $post->ID ] ) && $cache[ $post->ID ]['content'] === $post->post_content ) {
@@ -187,6 +192,9 @@ class Opml {
 							'name'   => \sanitize_text_field( (string) ( $block['attrs']['metadata']['name'] ?? '' ) ),
 							'anchor' => \trim( (string) ( $block['attrs']['anchor'] ?? '' ) ),
 							'links'  => $links,
+							// A list can be unlisted, kept out of the file of
+							// its page, and still have one of its own.
+							'listed' => false !== ( $block['attrs']['listed'] ?? true ),
 						);
 					}
 				}
@@ -197,6 +205,17 @@ class Opml {
 		};
 		$walker( \parse_blocks( Anchors::add( $post->post_content ) ) );
 
+		// A list has a file of its own when it is unlisted, since it is then
+		// not in the file of the page, and when it is one of several listed
+		// ones. A single listed list is the file of the page and shares its
+		// address. Every caller asks the group instead of working it out
+		// again: the link in the head, the download under the list.
+		$listed = \count( \wp_list_filter( $groups, array( 'listed' => true ) ) );
+		foreach ( $groups as $index => $group ) {
+			$groups[ $index ]['own_file'] = '' !== $group['anchor']
+				&& ( ! $group['listed'] || $listed > 1 );
+		}
+
 		$cache[ $post->ID ] = array(
 			'content' => $post->post_content,
 			'groups'  => $groups,
@@ -205,14 +224,64 @@ class Opml {
 	}
 
 	/**
-	 * Whether a page has more than one blogroll, so that each one is a
-	 * group with an address of its own. A single blogroll is the page.
+	 * The groups that make up the file of a page.
+	 *
+	 * A list can be unlisted and still be subscribed to on its own, for a
+	 * page that has one list for its readers and another one that is only
+	 * of interest to whoever is on the page.
 	 *
 	 * @param \WP_Post $post Post object.
-	 * @return bool True with two or more blogrolls.
+	 * @return array Groups.
 	 */
-	public static function is_grouped( $post ) {
-		return \count( self::extract_groups( $post ) ) > 1;
+	public static function listed_groups( $post ) {
+		return \array_values( \wp_list_filter( self::all_groups( $post ), array( 'listed' => true ) ) );
+	}
+
+	/**
+	 * The address of the file a group is served under: its own, or the
+	 * one of the page it shares.
+	 *
+	 * Read here and not kept with the group: all_groups() is cached on the
+	 * content of a post, and an address also depends on its permalink.
+	 *
+	 * @param \WP_Post $post  Post object.
+	 * @param array    $group Group as returned by all_groups().
+	 * @return string OPML URL.
+	 */
+	public static function group_url( $post, $group ) {
+		return self::opml_url( $post, $group['own_file'] ? $group['anchor'] : '' );
+	}
+
+	/**
+	 * One blogroll of a page, by its HTML anchor.
+	 *
+	 * @param \WP_Post $post   Post object.
+	 * @param string   $anchor HTML anchor of one blogroll block.
+	 * @return array|null The group, or null when the page has no such one.
+	 */
+	public static function group( $post, $anchor ) {
+		if ( '' === $anchor ) {
+			return null;
+		}
+
+		$group = \wp_list_filter( self::all_groups( $post ), array( 'anchor' => $anchor ) );
+
+		return 1 === \count( $group ) ? \reset( $group ) : null;
+	}
+
+	/**
+	 * The groups an opml request asks for: one list, or the file of the
+	 * page. An anchor no block has falls back to the file of the page,
+	 * rather than an error.
+	 *
+	 * @param \WP_Post $post   Post object.
+	 * @param string   $anchor HTML anchor of one blogroll block, or empty.
+	 * @return array Groups, empty when there is nothing to serve.
+	 */
+	public static function requested_groups( $post, $anchor = '' ) {
+		$group = self::group( $post, $anchor );
+
+		return $group ? array( $group ) : self::listed_groups( $post );
 	}
 
 	/**
@@ -223,7 +292,7 @@ class Opml {
 	 * to the name of the block itself. A single blogroll stays a plain list,
 	 * the page is its own group.
 	 *
-	 * @param array $groups Groups as returned by extract_groups().
+	 * @param array $groups Groups as returned by all_groups().
 	 * @return string The escaped elements.
 	 */
 	public static function outlines( $groups ) {
@@ -271,7 +340,7 @@ class Opml {
 	/**
 	 * Name of a group, falling back to the name of the block itself.
 	 *
-	 * @param array $group Group as returned by extract_groups().
+	 * @param array $group Group as returned by all_groups().
 	 * @return string Name.
 	 */
 	private static function group_name( $group ) {
@@ -281,7 +350,7 @@ class Opml {
 	/**
 	 * Title of one blogroll of a page: its name, then the page title.
 	 *
-	 * @param array  $group      Group as returned by extract_groups().
+	 * @param array  $group      Group as returned by all_groups().
 	 * @param string $page_title Title of the page, see title().
 	 * @return string Title.
 	 */
@@ -304,13 +373,11 @@ class Opml {
 	 * @param string   $anchor HTML anchor of one blogroll block, or empty for all.
 	 */
 	public static function for_post( $post, $anchor = '' ) {
-		$groups = self::extract_groups( $post );
 		$title  = self::title( $post );
-
-		$group = '' !== $anchor ? \wp_list_filter( $groups, array( 'anchor' => $anchor ) ) : array();
-		if ( 1 === \count( $group ) ) {
-			$groups = array( \reset( $group ) );
-			$title  = self::group_title( $groups[0], $title );
+		$group  = self::group( $post, $anchor );
+		$groups = $group ? array( $group ) : self::listed_groups( $post );
+		if ( $group ) {
+			$title = self::group_title( $group, $title );
 		}
 
 		\load_template(
@@ -372,8 +439,16 @@ class Opml {
 
 		// The well-known URL asks for the directory, whatever page it lands on.
 		$directory = self::DIRECTORY === $opml;
+		$anchor    = (string) \get_query_var( self::GROUP, '' );
 		$post      = $directory ? null : Index::queried_post();
-		$posts     = ( ! $post && ( $directory || self::is_blogroll_root() ) ) ? Index::get_posts() : array();
+		// A page whose lists are all unlisted has no file of its own, and
+		// neither has one that is asked for a list it does not hold. It is
+		// then a page without a blogroll: the root still answers with the
+		// directory, every other page simply loads.
+		if ( $post && ! self::requested_groups( $post, $anchor ) ) {
+			$post = null;
+		}
+		$posts = ( ! $post && ( $directory || self::is_blogroll_root() ) ) ? Index::get_posts() : array();
 
 		if ( ! $post && ! $posts ) {
 			return;
@@ -381,7 +456,7 @@ class Opml {
 
 		\header( 'Content-Type: text/xml; charset=' . \get_option( 'blog_charset' ) );
 		if ( $post ) {
-			self::for_post( $post, (string) \get_query_var( self::GROUP, '' ) );
+			self::for_post( $post, $anchor );
 		} else {
 			self::directory( $posts );
 		}
@@ -438,7 +513,9 @@ class Opml {
 		$post = Index::queried_post();
 		if ( $post ) {
 			$title = self::title( $post );
-			self::print_links( self::opml_url( $post ), \get_permalink( $post ), $title );
+			if ( self::listed_groups( $post ) ) {
+				self::print_links( self::opml_url( $post ), \get_permalink( $post ), $title );
+			}
 			self::print_group_links( $post, $title );
 		}
 
@@ -470,21 +547,23 @@ class Opml {
 	/**
 	 * Print the rel="blogroll" links of the single blogrolls on a page.
 	 *
-	 * Only a page with more than one gets them, see is_grouped().
+	 * A list that is the file of its page shares its address and needs no
+	 * link of its own; every other list gets one.
 	 *
 	 * @param \WP_Post $post       Post with blogroll blocks.
 	 * @param string   $page_title Title of the page, see title().
 	 */
 	private static function print_group_links( $post, $page_title ) {
-		$groups = self::extract_groups( $post );
-		if ( \count( $groups ) < 2 ) {
-			return;
-		}
-
 		$permalink = \get_permalink( $post );
-		foreach ( $groups as $group ) {
+		foreach ( self::all_groups( $post ) as $group ) {
+			// A single listed list is the file of the page, which the page
+			// advertises itself; it needs no link of its own.
+			if ( ! $group['own_file'] ) {
+				continue;
+			}
+
 			self::print_links(
-				self::opml_url( $post, $group['anchor'] ),
+				self::group_url( $post, $group ),
 				$permalink . '#' . $group['anchor'],
 				self::group_title( $group, $page_title )
 			);

@@ -32,7 +32,10 @@ together with that page.
 **Other people can subscribe.** Your list is published as an OPML file, the format feed
 readers use for subscription lists. Someone can hand that address to their reader and
 follow everything you recommend, and readers can find it on your site by themselves. If
-you change your list, their copy stays up to date.
+you change your list, their copy stays up to date. A page offers all its lists as one,
+and a list that is not meant for that, a handful of tools you link for yourself, can be
+left out of it in the block settings. It stays on the page and keeps its own address for
+whoever wants it.
 
 **Bring your list along.** Import the OPML export from your feed reader and the block is
 filled in one go, instead of pasting a hundred links by hand.

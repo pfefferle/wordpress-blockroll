@@ -14,6 +14,15 @@ block has no link blocks, so such a post renders without being opened; the edito
 migrates it to link blocks when it is opened (a block deprecation, see
 `src/blogroll/deprecated.js`).
 
+A list whose `listed` attribute is `false` keeps its own file, `?opml&group=<anchor>`,
+and its own `rel="blogroll"` link on its page, but stays out of the file of the page:
+`Opml::listed_groups()` is what the page file, the page's own `rel="blogroll"` link and
+the index are built from (`Index::has_listed_blogroll()`), while `Opml::all_groups()`
+keeps every list, listed or not. Each group carries an `own_file` flag, and
+`Opml::group_url()` turns it into an address, so the links in the head and the download
+under a list never work the rule out again. A page whose lists are all unlisted has no
+file of its own, is not advertised as a whole and is not listed in the directory.
+
 Every entry is marked up as an [h-card](https://microformats.org/wiki/h-card) with
 [XFN](https://gmpg.org/xfn/) relationships on the link, in an
 [XOXO](https://microformats.org/wiki/xoxo) list:
@@ -61,7 +70,7 @@ every other anchor on the page, appending `-1`, `-2` if needed. An anchor set by
 under Advanced is left alone. Pages saved before anchors existed get theirs on the
 fly: `Anchors::add()` is a pure transform that adds the missing anchors to the blogroll
 block comments only, with the same rules. It runs on `the_content` before `do_blocks()`
-and inside `Opml::extract_groups()`, so the ids and the group links are there from the
+and inside `Opml::all_groups()`, so the ids and the group links are there from the
 first view on. On that first singular view `Anchors::migrate()` also writes the result
 into `post_content`, directly, so there is no revision, no modified date and no save
 hook for a change nobody made.

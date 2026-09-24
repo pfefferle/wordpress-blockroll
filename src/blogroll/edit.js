@@ -76,6 +76,7 @@ export default function Edit( {
 		showAvatars,
 		showSort,
 		showOpml,
+		listed,
 		metadata,
 	} = attributes;
 
@@ -571,6 +572,21 @@ export default function Edit( {
 						checked={ showSort }
 						onChange={ ( value ) =>
 							setAttributes( { showSort: value } )
+						}
+					/>
+					<ToggleControl
+						__nextHasNoMarginBottom
+						label={ __(
+							"Part of the page's subscription list",
+							'blockroll'
+						) }
+						help={ __(
+							'A page offers all its lists to feed readers as one, and points them at it. Switched off, this list is left out of both, and can still be subscribed to on its own.',
+							'blockroll'
+						) }
+						checked={ listed }
+						onChange={ ( value ) =>
+							setAttributes( { listed: value } )
 						}
 					/>
 					<ToggleControl
