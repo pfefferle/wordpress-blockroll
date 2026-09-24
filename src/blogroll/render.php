@@ -139,10 +139,18 @@ if ( 'manual' === $attributes['sortBy'] ) {
 	<?php $blockroll_post = get_post(); ?>
 	<?php if ( $attributes['showOpml'] && $blockroll_post ) : ?>
 		<?php
-		// The file of one list is named after it, the whole page stays "blogroll".
-		$blockroll_grouped = \Blockroll\Opml::is_grouped( $blockroll_post );
-		$blockroll_file    = ( $blockroll_grouped && '' !== $blockroll_anchor ? $blockroll_anchor : 'blogroll' ) . '.opml';
+		// The address and the name of the download belong to this one list
+		// when it has a file of its own, and to the page when the list is
+		// the file of the page. A list the page does not know, two blocks
+		// with one anchor, has a file only as part of the page.
+		$blockroll_group     = \Blockroll\Opml::group( $blockroll_post, $blockroll_anchor );
+		$blockroll_own_file  = $blockroll_group && $blockroll_group['own_file'];
+		$blockroll_file_url  = $blockroll_group
+			? \Blockroll\Opml::group_url( $blockroll_post, $blockroll_group )
+			: \Blockroll\Opml::opml_url( $blockroll_post );
+		$blockroll_file_name = ( $blockroll_own_file ? $blockroll_anchor : 'blogroll' ) . '.opml';
 		?>
+		<?php if ( $blockroll_group || $attributes['listed'] ) : ?>
 		<p class="blockroll-opml">
 			<?php
 			printf(
@@ -156,10 +164,11 @@ if ( 'manual' === $attributes['sortBy'] ) {
 						),
 					)
 				),
-				esc_url( \Blockroll\Opml::opml_url( $blockroll_post, $blockroll_grouped ? $blockroll_anchor : '' ) ),
-				esc_attr( $blockroll_file )
+				esc_url( $blockroll_file_url ),
+				esc_attr( $blockroll_file_name )
 			);
 			?>
 		</p>
+		<?php endif; ?>
 	<?php endif; ?>
 </div>
