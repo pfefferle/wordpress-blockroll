@@ -496,4 +496,30 @@ class Test_Render extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'padding-top:1em', $html );
 		$this->assertStringContainsString( 'line-height:1.8', $html );
 	}
+
+	/**
+	 * A list that is not in the file of its page still offers its own, so
+	 * the download link points at the file of the list.
+	 */
+	public function test_a_list_of_its_own_downloads_its_own_file() {
+		global $post;
+		$content = '<!-- wp:blockroll/blogroll {"anchor":"tools","listed":false,"links":[{"url":"https://tool.example/","name":"Tool"}]} /-->';
+		$post    = self::factory()->post->create_and_get( array( 'post_content' => $content ) ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+
+		$html = $this->render_block_html(
+			array(
+				'anchor' => 'tools',
+				'listed' => false,
+				'links'  => array(
+					array(
+						'url'  => 'https://tool.example/',
+						'name' => 'Tool',
+					),
+				),
+			)
+		);
+
+		$this->assertStringContainsString( 'group=tools', $html );
+		$this->assertStringContainsString( 'download="tools.opml"', $html );
+	}
 }

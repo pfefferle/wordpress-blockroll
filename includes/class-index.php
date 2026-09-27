@@ -1,6 +1,6 @@
 <?php
 /**
- * Private taxonomy that indexes posts containing a blogroll block.
+ * Private taxonomy that indexes the posts with a blogroll to subscribe to.
  *
  * @package Blockroll
  */
@@ -8,9 +8,13 @@
 namespace Blockroll;
 
 /**
- * Keep track of which posts contain a blogroll block.
+ * Keep track of which posts offer a blogroll, so the directory and the
+ * front page can point at them without reading every post.
  *
- * The taxonomy is an index only; the link data lives in the block attributes.
+ * A post is in the index when it has a list that is part of the file of
+ * its page; a page of unlisted lists has nothing to offer and stays out.
+ * The taxonomy is an index only; the link data lives in the block
+ * attributes.
  */
 class Index {
 	const TAXONOMY = 'blockroll_has';
@@ -45,11 +49,15 @@ class Index {
 			return;
 		}
 
-		\wp_set_object_terms( $post_id, self::has_blogroll( $post ) ? self::TERM : array(), self::TAXONOMY );
+		\wp_set_object_terms( $post_id, self::has_listed_blogroll( $post ) ? self::TERM : array(), self::TAXONOMY );
 	}
 
 	/**
 	 * Whether a post contains a blogroll block.
+	 *
+	 * A cheap string search, no parsing: this runs on every singular
+	 * request. Whether any of the lists is offered for subscription is a
+	 * question for has_listed_blogroll().
 	 *
 	 * @param \WP_Post|int $post Post.
 	 * @return bool True when it does.
@@ -57,6 +65,23 @@ class Index {
 	public static function has_blogroll( $post ) {
 		$post = \get_post( $post );
 		return $post && \has_block( 'blockroll/blogroll', $post );
+	}
+
+	/**
+	 * Whether a post has a file of its own, a listed list.
+	 *
+	 * An unlisted list keeps out of the file of its page and can still be
+	 * subscribed to on its own, so this is not the same question as
+	 * whether the page has a blogroll at all. Parses the content, so it is
+	 * asked on save only; what the directory lists is the index this
+	 * writes.
+	 *
+	 * @param \WP_Post|int $post Post.
+	 * @return bool True when at least one list is in the file of the page.
+	 */
+	public static function has_listed_blogroll( $post ) {
+		$post = \get_post( $post );
+		return self::has_blogroll( $post ) && (bool) Opml::listed_groups( $post );
 	}
 
 	/**

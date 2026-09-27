@@ -23,7 +23,8 @@
 		"perPage": { "type": "number", "default": 0 },
 		"showAvatars": { "type": "boolean", "default": true },
 		"showSort": { "type": "boolean", "default": true },
-		"showOpml": { "type": "boolean", "default": true }
+		"showOpml": { "type": "boolean", "default": true },
+		"listed": { "type": "boolean", "default": true }
 	},
 	"providesContext": { "blockroll/showAvatars": "showAvatars" },
 	"editorScript": "file:./index.js",
