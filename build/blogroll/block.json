@@ -67,6 +67,10 @@
     "showOpml": {
       "type": "boolean",
       "default": true
+    },
+    "listed": {
+      "type": "boolean",
+      "default": true
     }
   },
   "providesContext": {

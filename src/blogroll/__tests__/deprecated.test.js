@@ -9,7 +9,9 @@ const legacy = { links: [ { url: 'https://a.example/', name: 'A' } ] };
 
 describe( 'hasLinkBlocks', () => {
 	it( 'counts link blocks only', () => {
-		expect( hasLinkBlocks( [ link( 'https://a.example/' ) ] ) ).toBe( true );
+		expect( hasLinkBlocks( [ link( 'https://a.example/' ) ] ) ).toBe(
+			true
+		);
 		expect( hasLinkBlocks( [ paragraph ] ) ).toBe( false );
 		expect( hasLinkBlocks( [] ) ).toBe( false );
 		expect( hasLinkBlocks( undefined ) ).toBe( false );

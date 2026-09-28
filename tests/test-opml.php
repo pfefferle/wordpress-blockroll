@@ -11,25 +11,25 @@
 class Test_Opml extends WP_UnitTestCase {
 	const BLOCK = '<!-- wp:blockroll/blogroll {"links":[{"url":"https://a.example/","name":"A","feedUrl":"https://a.example/feed/","description":"desc"}]} /-->';
 
-	public function test_extract_links() {
+	public function test_page_links() {
 		$post  = self::factory()->post->create_and_get( array( 'post_content' => self::BLOCK ) );
-		$links = \Blockroll\Opml::extract_links( $post );
+		$links = \Blockroll\Opml::page_links( $post );
 		$this->assertCount( 1, $links );
 		$this->assertSame( 'https://a.example/', $links[0]['url'] );
 	}
 
-	public function test_extract_links_from_link_blocks() {
+	public function test_page_links_from_link_blocks() {
 		$post  = self::factory()->post->create_and_get(
 			array( 'post_content' => '<!-- wp:blockroll/blogroll --><!-- wp:blockroll/link {"url":"https://a.example/","name":"A"} /--><!-- wp:blockroll/link {"url":"https://b.example/","name":"B","xfn":["friend"]} /--><!-- /wp:blockroll/blogroll -->' )
 		);
-		$links = Blockroll\Opml::extract_links( $post );
+		$links = Blockroll\Opml::page_links( $post );
 
 		$this->assertCount( 2, $links );
 		$this->assertSame( 'https://a.example/', $links[0]['url'] );
 		$this->assertSame( array( 'friend' ), $links[1]['xfn'] );
 	}
 
-	public function test_extract_links_uses_registered_source_links() {
+	public function test_page_links_uses_registered_source_links() {
 		add_filter(
 			'blockroll_sources',
 			function ( $sources ) {
@@ -57,7 +57,7 @@ class Test_Opml extends WP_UnitTestCase {
 		);
 
 		$post  = self::factory()->post->create_and_get( array( 'post_content' => '<!-- wp:blockroll/blogroll {"source":"test-source"} /-->' ) );
-		$links = \Blockroll\Opml::extract_links( $post );
+		$links = \Blockroll\Opml::page_links( $post );
 
 		$this->assertCount( 1, $links );
 		$this->assertSame( 'https://source.example/', $links[0]['url'] );
@@ -101,9 +101,9 @@ class Test_Opml extends WP_UnitTestCase {
 		$this->assertSame( 'https://c.example/', (string) $doc->body->outline[1]->outline[0]['htmlUrl'] );
 	}
 
-	public function test_extract_links_still_returns_every_link_flat() {
+	public function test_page_links_still_returns_every_link_flat() {
 		$post  = self::factory()->post->create_and_get( array( 'post_content' => self::TWO_NAMED_BLOCKS ) );
-		$links = \Blockroll\Opml::extract_links( $post );
+		$links = \Blockroll\Opml::page_links( $post );
 		$this->assertCount( 2, $links );
 		$this->assertSame( 'https://a.example/', $links[0]['url'] );
 		$this->assertSame( 'https://b.example/', $links[1]['url'] );
@@ -387,15 +387,15 @@ class Test_Opml extends WP_UnitTestCase {
 
 	const TWO_ANCHORED_BLOCKS = '<!-- wp:blockroll/blogroll {"anchor":"blogs","metadata":{"name":"Blogs"},"links":[{"url":"https://a.example/","name":"A","feedUrl":"https://a.example/feed/"}]} /--><!-- wp:blockroll/blogroll {"anchor":"podcasts","metadata":{"name":"Podcasts"},"links":[{"url":"https://b.example/","name":"B","feedUrl":"https://b.example/feed/"}]} /-->';
 
-	public function test_extract_groups_keeps_the_anchor_and_derives_a_missing_one() {
+	public function test_all_groups_keeps_the_anchor_and_derives_a_missing_one() {
 		$post   = self::factory()->post->create_and_get( array( 'post_content' => self::TWO_ANCHORED_BLOCKS ) );
-		$groups = \Blockroll\Opml::extract_groups( $post );
+		$groups = \Blockroll\Opml::all_groups( $post );
 		$this->assertSame( 'blogs', $groups[0]['anchor'] );
 		$this->assertSame( 'podcasts', $groups[1]['anchor'] );
 
 		// A page saved before anchors existed reads as if it had them.
 		$post   = self::factory()->post->create_and_get( array( 'post_content' => self::TWO_NAMED_BLOCKS ) );
-		$groups = \Blockroll\Opml::extract_groups( $post );
+		$groups = \Blockroll\Opml::all_groups( $post );
 		$this->assertSame( 'blogs', $groups[0]['anchor'] );
 		$this->assertSame( 'podcasts', $groups[1]['anchor'] );
 		$this->assertStringNotContainsString( 'anchor', $post->post_content, 'Reading does not write.' );
@@ -479,5 +479,87 @@ class Test_Opml extends WP_UnitTestCase {
 		$head = ob_get_clean();
 		$this->assertSame( 3, substr_count( $head, 'type="text/xml"' ) );
 		$this->assertStringContainsString( '#podcasts"', $head );
+	}
+
+	const OWN_ONLY = '<!-- wp:blockroll/blogroll {"metadata":{"name":"Tools"},"anchor":"tools","listed":false} --><!-- wp:blockroll/link {"url":"https://tool.example/","name":"Tool"} /--><!-- /wp:blockroll/blogroll -->';
+
+	const SHARED_AND_OWN = '<!-- wp:blockroll/blogroll {"metadata":{"name":"Blogs"},"anchor":"blogs"} --><!-- wp:blockroll/link {"url":"https://a.example/","name":"A"} /--><!-- /wp:blockroll/blogroll -->' . self::OWN_ONLY;
+
+
+	public function test_a_list_of_its_own_is_not_in_the_page_file() {
+		$post = self::factory()->post->create_and_get( array( 'post_content' => self::SHARED_AND_OWN ) );
+
+		$this->assertSame(
+			array( 'https://a.example/' ),
+			wp_list_pluck( \Blockroll\Opml::page_links( $post ), 'url' )
+		);
+	}
+
+	public function test_a_list_of_its_own_keeps_its_file() {
+		$post = self::factory()->post->create_and_get( array( 'post_content' => self::SHARED_AND_OWN ) );
+
+		ob_start();
+		\Blockroll\Opml::for_post( $post, 'tools' );
+		$xml = ob_get_clean();
+
+		$this->assertStringContainsString( 'tool.example', $xml );
+		$this->assertStringNotContainsString( 'a.example', $xml );
+	}
+
+	public function test_the_page_file_leaves_it_out() {
+		$post = self::factory()->post->create_and_get( array( 'post_content' => self::SHARED_AND_OWN ) );
+
+		ob_start();
+		\Blockroll\Opml::for_post( $post );
+		$xml = ob_get_clean();
+
+		$this->assertStringContainsString( 'a.example', $xml );
+		$this->assertStringNotContainsString( 'tool.example', $xml );
+	}
+
+	/**
+	 * Its own page still points at it, so people who are on it can
+	 * subscribe. What it stays out of is the file of the page, which here
+	 * is the other list: the only listed one is the file of the page and
+	 * shares its address, so it gets no second one.
+	 */
+	public function test_its_own_page_advertises_it() {
+		$post = self::factory()->post->create_and_get( array( 'post_content' => self::SHARED_AND_OWN ) );
+
+		$this->go_to( get_permalink( $post ) );
+		ob_start();
+		\Blockroll\Opml::discovery_link();
+		$head = ob_get_clean();
+
+		$this->assertStringContainsString( 'group=tools', $head );
+		$this->assertStringNotContainsString( 'group=blogs', $head );
+		$this->assertStringContainsString( 'href="' . esc_url( \Blockroll\Opml::opml_url( $post ) ) . '"', $head );
+	}
+
+	public function test_a_page_of_own_lists_only_advertises_the_list_not_the_page() {
+		$post = self::factory()->post->create_and_get( array( 'post_content' => self::OWN_ONLY ) );
+
+		$this->go_to( get_permalink( $post ) );
+		ob_start();
+		\Blockroll\Opml::discovery_link();
+		$head = ob_get_clean();
+
+		$this->assertStringContainsString( 'group=tools', $head );
+		$this->assertStringNotContainsString( 'href="' . esc_url( \Blockroll\Opml::opml_url( $post ) ) . '"', $head );
+	}
+
+	/**
+	 * The directory and the front page collect the files of the pages, so
+	 * a page whose lists are all their own has nothing to contribute.
+	 */
+	public function test_a_page_of_own_lists_is_not_in_the_directory() {
+		$post = self::factory()->post->create_and_get(
+			array(
+				'post_content' => self::OWN_ONLY,
+				'post_status'  => 'publish',
+			)
+		);
+
+		$this->assertNotContains( $post->ID, wp_list_pluck( \Blockroll\Index::get_posts(), 'ID' ) );
 	}
 }
