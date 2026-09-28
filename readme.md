@@ -136,6 +136,8 @@ Project and support maintained on github at [pfefferle/wordpress-blockroll](http
 ### 2.1.0
 
 * Sorting and paging mean one list now. On a page with several blogrolls, sorting one no longer sorts the others, and paging one no longer pages them. The links say which list they mean, with the name every list has anyway: `?blockroll-sort=name&group=podcasts`. Links from before this version still sort and page every list on the page. Reported in #2.
+* A list can be left out of the subscription list of its page, in the block settings. It keeps its own address and its own download link. A page whose lists are all left out is no longer offered to feed readers as a whole. A list you add to a blog post starts out that way.
+* Fixed relationships getting lost when you type them: pressing Enter now picks the first match, so "fr" becomes "friend", and a word that is no relationship stays in the field.
 
 ### 2.0.0
 
