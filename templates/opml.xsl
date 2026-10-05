@@ -112,11 +112,19 @@ Please test and contribute to the discussion:
 				<nav class="intro">
 					<div class="container">
 						<div>
-							<h1>
-								<xsl:value-of select="/opml/head/title"/>
-							</h1>
 							<p>
-								<xsl:value-of select="/opml/head/dateModified"/>
+								<strong>This is an OPML subscription list.</strong>
+								 OPML lets you move a collection of subscriptions between feed readers.
+							</p>
+							<p>
+								<small>
+									Copy this page’s URL and use your feed reader’s import feature to add the whole list at once.
+								</small>
+							</p>
+							<p>
+								<small>
+									Learn more about OPML and compatible apps at <a href="https://opml.org/">OPML.org</a>.
+								</small>
 							</p>
 						</div>
 						<svg xmlns="http://www.w3.org/2000/svg" version="1.1" id="OPMLicon" width="128" height="128" viewBox="0 0 256 256">
@@ -142,6 +150,14 @@ Please test and contribute to the discussion:
 				</nav>
 
 				<div class="container">
+					<header>
+						<h1>
+							<xsl:value-of select="/opml/head/title"/>
+						</h1>
+						<p class="meta">
+							Last updated <xsl:value-of select="/opml/head/dateModified"/>
+						</p>
+					</header>
 					<section class="recent">
 						<!-- One block per site; the directory OPML has type="include" outlines instead. -->
 						<xsl:for-each select="/opml/body/outline">
