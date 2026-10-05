@@ -6,6 +6,7 @@
 /.wp-env.json        export-ignore
 /bin/                export-ignore
 /composer.json       export-ignore
+/eslint.config.cjs   export-ignore
 /package.json        export-ignore
 /package-lock.json   export-ignore
 /phpcs.xml           export-ignore
