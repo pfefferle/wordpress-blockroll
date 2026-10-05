@@ -5,7 +5,7 @@
 - Tags: blogroll, podroll, opml, links, feeds
 - Requires at least: 6.8
 - Tested up to: 7.1
-- Stable tag: 2.1.0
+- Stable tag: 2.1.1
 - Requires PHP: 7.4
 - License: GPL-2.0-or-later
 - License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -132,6 +132,12 @@ routes are described in the
 ## Changelog
 
 Project and support maintained on github at [pfefferle/wordpress-blockroll](https://github.com/pfefferle/wordpress-blockroll).
+
+### 2.1.1
+
+* The site-wide OPML index now lists each listed blogroll separately, with its own name and subscription address, instead of combining all lists on a page into one entry. Unlisted blogrolls stay out of the index.
+* The OPML page now explains what a subscription list is and how to import it into a feed reader.
+* Updated development dependencies.
 
 ### 2.1.0
 
