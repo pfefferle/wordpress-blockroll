@@ -45,8 +45,10 @@ readers with a 404:
   by its HTML anchor. `group` is a query var of its own rather than a value of
   `opml`, so `{page}.opml?group={anchor}` works as well. An anchor no block
   has falls back to the whole page.
-* `/?opml` is a directory that lists those per-page OPMLs as `<outline type="include">`,
-  so a reader references them instead of keeping a copy.
+* `/?opml` is a directory that lists each listed blogroll as `<outline type="include">`,
+  so a reader references it instead of keeping a copy. On pages with several listed
+  blogrolls, each entry uses its group OPML URL and its name followed by the page title.
+  A single listed blogroll keeps the page OPML URL and title. Unlisted blogrolls are excluded.
 * `/.well-known/recommendations.opml` is the same directory under a well-known address.
   That path has no page behind it, so it does get a rewrite rule, flushed on activation.
 
@@ -191,7 +193,7 @@ wordpress-blockroll/
 │       └── class-import-controller.php      # POST blockroll/v1/import
 ├── templates/
 │   ├── opml.php               # OPML of one blogroll page
-│   └── opml-directory.php     # directory of all blogroll pages
+│   └── opml-directory.php     # directory of all listed blogrolls
 ├── src/blogroll/
 │   ├── block.json             # block metadata and attributes
 │   ├── render.php             # PHP frontend rendering
