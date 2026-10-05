@@ -387,6 +387,37 @@ class Test_Opml extends WP_UnitTestCase {
 
 	const TWO_ANCHORED_BLOCKS = '<!-- wp:blockroll/blogroll {"anchor":"blogs","metadata":{"name":"Blogs"},"links":[{"url":"https://a.example/","name":"A","feedUrl":"https://a.example/feed/"}]} /--><!-- wp:blockroll/blogroll {"anchor":"podcasts","metadata":{"name":"Podcasts"},"links":[{"url":"https://b.example/","name":"B","feedUrl":"https://b.example/feed/"}]} /-->';
 
+	public function test_directory_lists_individual_blogrolls_instead_of_the_page_file() {
+		$post = self::factory()->post->create_and_get( array( 'post_content' => self::TWO_ANCHORED_BLOCKS ) );
+		ob_start();
+		\Blockroll\Opml::directory();
+		$doc = new SimpleXMLElement( ob_get_clean() );
+
+		$this->assertCount( 2, $doc->body->outline );
+		foreach ( array(
+			'blogs'    => 'Blogs',
+			'podcasts' => 'Podcasts',
+		) as $anchor => $name ) {
+			$outline = $doc->body->outline[ 'blogs' === $anchor ? 0 : 1 ];
+			$this->assertSame( 'include', (string) $outline['type'] );
+			$this->assertSame( \Blockroll\Opml::opml_url( $post, $anchor ), (string) $outline['url'] );
+			$this->assertStringStartsWith( $name . ' (', (string) $outline['text'] );
+			$this->assertStringContainsString( \Blockroll\Opml::title( $post ), (string) $outline['text'] );
+		}
+	}
+
+	public function test_directory_derives_missing_anchors_and_excludes_unlisted_blogrolls() {
+		$content = self::TWO_NAMED_BLOCKS . self::OWN_ONLY;
+		$post    = self::factory()->post->create_and_get( array( 'post_content' => $content ) );
+		ob_start();
+		\Blockroll\Opml::directory();
+		$doc = new SimpleXMLElement( ob_get_clean() );
+
+		$this->assertCount( 2, $doc->body->outline );
+		$this->assertSame( \Blockroll\Opml::opml_url( $post, 'blogs' ), (string) $doc->body->outline[0]['url'] );
+		$this->assertSame( \Blockroll\Opml::opml_url( $post, 'podcasts' ), (string) $doc->body->outline[1]['url'] );
+	}
+
 	public function test_all_groups_keeps_the_anchor_and_derives_a_missing_one() {
 		$post   = self::factory()->post->create_and_get( array( 'post_content' => self::TWO_ANCHORED_BLOCKS ) );
 		$groups = \Blockroll\Opml::all_groups( $post );
