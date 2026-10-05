@@ -1,6 +1,6 @@
 <?php
 /**
- * Directory OPML listing all blogroll pages.
+ * Directory OPML listing each listed blogroll.
  *
  * @package Blockroll
  *
@@ -37,7 +37,9 @@ foreach ( $args['posts'] as $blockroll_post ) {
 	</head>
 	<body>
 <?php foreach ( $args['posts'] as $blockroll_post ) : ?>
-		<outline text="<?php echo esc_xml( \Blockroll\Opml::title( $blockroll_post ) ); ?>" type="include" url="<?php echo esc_url( \Blockroll\Opml::opml_url( $blockroll_post ) ); ?>" />
+	<?php foreach ( \Blockroll\Opml::listed_groups( $blockroll_post ) as $blockroll_group ) : ?>
+		<outline text="<?php echo esc_xml( $blockroll_group['own_file'] ? \Blockroll\Opml::group_title( $blockroll_group, \Blockroll\Opml::title( $blockroll_post ) ) : \Blockroll\Opml::title( $blockroll_post ) ); ?>" type="include" url="<?php echo esc_url( \Blockroll\Opml::group_url( $blockroll_post, $blockroll_group ) ); ?>" />
+	<?php endforeach; ?>
 <?php endforeach; ?>
 	</body>
 </opml>

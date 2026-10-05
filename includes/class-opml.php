@@ -354,7 +354,7 @@ class Opml {
 	 * @param string $page_title Title of the page, see title().
 	 * @return string Title.
 	 */
-	private static function group_title( $group, $page_title ) {
+	public static function group_title( $group, $page_title ) {
 		/* translators: 1: name of the blogroll, 2: page title with author */
 		return \sprintf( \__( '%1$s (%2$s)', 'blockroll' ), self::group_name( $group ), $page_title );
 	}
@@ -392,7 +392,7 @@ class Opml {
 	}
 
 	/**
-	 * Print the directory OPML listing every blogroll page's own OPML.
+	 * Print the directory OPML listing each listed blogroll's OPML.
 	 *
 	 * @param \WP_Post[]|null $posts Blogroll posts, or null to look them up.
 	 */
