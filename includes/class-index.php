@@ -109,6 +109,8 @@ class Index {
 			array(
 				'post_type'      => array( 'post', 'page' ),
 				'post_status'    => 'publish',
+				// A page behind a password is not public, and neither is its list.
+				'has_password'   => false,
 				'posts_per_page' => -1,
 				'orderby'        => 'title',
 				'order'          => 'ASC',

@@ -589,8 +589,9 @@ class Opml {
 		// A page whose lists are all unlisted has no file of its own, and
 		// neither has one that is asked for a list it does not hold. It is
 		// then a page without a blogroll: the root still answers with the
-		// directory, every other page simply loads.
-		if ( $post && ! self::requested_groups( $post, $anchor ) ) {
+		// directory, every other page simply loads. So does a page behind
+		// a password, until the visitor has entered it.
+		if ( $post && ( \post_password_required( $post ) || ! self::requested_groups( $post, $anchor ) ) ) {
 			$post = null;
 		}
 		$posts = ( ! $post && ( $directory || $following || self::is_blogroll_root() ) ) ? Index::get_posts() : array();
@@ -736,7 +737,8 @@ class Opml {
 	 */
 	public static function discovery_link() {
 		$post = Index::queried_post();
-		if ( $post ) {
+		// A page behind a password does not give its list away.
+		if ( $post && ! \post_password_required( $post ) ) {
 			$title = self::title( $post );
 			if ( self::listed_groups( $post ) ) {
 				self::print_links( self::opml_url( $post ), \get_permalink( $post ), $title );
