@@ -230,6 +230,30 @@ class Test_Opml extends WP_UnitTestCase {
 		$this->assertSame( get_bloginfo( 'name' ), (string) $doc->head->ownerName );
 	}
 
+	public function test_missing_well_known_rules_are_flushed() {
+		$this->set_permalink_structure( '/%postname%/' );
+		// Rules stored by a version without the following list.
+		$rules = get_option( 'rewrite_rules' );
+		unset( $rules['^\.well-known/following\.opml$'] );
+		update_option( 'rewrite_rules', $rules );
+
+		\Blockroll\Opml::flush_stale_rewrite_rules();
+
+		$rules = get_option( 'rewrite_rules' );
+		$this->assertSame( 'index.php?opml=following', $rules['^\.well-known/following\.opml$'] );
+		$this->assertSame( 'index.php?opml=directory', $rules['^\.well-known/recommendations\.opml$'] );
+		$this->set_permalink_structure( '' );
+	}
+
+	public function test_well_known_lists_without_blogrolls_are_empty_opml() {
+		foreach ( array( 'directory', 'following' ) as $method ) {
+			ob_start();
+			\Blockroll\Opml::$method( array() );
+			$doc = new SimpleXMLElement( ob_get_clean() );
+			$this->assertCount( 0, $doc->body->outline, $method );
+		}
+	}
+
 	public function test_socialspec_following_adds_the_blogroll_feeds_once() {
 		self::factory()->post->create( array( 'post_content' => self::TWO_NAMED_BLOCKS ) );
 		$bookmark = array(

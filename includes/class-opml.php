@@ -68,6 +68,8 @@ class Opml {
 	 */
 	public static function register() {
 		self::add_rewrite_rules();
+		// After `init`, when every plugin has added its rules.
+		\add_action( 'wp_loaded', array( self::class, 'flush_stale_rewrite_rules' ) );
 		// Before redirect_canonical, which would send the well-known URLs to
 		// a trailing-slash version of themselves.
 		\add_action( 'template_redirect', array( self::class, 'render' ), 9 );
@@ -89,18 +91,8 @@ class Opml {
 	 * to, so they need rules of their own.
 	 */
 	public static function add_rewrite_rules() {
-		$well_known = array( self::RECOMMENDATIONS_PATH => self::DIRECTORY );
-		// With SocialSpec, its following.opml lists the blogroll feeds.
-		if ( ! self::has_socialspec_following() ) {
-			$well_known[ self::FOLLOWING_PATH ] = self::FOLLOWING;
-		}
-		foreach ( $well_known as $path => $value ) {
-			\add_rewrite_rule(
-				// WordPress matches rewrite rules with "#" as the delimiter.
-				\sprintf( '^%s$', \preg_quote( $path, '#' ) ),
-				\sprintf( 'index.php?%s=%s', self::QUERY_VAR, $value ),
-				'top'
-			);
+		foreach ( \array_filter( self::well_known_rules() ) as $regex => $query ) {
+			\add_rewrite_rule( $regex, $query, 'top' );
 		}
 		// A `.opml` suffix as an alias for `?opml` on pages, so the URL
 		// looks like a file: /blogroll.opml. The query var stays the
@@ -113,6 +105,54 @@ class Opml {
 			\sprintf( 'index.php?pagename=$matches[1]&%s=', self::QUERY_VAR ),
 			'top'
 		);
+	}
+
+	/**
+	 * The rewrite rules of the well-known URLs.
+	 *
+	 * @return array Regex => query, or => null for a URL this plugin
+	 *               does not serve on this site.
+	 */
+	private static function well_known_rules() {
+		$well_known = array(
+			self::RECOMMENDATIONS_PATH => self::DIRECTORY,
+			self::FOLLOWING_PATH       => self::FOLLOWING,
+		);
+
+		$rules = array();
+		foreach ( $well_known as $path => $value ) {
+			// WordPress matches rewrite rules with "#" as the delimiter.
+			$regex = \sprintf( '^%s$', \preg_quote( $path, '#' ) );
+			// With SocialSpec, its following.opml lists the blogroll feeds.
+			$rules[ $regex ] = ( self::FOLLOWING === $value && self::has_socialspec_following() )
+				? null
+				: \sprintf( 'index.php?%s=%s', self::QUERY_VAR, $value );
+		}
+		return $rules;
+	}
+
+	/**
+	 * Flush the rewrite rules when the stored well-known rules are out of
+	 * date.
+	 *
+	 * Activation flushes, an update does not, so a new well-known URL
+	 * would stay a 404 on existing sites. The rules also change when
+	 * SocialSpec is activated or deactivated. Compared with the stored
+	 * rules, so a site flushes once and needs no version of its own.
+	 */
+	public static function flush_stale_rewrite_rules() {
+		$stored = \get_option( 'rewrite_rules' );
+		// Plain permalinks store no rules, and missing ones are built anew.
+		if ( ! \is_array( $stored ) ) {
+			return;
+		}
+
+		foreach ( self::well_known_rules() as $regex => $query ) {
+			if ( ( $stored[ $regex ] ?? null ) !== $query ) {
+				\flush_rewrite_rules( false );
+				return;
+			}
+		}
 	}
 
 	/**
@@ -561,7 +601,9 @@ class Opml {
 		}
 		$posts = ( ! $post && ( $directory || $following || self::is_blogroll_root() ) ) ? Index::get_posts() : array();
 
-		if ( ! $post && ! $posts ) {
+		// The well-known URLs have no page to fall back to, so they answer
+		// with an empty list rather than the home page.
+		if ( ! $post && ! $posts && ! $directory && ! $following ) {
 			return;
 		}
 
