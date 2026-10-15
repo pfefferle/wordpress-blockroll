@@ -601,6 +601,10 @@ class Opml {
 			return;
 		}
 
+		// Every list is public, so apps on other sites may read it in the
+		// browser as well.
+		\header( 'Access-Control-Allow-Origin: *' );
+
 		if ( $following ) {
 			self::serve_following( $posts );
 		}
@@ -618,18 +622,15 @@ class Opml {
 	 * Serve the following list the way FollowSpec readers expect it, and
 	 * exit.
 	 *
-	 * The OPML media type, open to other sites in the browser, and with
-	 * an ETag, so a reader that asks again with If-None-Match gets a 304
-	 * while nothing changed. Such a request from another site asks first
-	 * with OPTIONS.
+	 * The OPML media type and an ETag, so a reader that asks again with
+	 * If-None-Match gets a 304 while nothing changed. A browser on
+	 * another site asks with OPTIONS first before it sends that header.
 	 *
 	 * See https://followspec.org/
 	 *
 	 * @param \WP_Post[] $posts Blogroll posts.
 	 */
 	private static function serve_following( $posts ) {
-		\header( 'Access-Control-Allow-Origin: *' );
-
 		$method = \strtoupper( \sanitize_text_field( \wp_unslash( $_SERVER['REQUEST_METHOD'] ?? 'GET' ) ) );
 		if ( 'OPTIONS' === $method ) {
 			\status_header( 204 );
