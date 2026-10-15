@@ -9,7 +9,8 @@ namespace Blockroll;
 
 /**
  * Serve OPML for blogroll pages and a directory of them at the site root
- * and at /.well-known/recommendations.opml.
+ * and at /.well-known/recommendations.opml, and their feeds at
+ * /.well-known/following.opml.
  */
 class Opml {
 	/**
@@ -17,7 +18,14 @@ class Opml {
 	 *
 	 * See https://opml.org/
 	 */
-	const WELL_KNOWN = '.well-known/recommendations.opml';
+	const RECOMMENDATIONS_PATH = '.well-known/recommendations.opml';
+
+	/**
+	 * Path of the well-known following list, without the leading slash.
+	 *
+	 * See https://followspec.org/
+	 */
+	const FOLLOWING_PATH = '.well-known/following.opml';
 
 	/**
 	 * Query var that asks for the OPML of a page instead of its HTML.
@@ -30,6 +38,11 @@ class Opml {
 	 * Value of the `opml` query var that always asks for the directory.
 	 */
 	const DIRECTORY = 'directory';
+
+	/**
+	 * Value of the `opml` query var that always asks for the following list.
+	 */
+	const FOLLOWING = 'following';
 
 	/**
 	 * Query var that picks one blogroll of a page by its HTML anchor.
@@ -55,10 +68,13 @@ class Opml {
 	 */
 	public static function register() {
 		self::add_rewrite_rules();
-		// Before redirect_canonical, which would send the well-known URL to a
-		// trailing-slash version of itself.
+		// After `init`, when every plugin has added its rules.
+		\add_action( 'wp_loaded', array( self::class, 'flush_stale_rewrite_rules' ) );
+		// Before redirect_canonical, which would send the well-known URLs to
+		// a trailing-slash version of themselves.
 		\add_action( 'template_redirect', array( self::class, 'render' ), 9 );
 		\add_action( 'wp_head', array( self::class, 'discovery_link' ) );
+		\add_filter( 'socialspec_following', array( self::class, 'socialspec_following' ) );
 		foreach ( array( 'rss2', 'atom' ) as $feed ) {
 			\add_action( $feed . '_ns', array( self::class, 'feed_namespace_start' ), 1 );
 			\add_action( $feed . '_ns', array( self::class, 'feed_namespace' ), PHP_INT_MAX );
@@ -67,30 +83,77 @@ class Opml {
 	}
 
 	/**
-	 * Map the well-known URL to the directory OPML and `.opml` to `?opml`.
+	 * Map the well-known URLs to the directory and the following list,
+	 * and `.opml` to `?opml`.
 	 *
 	 * Also called on activation, before the rules are flushed. Unlike the
-	 * `?opml` query var, the well-known path has no page to fall back to,
-	 * so it needs a rule of its own.
+	 * `?opml` query var, the well-known paths have no page to fall back
+	 * to, so they need rules of their own.
 	 */
 	public static function add_rewrite_rules() {
-		\add_rewrite_rule(
-			// WordPress matches rewrite rules with "#" as the delimiter.
-			\sprintf( '^%s$', \preg_quote( self::WELL_KNOWN, '#' ) ),
-			\sprintf( 'index.php?%s=%s', self::QUERY_VAR, self::DIRECTORY ),
-			'top'
-		);
+		foreach ( \array_filter( self::well_known_rules() ) as $regex => $query ) {
+			\add_rewrite_rule( $regex, $query, 'top' );
+		}
 		// A `.opml` suffix as an alias for `?opml` on pages, so the URL
 		// looks like a file: /blogroll.opml. The query var stays the
 		// canonical form; it also works with plain permalinks.
 		// This rule matches the well-known path too. Rules keep the order
-		// they were added in, so the well-known rule above has to stay
-		// above; the well-known test covers that.
+		// they were added in, so the well-known rules above have to stay
+		// above; the well-known tests cover that.
 		\add_rewrite_rule(
 			'^(.+?)\\.opml$',
 			\sprintf( 'index.php?pagename=$matches[1]&%s=', self::QUERY_VAR ),
 			'top'
 		);
+	}
+
+	/**
+	 * The rewrite rules of the well-known URLs.
+	 *
+	 * @return array Regex => query, or => null for a URL this plugin
+	 *               does not serve on this site.
+	 */
+	private static function well_known_rules() {
+		$well_known = array(
+			self::RECOMMENDATIONS_PATH => self::DIRECTORY,
+			self::FOLLOWING_PATH       => self::FOLLOWING,
+		);
+
+		$rules = array();
+		foreach ( $well_known as $path => $value ) {
+			// WordPress matches rewrite rules with "#" as the delimiter.
+			$regex = \sprintf( '^%s$', \preg_quote( $path, '#' ) );
+			// With the SocialSpec plugin (https://socialspec.org/), its
+			// following.opml lists the blogroll feeds.
+			$rules[ $regex ] = ( self::FOLLOWING === $value && \defined( 'SOCIALSPEC_VERSION' ) )
+				? null
+				: \sprintf( 'index.php?%s=%s', self::QUERY_VAR, $value );
+		}
+		return $rules;
+	}
+
+	/**
+	 * Flush the rewrite rules when the stored well-known rules are out of
+	 * date.
+	 *
+	 * Activation flushes, an update does not, so a new well-known URL
+	 * would stay a 404 on existing sites. The rules also change when
+	 * SocialSpec is activated or deactivated. Compared with the stored
+	 * rules, so a site flushes once and needs no version of its own.
+	 */
+	public static function flush_stale_rewrite_rules() {
+		$stored = \get_option( 'rewrite_rules' );
+		// Plain permalinks store no rules, and missing ones are built anew.
+		if ( ! \is_array( $stored ) ) {
+			return;
+		}
+
+		foreach ( self::well_known_rules() as $regex => $query ) {
+			if ( ( $stored[ $regex ] ?? null ) !== $query ) {
+				\flush_rewrite_rules( false );
+				return;
+			}
+		}
 	}
 
 	/**
@@ -405,6 +468,86 @@ class Opml {
 	}
 
 	/**
+	 * Print the following list: the feeds of every listed blogroll in
+	 * one flat list, each feed once.
+	 *
+	 * See https://followspec.org/
+	 *
+	 * @param \WP_Post[]|null $posts Blogroll posts, or null to look them up.
+	 */
+	public static function following( $posts = null ) {
+		$posts = null === $posts ? Index::get_posts() : $posts;
+
+		\load_template(
+			\dirname( BLOCKROLL_PLUGIN_FILE ) . '/templates/opml-following.php',
+			false,
+			array(
+				// Only pages with a feed in the list make it change.
+				'posts' => \array_values(
+					\array_filter(
+						$posts,
+						function ( $post ) {
+							return (bool) self::following_links( array( $post ) );
+						}
+					)
+				),
+				'links' => self::following_links( $posts ),
+			)
+		);
+	}
+
+	/**
+	 * The links of every listed blogroll that have a feed, each feed once.
+	 *
+	 * @param \WP_Post[]|null $posts Blogroll posts, or null to look them up.
+	 * @return array Normalized links.
+	 */
+	public static function following_links( $posts = null ) {
+		$links = array();
+		foreach ( ( null === $posts ? Index::get_posts() : $posts ) as $post ) {
+			foreach ( self::page_links( $post ) as $link ) {
+				// Only a feed can be followed, and the same feed only once.
+				if ( $link['feedUrl'] && ! isset( $links[ $link['feedUrl'] ] ) ) {
+					$links[ $link['feedUrl'] ] = $link;
+				}
+			}
+		}
+		return \array_values( $links );
+	}
+
+	/**
+	 * Add the blogroll feeds to the following list of SocialSpec.
+	 *
+	 * Feeds SocialSpec already lists, from the Link Manager or another
+	 * plugin, are not added again.
+	 *
+	 * @param array $outlines OPML outline attributes, each with an `xmlUrl`.
+	 * @return array The outlines.
+	 */
+	public static function socialspec_following( $outlines ) {
+		$outlines = (array) $outlines;
+		$feeds    = \array_column( $outlines, 'xmlUrl' );
+
+		foreach ( self::following_links() as $link ) {
+			if ( \in_array( $link['feedUrl'], $feeds, true ) ) {
+				continue;
+			}
+
+			$outlines[] = \array_filter(
+				array(
+					'type'        => 'rss',
+					'text'        => $link['name'] ? $link['name'] : $link['url'],
+					'description' => $link['description'],
+					'htmlUrl'     => $link['url'],
+					'xmlUrl'      => $link['feedUrl'],
+				)
+			);
+		}
+
+		return $outlines;
+	}
+
+	/**
 	 * Print the XML prolog and stylesheet line of an OPML document.
 	 */
 	public static function prolog() {
@@ -437,10 +580,12 @@ class Opml {
 			return;
 		}
 
-		// The well-known URL asks for the directory, whatever page it lands on.
+		// The well-known URLs ask for the directory or the following list,
+		// whatever page they land on.
 		$directory = self::DIRECTORY === $opml;
+		$following = self::FOLLOWING === $opml;
 		$anchor    = (string) \get_query_var( self::GROUP, '' );
-		$post      = $directory ? null : Index::queried_post();
+		$post      = ( $directory || $following ) ? null : Index::queried_post();
 		// A page whose lists are all unlisted has no file of its own, and
 		// neither has one that is asked for a list it does not hold. It is
 		// then a page without a blogroll: the root still answers with the
@@ -448,10 +593,16 @@ class Opml {
 		if ( $post && ! self::requested_groups( $post, $anchor ) ) {
 			$post = null;
 		}
-		$posts = ( ! $post && ( $directory || self::is_blogroll_root() ) ) ? Index::get_posts() : array();
+		$posts = ( ! $post && ( $directory || $following || self::is_blogroll_root() ) ) ? Index::get_posts() : array();
 
-		if ( ! $post && ! $posts ) {
+		// The well-known URLs have no page to fall back to, so they answer
+		// with an empty list rather than the home page.
+		if ( ! $post && ! $posts && ! $directory && ! $following ) {
 			return;
+		}
+
+		if ( $following ) {
+			self::serve_following( $posts );
 		}
 
 		\header( 'Content-Type: text/xml; charset=' . \get_option( 'blog_charset' ) );
@@ -461,6 +612,79 @@ class Opml {
 			self::directory( $posts );
 		}
 		exit;
+	}
+
+	/**
+	 * Serve the following list the way FollowSpec readers expect it, and
+	 * exit.
+	 *
+	 * The OPML media type, open to other sites in the browser, and with
+	 * an ETag, so a reader that asks again with If-None-Match gets a 304
+	 * while nothing changed. Such a request from another site asks first
+	 * with OPTIONS.
+	 *
+	 * See https://followspec.org/
+	 *
+	 * @param \WP_Post[] $posts Blogroll posts.
+	 */
+	private static function serve_following( $posts ) {
+		\header( 'Access-Control-Allow-Origin: *' );
+
+		$method = \strtoupper( \sanitize_text_field( \wp_unslash( $_SERVER['REQUEST_METHOD'] ?? 'GET' ) ) );
+		if ( 'OPTIONS' === $method ) {
+			\status_header( 204 );
+			\header( 'Access-Control-Allow-Methods: GET, HEAD, OPTIONS' );
+			\header( 'Access-Control-Allow-Headers: If-None-Match' );
+			\header( 'Access-Control-Max-Age: 86400' );
+			exit;
+		}
+
+		\ob_start();
+		self::following( $posts );
+		$body = (string) \ob_get_clean();
+		$etag = '"' . \md5( $body ) . '"';
+
+		\header( 'Content-Type: text/x-opml; charset=' . \get_option( 'blog_charset' ) );
+		\header( 'ETag: ' . $etag );
+		\header( 'Access-Control-Expose-Headers: ETag' );
+		\header( 'X-Content-Type-Options: nosniff' );
+
+		if ( self::etag_matches( $etag, \wp_unslash( $_SERVER['HTTP_IF_NONE_MATCH'] ?? '' ) ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Only compared.
+			\status_header( 304 );
+			exit;
+		}
+
+		echo $body; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by the template.
+		exit;
+	}
+
+	/**
+	 * Whether an If-None-Match header matches an ETag.
+	 *
+	 * The weak comparison of RFC 9110, section 13.1.2: a `W/` in front
+	 * of a tag is ignored.
+	 *
+	 * @param string $etag   ETag of the response.
+	 * @param string $header If-None-Match request header.
+	 * @return bool True if the reader has the current version.
+	 */
+	public static function etag_matches( $etag, $header ) {
+		$header = \trim( (string) $header );
+		if ( '*' === $header ) {
+			return true;
+		}
+
+		foreach ( \explode( ',', $header ) as $candidate ) {
+			$candidate = \trim( $candidate );
+			if ( 0 === \strpos( $candidate, 'W/' ) ) {
+				$candidate = \substr( $candidate, 2 );
+			}
+			if ( '' !== $candidate && $candidate === $etag ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**

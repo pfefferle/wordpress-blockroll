@@ -92,7 +92,9 @@ example `https://example.com/links/?opml`. That is the address to hand to a feed
 You do not have to tell anyone about it. Pages with a blogroll announce it in their
 HTML, and so does your homepage, so a reader that looks for it will find it. Sites that
 collect blogrolls look at `https://example.com/.well-known/recommendations.opml`, which
-lists all blogrolls on your site.
+lists all blogrolls on your site. Apps that show who you follow look at
+`https://example.com/.well-known/following.opml`, one list of all the feeds in them, as
+described in [FollowSpec](https://followspec.org/), part of [SocialSpec](https://socialspec.org/).
 
 There is also a download link under the list, for people who prefer a file.
 
@@ -132,6 +134,11 @@ routes are described in the
 ## Changelog
 
 Project and support maintained on github at [pfefferle/wordpress-blockroll](https://github.com/pfefferle/wordpress-blockroll).
+
+### Unreleased
+
+* Apps that show who you follow can now find the feeds of your blogrolls at `/.well-known/following.opml`, as described in [FollowSpec](https://followspec.org/). If the SocialSpec plugin is active, the feeds are added to its list instead. See #47.
+* Without any blogroll, `/.well-known/recommendations.opml` now answers with an empty list instead of the home page.
 
 ### 2.1.1
 

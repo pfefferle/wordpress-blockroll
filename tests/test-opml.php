@@ -189,12 +189,121 @@ class Test_Opml extends WP_UnitTestCase {
 		$this->assertInstanceOf( SimpleXMLElement::class, new SimpleXMLElement( $xml ) );
 	}
 
-	public function test_well_known_url_asks_for_the_directory() {
+	public function test_recommendations_url_asks_for_the_directory() {
 		$this->set_permalink_structure( '/%postname%/' );
-		$this->go_to( home_url( '/' . \Blockroll\Opml::WELL_KNOWN ) );
+		$this->go_to( home_url( '/' . \Blockroll\Opml::RECOMMENDATIONS_PATH ) );
 		$this->assertSame( \Blockroll\Opml::DIRECTORY, get_query_var( 'opml' ) );
 		$this->assertFalse( is_404() );
 		$this->set_permalink_structure( '' );
+	}
+
+	public function test_following_url_asks_for_the_following_list() {
+		$this->set_permalink_structure( '/%postname%/' );
+		$this->go_to( home_url( '/' . \Blockroll\Opml::FOLLOWING_PATH ) );
+		$this->assertSame( \Blockroll\Opml::FOLLOWING, get_query_var( 'opml' ) );
+		$this->assertFalse( is_404() );
+		$this->set_permalink_structure( '' );
+	}
+
+	public function test_following_lists_the_feeds_of_listed_blogrolls_once() {
+		self::factory()->post->create( array( 'post_content' => self::TWO_NAMED_BLOCKS ) );
+		self::factory()->post->create(
+			array(
+				// The same feed again, a link without a feed and an unlisted list.
+				'post_content' => self::BLOCK
+					. '<!-- wp:blockroll/blogroll {"links":[{"url":"https://c.example/","name":"C"}]} /-->'
+					. '<!-- wp:blockroll/blogroll {"listed":false,"links":[{"url":"https://d.example/","name":"D","feedUrl":"https://d.example/feed/"}]} /-->',
+			)
+		);
+		ob_start();
+		\Blockroll\Opml::following();
+		$xml = ob_get_clean();
+		$doc = new SimpleXMLElement( $xml );
+
+		$feeds = array();
+		foreach ( $doc->body->outline as $outline ) {
+			$this->assertCount( 0, $outline->outline, 'The list is flat.' );
+			$feeds[] = (string) $outline['xmlUrl'];
+		}
+		sort( $feeds );
+		$this->assertSame( array( 'https://a.example/feed/', 'https://b.example/feed/' ), $feeds );
+		$this->assertSame( get_bloginfo( 'name' ), (string) $doc->head->ownerName );
+	}
+
+	public function test_missing_well_known_rules_are_flushed() {
+		$following = '^' . preg_quote( \Blockroll\Opml::FOLLOWING_PATH, '#' ) . '$';
+		$this->set_permalink_structure( '/%postname%/' );
+		// Rules stored by a version without the following list.
+		$rules = get_option( 'rewrite_rules' );
+		unset( $rules[ $following ] );
+		update_option( 'rewrite_rules', $rules );
+
+		\Blockroll\Opml::flush_stale_rewrite_rules();
+
+		$rules = get_option( 'rewrite_rules' );
+		$this->assertSame( 'index.php?opml=following', $rules[ $following ] );
+		$this->assertSame( 'index.php?opml=directory', $rules[ '^' . preg_quote( \Blockroll\Opml::RECOMMENDATIONS_PATH, '#' ) . '$' ] );
+		$this->set_permalink_structure( '' );
+	}
+
+	public function test_following_date_modified_ignores_pages_without_feeds() {
+		$with_feed = self::factory()->post->create(
+			array(
+				'post_content' => self::BLOCK,
+				'post_date'    => '2026-01-01 00:00:00',
+			)
+		);
+		self::factory()->post->create(
+			array(
+				'post_content' => '<!-- wp:blockroll/blogroll {"links":[{"url":"https://c.example/","name":"C"}]} /-->',
+				'post_date'    => '2026-06-01 00:00:00',
+			)
+		);
+		ob_start();
+		\Blockroll\Opml::following();
+		$doc = new SimpleXMLElement( ob_get_clean() );
+		$this->assertSame( get_post_modified_time( 'r', true, $with_feed ), (string) $doc->head->dateModified );
+	}
+
+	public function test_etag_matches_weak_and_listed_tags() {
+		$etag = '"abc"';
+		$this->assertTrue( \Blockroll\Opml::etag_matches( $etag, '"abc"' ) );
+		$this->assertTrue( \Blockroll\Opml::etag_matches( $etag, 'W/"abc"' ) );
+		$this->assertTrue( \Blockroll\Opml::etag_matches( $etag, '"x", "abc"' ) );
+		$this->assertTrue( \Blockroll\Opml::etag_matches( $etag, '*' ) );
+		$this->assertFalse( \Blockroll\Opml::etag_matches( $etag, '"x"' ) );
+		$this->assertFalse( \Blockroll\Opml::etag_matches( $etag, '' ) );
+	}
+
+	public function test_well_known_lists_without_blogrolls_are_empty_opml() {
+		foreach ( array( 'directory', 'following' ) as $method ) {
+			ob_start();
+			\Blockroll\Opml::$method( array() );
+			$doc = new SimpleXMLElement( ob_get_clean() );
+			$this->assertCount( 0, $doc->body->outline, $method );
+		}
+	}
+
+	public function test_socialspec_following_adds_the_blogroll_feeds_once() {
+		self::factory()->post->create( array( 'post_content' => self::TWO_NAMED_BLOCKS ) );
+		$bookmark = array(
+			'type'   => 'rss',
+			'text'   => 'Bookmark',
+			'xmlUrl' => 'https://a.example/feed/',
+		);
+		$outlines = \Blockroll\Opml::socialspec_following( array( $bookmark ) );
+
+		$this->assertCount( 2, $outlines );
+		$this->assertSame( $bookmark, $outlines[0], 'A feed SocialSpec lists stays as it is.' );
+		$this->assertSame(
+			array(
+				'type'    => 'rss',
+				'text'    => 'B',
+				'htmlUrl' => 'https://b.example/',
+				'xmlUrl'  => 'https://b.example/feed/',
+			),
+			$outlines[1]
+		);
 	}
 
 	public function test_opml_suffix_is_an_alias_for_the_query_var() {
