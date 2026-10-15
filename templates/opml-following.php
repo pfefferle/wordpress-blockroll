@@ -14,28 +14,20 @@
 
 defined( 'ABSPATH' ) || exit;
 
-// The list is as fresh as its most recently changed blogroll page.
-$blockroll_modified = 0;
-foreach ( $args['posts'] as $blockroll_post ) {
-	$blockroll_modified = max( $blockroll_modified, (int) get_post_modified_time( 'U', true, $blockroll_post ) );
-}
-
 \Blockroll\Opml::prolog();
 ?>
 <opml version="2.0">
-	<head>
-		<title>
-		<?php
+<?php
+load_template(
+	dirname( BLOCKROLL_PLUGIN_FILE ) . '/templates/opml-site-head.php',
+	false,
+	array(
 		/* translators: %s: site name */
-		echo esc_xml( sprintf( __( 'Feeds followed on %s', 'blockroll' ), get_bloginfo( 'name' ) ) );
-		?>
-		</title>
-<?php if ( $blockroll_modified ) : ?>
-		<dateModified><?php echo esc_xml( gmdate( 'r', $blockroll_modified ) ); ?></dateModified>
-<?php endif; ?>
-		<ownerName><?php echo esc_xml( get_bloginfo( 'name' ) ); ?></ownerName>
-		<ownerId><?php echo esc_url( home_url( '/' ) ); ?></ownerId>
-	</head>
+		'title' => sprintf( __( 'Feeds followed on %s', 'blockroll' ), get_bloginfo( 'name' ) ),
+		'posts' => $args['posts'],
+	)
+);
+?>
 	<body>
 <?php echo \Blockroll\Opml::outlines( array( array( 'links' => $args['links'] ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 	</body>

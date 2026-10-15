@@ -141,6 +141,8 @@ Project and support maintained on github at [pfefferle/wordpress-blockroll](http
 * Without any blogroll, `/.well-known/recommendations.opml` now answers with an empty list instead of the home page.
 * Apps on other sites can now read every blogroll file in the browser, not only the list of followed feeds.
 * A blogroll on a page behind a password stays behind it: it is no longer in the lists of the site, and its file only opens once the password was entered.
+* Every list of the whole site also has an address that works without pretty permalinks: `?opml=directory`, `?opml=recommendations` and `?opml=following`.
+* The list of followed feeds opens as a readable page in the browser, like the other blogroll files. It is sent as XML for that, not as `text/x-opml` as FollowSpec suggests.
 
 ### 2.1.1
 

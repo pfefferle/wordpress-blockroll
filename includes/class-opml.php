@@ -8,25 +8,10 @@
 namespace Blockroll;
 
 /**
- * Serve OPML for blogroll pages and a directory of them at the site root
- * and at /.well-known/recommendations.opml, and their feeds at
- * /.well-known/following.opml.
+ * Serve OPML for blogroll pages, and route the files of the whole site:
+ * the Directory, the Recommendations and the Following list.
  */
 class Opml {
-	/**
-	 * Path of the well-known directory OPML, without the leading slash.
-	 *
-	 * See https://opml.org/
-	 */
-	const RECOMMENDATIONS_PATH = '.well-known/recommendations.opml';
-
-	/**
-	 * Path of the well-known following list, without the leading slash.
-	 *
-	 * See https://followspec.org/
-	 */
-	const FOLLOWING_PATH = '.well-known/following.opml';
-
 	/**
 	 * Query var that asks for the OPML of a page instead of its HTML.
 	 *
@@ -35,14 +20,16 @@ class Opml {
 	const QUERY_VAR = 'opml';
 
 	/**
-	 * Value of the `opml` query var that always asks for the directory.
+	 * The files of the whole site, by their value of the `opml` query var.
+	 *
+	 * Each one answers on any URL, so `?opml=following` works with plain
+	 * permalinks too, where the well-known paths do not.
 	 */
-	const DIRECTORY = 'directory';
-
-	/**
-	 * Value of the `opml` query var that always asks for the following list.
-	 */
-	const FOLLOWING = 'following';
+	const FILES = array(
+		Directory::QUERY_VALUE       => Directory::class,
+		Recommendations::QUERY_VALUE => Recommendations::class,
+		Following::QUERY_VALUE       => Following::class,
+	);
 
 	/**
 	 * Query var that picks one blogroll of a page by its HTML anchor.
@@ -74,7 +61,7 @@ class Opml {
 		// a trailing-slash version of themselves.
 		\add_action( 'template_redirect', array( self::class, 'render' ), 9 );
 		\add_action( 'wp_head', array( self::class, 'discovery_link' ) );
-		\add_filter( 'socialspec_following', array( self::class, 'socialspec_following' ) );
+		\add_filter( 'socialspec_following', array( Following::class, 'add_to_socialspec' ) );
 		foreach ( array( 'rss2', 'atom' ) as $feed ) {
 			\add_action( $feed . '_ns', array( self::class, 'feed_namespace_start' ), 1 );
 			\add_action( $feed . '_ns', array( self::class, 'feed_namespace' ), PHP_INT_MAX );
@@ -114,18 +101,17 @@ class Opml {
 	 *               does not serve on this site.
 	 */
 	private static function well_known_rules() {
-		$well_known = array(
-			self::RECOMMENDATIONS_PATH => self::DIRECTORY,
-			self::FOLLOWING_PATH       => self::FOLLOWING,
-		);
-
 		$rules = array();
-		foreach ( $well_known as $path => $value ) {
+		foreach ( self::FILES as $value => $file ) {
+			// Only the files with a well-known path need a rule.
+			if ( ! \defined( $file . '::PATH' ) ) {
+				continue;
+			}
 			// WordPress matches rewrite rules with "#" as the delimiter.
-			$regex = \sprintf( '^%s$', \preg_quote( $path, '#' ) );
+			$regex = \sprintf( '^%s$', \preg_quote( $file::PATH, '#' ) );
 			// With the SocialSpec plugin (https://socialspec.org/), its
 			// following.opml lists the blogroll feeds.
-			$rules[ $regex ] = ( self::FOLLOWING === $value && \defined( 'SOCIALSPEC_VERSION' ) )
+			$rules[ $regex ] = ( Following::class === $file && \defined( 'SOCIALSPEC_VERSION' ) )
 				? null
 				: \sprintf( 'index.php?%s=%s', self::QUERY_VAR, $value );
 		}
@@ -455,99 +441,6 @@ class Opml {
 	}
 
 	/**
-	 * Print the directory OPML listing each listed blogroll's OPML.
-	 *
-	 * @param \WP_Post[]|null $posts Blogroll posts, or null to look them up.
-	 */
-	public static function directory( $posts = null ) {
-		\load_template(
-			\dirname( BLOCKROLL_PLUGIN_FILE ) . '/templates/opml-directory.php',
-			false,
-			array( 'posts' => null === $posts ? Index::get_posts() : $posts )
-		);
-	}
-
-	/**
-	 * Print the following list: the feeds of every listed blogroll in
-	 * one flat list, each feed once.
-	 *
-	 * See https://followspec.org/
-	 *
-	 * @param \WP_Post[]|null $posts Blogroll posts, or null to look them up.
-	 */
-	public static function following( $posts = null ) {
-		$posts = null === $posts ? Index::get_posts() : $posts;
-
-		\load_template(
-			\dirname( BLOCKROLL_PLUGIN_FILE ) . '/templates/opml-following.php',
-			false,
-			array(
-				// Only pages with a feed in the list make it change.
-				'posts' => \array_values(
-					\array_filter(
-						$posts,
-						function ( $post ) {
-							return (bool) self::following_links( array( $post ) );
-						}
-					)
-				),
-				'links' => self::following_links( $posts ),
-			)
-		);
-	}
-
-	/**
-	 * The links of every listed blogroll that have a feed, each feed once.
-	 *
-	 * @param \WP_Post[]|null $posts Blogroll posts, or null to look them up.
-	 * @return array Normalized links.
-	 */
-	public static function following_links( $posts = null ) {
-		$links = array();
-		foreach ( ( null === $posts ? Index::get_posts() : $posts ) as $post ) {
-			foreach ( self::page_links( $post ) as $link ) {
-				// Only a feed can be followed, and the same feed only once.
-				if ( $link['feedUrl'] && ! isset( $links[ $link['feedUrl'] ] ) ) {
-					$links[ $link['feedUrl'] ] = $link;
-				}
-			}
-		}
-		return \array_values( $links );
-	}
-
-	/**
-	 * Add the blogroll feeds to the following list of SocialSpec.
-	 *
-	 * Feeds SocialSpec already lists, from the Link Manager or another
-	 * plugin, are not added again.
-	 *
-	 * @param array $outlines OPML outline attributes, each with an `xmlUrl`.
-	 * @return array The outlines.
-	 */
-	public static function socialspec_following( $outlines ) {
-		$outlines = (array) $outlines;
-		$feeds    = \array_column( $outlines, 'xmlUrl' );
-
-		foreach ( self::following_links() as $link ) {
-			if ( \in_array( $link['feedUrl'], $feeds, true ) ) {
-				continue;
-			}
-
-			$outlines[] = \array_filter(
-				array(
-					'type'        => 'rss',
-					'text'        => $link['name'] ? $link['name'] : $link['url'],
-					'description' => $link['description'],
-					'htmlUrl'     => $link['url'],
-					'xmlUrl'      => $link['feedUrl'],
-				)
-			);
-		}
-
-		return $outlines;
-	}
-
-	/**
 	 * Print the XML prolog and stylesheet line of an OPML document.
 	 */
 	public static function prolog() {
@@ -580,12 +473,10 @@ class Opml {
 			return;
 		}
 
-		// The well-known URLs ask for the directory or the following list,
-		// whatever page they land on.
-		$directory = self::DIRECTORY === $opml;
-		$following = self::FOLLOWING === $opml;
-		$anchor    = (string) \get_query_var( self::GROUP, '' );
-		$post      = ( $directory || $following ) ? null : Index::queried_post();
+		// A file of the whole site answers whatever page it lands on.
+		$file   = \is_string( $opml ) ? ( self::FILES[ $opml ] ?? null ) : null;
+		$anchor = (string) \get_query_var( self::GROUP, '' );
+		$post   = $file ? null : Index::queried_post();
 		// A page whose lists are all unlisted has no file of its own, and
 		// neither has one that is asked for a list it does not hold. It is
 		// then a page without a blogroll: the root still answers with the
@@ -594,99 +485,29 @@ class Opml {
 		if ( $post && ( \post_password_required( $post ) || ! self::requested_groups( $post, $anchor ) ) ) {
 			$post = null;
 		}
-		$posts = ( ! $post && ( $directory || $following || self::is_blogroll_root() ) ) ? Index::get_posts() : array();
+		$posts = ( $file || ( ! $post && self::is_blogroll_root() ) ) ? Index::get_posts() : array();
 
-		// The well-known URLs have no page to fall back to, so they answer
-		// with an empty list rather than the home page.
-		if ( ! $post && ! $posts && ! $directory && ! $following ) {
-			return;
+		// A bare ?opml at the root is the directory, as long as there is a
+		// blogroll at all. A file asked for by its value has no page to
+		// fall back to, so it answers with an empty list instead.
+		if ( ! $file && ! $post ) {
+			if ( ! $posts ) {
+				return;
+			}
+			$file = Directory::class;
 		}
 
 		// Every list is public, so apps on other sites may read it in the
 		// browser as well.
 		\header( 'Access-Control-Allow-Origin: *' );
 
-		if ( $following ) {
-			self::serve_following( $posts );
+		if ( $file ) {
+			$file::serve( $posts );
 		}
 
 		\header( 'Content-Type: text/xml; charset=' . \get_option( 'blog_charset' ) );
-		if ( $post ) {
-			self::for_post( $post, $anchor );
-		} else {
-			self::directory( $posts );
-		}
+		self::for_post( $post, $anchor );
 		exit;
-	}
-
-	/**
-	 * Serve the following list the way FollowSpec readers expect it, and
-	 * exit.
-	 *
-	 * The OPML media type and an ETag, so a reader that asks again with
-	 * If-None-Match gets a 304 while nothing changed. A browser on
-	 * another site asks with OPTIONS first before it sends that header.
-	 *
-	 * See https://followspec.org/
-	 *
-	 * @param \WP_Post[] $posts Blogroll posts.
-	 */
-	private static function serve_following( $posts ) {
-		$method = \strtoupper( \sanitize_text_field( \wp_unslash( $_SERVER['REQUEST_METHOD'] ?? 'GET' ) ) );
-		if ( 'OPTIONS' === $method ) {
-			\status_header( 204 );
-			\header( 'Access-Control-Allow-Methods: GET, HEAD, OPTIONS' );
-			\header( 'Access-Control-Allow-Headers: If-None-Match' );
-			\header( 'Access-Control-Max-Age: 86400' );
-			exit;
-		}
-
-		\ob_start();
-		self::following( $posts );
-		$body = (string) \ob_get_clean();
-		$etag = '"' . \md5( $body ) . '"';
-
-		\header( 'Content-Type: text/x-opml; charset=' . \get_option( 'blog_charset' ) );
-		\header( 'ETag: ' . $etag );
-		\header( 'Access-Control-Expose-Headers: ETag' );
-		\header( 'X-Content-Type-Options: nosniff' );
-
-		if ( self::etag_matches( $etag, \wp_unslash( $_SERVER['HTTP_IF_NONE_MATCH'] ?? '' ) ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Only compared.
-			\status_header( 304 );
-			exit;
-		}
-
-		echo $body; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by the template.
-		exit;
-	}
-
-	/**
-	 * Whether an If-None-Match header matches an ETag.
-	 *
-	 * The weak comparison of RFC 9110, section 13.1.2: a `W/` in front
-	 * of a tag is ignored.
-	 *
-	 * @param string $etag   ETag of the response.
-	 * @param string $header If-None-Match request header.
-	 * @return bool True if the reader has the current version.
-	 */
-	public static function etag_matches( $etag, $header ) {
-		$header = \trim( (string) $header );
-		if ( '*' === $header ) {
-			return true;
-		}
-
-		foreach ( \explode( ',', $header ) as $candidate ) {
-			$candidate = \trim( $candidate );
-			if ( 0 === \strpos( $candidate, 'W/' ) ) {
-				$candidate = \substr( $candidate, 2 );
-			}
-			if ( '' !== $candidate && $candidate === $etag ) {
-				return true;
-			}
-		}
-
-		return false;
 	}
 
 	/**

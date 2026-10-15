@@ -158,7 +158,7 @@ class Test_Opml extends WP_UnitTestCase {
 			)
 		);
 		ob_start();
-		\Blockroll\Opml::directory();
+		\Blockroll\Directory::render();
 		$doc = new SimpleXMLElement( ob_get_clean() );
 		$this->assertSame( 'Tom’s blogroll', (string) $doc->body->outline[0]['text'] );
 	}
@@ -166,7 +166,7 @@ class Test_Opml extends WP_UnitTestCase {
 	public function test_directory_lists_pages_not_links() {
 		$id = self::factory()->post->create( array( 'post_content' => self::BLOCK ) );
 		ob_start();
-		\Blockroll\Opml::directory();
+		\Blockroll\Directory::render();
 		$xml     = ob_get_clean();
 		$doc     = new SimpleXMLElement( $xml );
 		$outline = $doc->body->outline[0];
@@ -189,18 +189,18 @@ class Test_Opml extends WP_UnitTestCase {
 		$this->assertInstanceOf( SimpleXMLElement::class, new SimpleXMLElement( $xml ) );
 	}
 
-	public function test_recommendations_url_asks_for_the_directory() {
+	public function test_recommendations_url_asks_for_the_recommendations() {
 		$this->set_permalink_structure( '/%postname%/' );
-		$this->go_to( home_url( '/' . \Blockroll\Opml::RECOMMENDATIONS_PATH ) );
-		$this->assertSame( \Blockroll\Opml::DIRECTORY, get_query_var( 'opml' ) );
+		$this->go_to( home_url( '/' . \Blockroll\Recommendations::PATH ) );
+		$this->assertSame( \Blockroll\Recommendations::QUERY_VALUE, get_query_var( 'opml' ) );
 		$this->assertFalse( is_404() );
 		$this->set_permalink_structure( '' );
 	}
 
 	public function test_following_url_asks_for_the_following_list() {
 		$this->set_permalink_structure( '/%postname%/' );
-		$this->go_to( home_url( '/' . \Blockroll\Opml::FOLLOWING_PATH ) );
-		$this->assertSame( \Blockroll\Opml::FOLLOWING, get_query_var( 'opml' ) );
+		$this->go_to( home_url( '/' . \Blockroll\Following::PATH ) );
+		$this->assertSame( \Blockroll\Following::QUERY_VALUE, get_query_var( 'opml' ) );
 		$this->assertFalse( is_404() );
 		$this->set_permalink_structure( '' );
 	}
@@ -216,7 +216,7 @@ class Test_Opml extends WP_UnitTestCase {
 			)
 		);
 		ob_start();
-		\Blockroll\Opml::following();
+		\Blockroll\Following::render();
 		$xml = ob_get_clean();
 		$doc = new SimpleXMLElement( $xml );
 
@@ -231,7 +231,7 @@ class Test_Opml extends WP_UnitTestCase {
 	}
 
 	public function test_missing_well_known_rules_are_flushed() {
-		$following = '^' . preg_quote( \Blockroll\Opml::FOLLOWING_PATH, '#' ) . '$';
+		$following = '^' . preg_quote( \Blockroll\Following::PATH, '#' ) . '$';
 		$this->set_permalink_structure( '/%postname%/' );
 		// Rules stored by a version without the following list.
 		$rules = get_option( 'rewrite_rules' );
@@ -242,7 +242,7 @@ class Test_Opml extends WP_UnitTestCase {
 
 		$rules = get_option( 'rewrite_rules' );
 		$this->assertSame( 'index.php?opml=following', $rules[ $following ] );
-		$this->assertSame( 'index.php?opml=directory', $rules[ '^' . preg_quote( \Blockroll\Opml::RECOMMENDATIONS_PATH, '#' ) . '$' ] );
+		$this->assertSame( 'index.php?opml=recommendations', $rules[ '^' . preg_quote( \Blockroll\Recommendations::PATH, '#' ) . '$' ] );
 		$this->set_permalink_structure( '' );
 	}
 
@@ -260,27 +260,38 @@ class Test_Opml extends WP_UnitTestCase {
 			)
 		);
 		ob_start();
-		\Blockroll\Opml::following();
+		\Blockroll\Following::render();
 		$doc = new SimpleXMLElement( ob_get_clean() );
 		$this->assertSame( get_post_modified_time( 'r', true, $with_feed ), (string) $doc->head->dateModified );
 	}
 
 	public function test_etag_matches_weak_and_listed_tags() {
 		$etag = '"abc"';
-		$this->assertTrue( \Blockroll\Opml::etag_matches( $etag, '"abc"' ) );
-		$this->assertTrue( \Blockroll\Opml::etag_matches( $etag, 'W/"abc"' ) );
-		$this->assertTrue( \Blockroll\Opml::etag_matches( $etag, '"x", "abc"' ) );
-		$this->assertTrue( \Blockroll\Opml::etag_matches( $etag, '*' ) );
-		$this->assertFalse( \Blockroll\Opml::etag_matches( $etag, '"x"' ) );
-		$this->assertFalse( \Blockroll\Opml::etag_matches( $etag, '' ) );
+		$this->assertTrue( \Blockroll\Following::etag_matches( $etag, '"abc"' ) );
+		$this->assertTrue( \Blockroll\Following::etag_matches( $etag, 'W/"abc"' ) );
+		$this->assertTrue( \Blockroll\Following::etag_matches( $etag, '"x", "abc"' ) );
+		$this->assertTrue( \Blockroll\Following::etag_matches( $etag, '*' ) );
+		$this->assertFalse( \Blockroll\Following::etag_matches( $etag, '"x"' ) );
+		$this->assertFalse( \Blockroll\Following::etag_matches( $etag, '' ) );
+	}
+
+	public function test_every_site_file_answers_to_its_own_value() {
+		foreach ( \Blockroll\Opml::FILES as $value => $file ) {
+			$this->assertSame( $value, $file::QUERY_VALUE );
+			$this->assertTrue( is_callable( array( $file, 'serve' ) ), $file );
+		}
+		$this->assertSame(
+			array( 'directory', 'recommendations', 'following' ),
+			array_keys( \Blockroll\Opml::FILES )
+		);
 	}
 
 	public function test_well_known_lists_without_blogrolls_are_empty_opml() {
-		foreach ( array( 'directory', 'following' ) as $method ) {
+		foreach ( array( \Blockroll\Directory::class, \Blockroll\Recommendations::class, \Blockroll\Following::class ) as $file ) {
 			ob_start();
-			\Blockroll\Opml::$method( array() );
+			$file::render( array() );
 			$doc = new SimpleXMLElement( ob_get_clean() );
-			$this->assertCount( 0, $doc->body->outline, $method );
+			$this->assertCount( 0, $doc->body->outline, $file );
 		}
 	}
 
@@ -291,7 +302,7 @@ class Test_Opml extends WP_UnitTestCase {
 			'text'   => 'Bookmark',
 			'xmlUrl' => 'https://a.example/feed/',
 		);
-		$outlines = \Blockroll\Opml::socialspec_following( array( $bookmark ) );
+		$outlines = \Blockroll\Following::add_to_socialspec( array( $bookmark ) );
 
 		$this->assertCount( 2, $outlines );
 		$this->assertSame( $bookmark, $outlines[0], 'A feed SocialSpec lists stays as it is.' );
@@ -325,7 +336,7 @@ class Test_Opml extends WP_UnitTestCase {
 	public function test_directory_has_date_modified() {
 		$id = self::factory()->post->create( array( 'post_content' => self::BLOCK ) );
 		ob_start();
-		\Blockroll\Opml::directory();
+		\Blockroll\Directory::render();
 		$xml = ob_get_clean();
 		$doc = new SimpleXMLElement( $xml );
 		$this->assertSame(
@@ -512,7 +523,7 @@ class Test_Opml extends WP_UnitTestCase {
 	public function test_directory_lists_individual_blogrolls_instead_of_the_page_file() {
 		$post = self::factory()->post->create_and_get( array( 'post_content' => self::TWO_ANCHORED_BLOCKS ) );
 		ob_start();
-		\Blockroll\Opml::directory();
+		\Blockroll\Directory::render();
 		$doc = new SimpleXMLElement( ob_get_clean() );
 
 		$this->assertCount( 2, $doc->body->outline );
@@ -532,7 +543,7 @@ class Test_Opml extends WP_UnitTestCase {
 		$content = self::TWO_NAMED_BLOCKS . self::OWN_ONLY;
 		$post    = self::factory()->post->create_and_get( array( 'post_content' => $content ) );
 		ob_start();
-		\Blockroll\Opml::directory();
+		\Blockroll\Directory::render();
 		$doc = new SimpleXMLElement( ob_get_clean() );
 
 		$this->assertCount( 2, $doc->body->outline );
