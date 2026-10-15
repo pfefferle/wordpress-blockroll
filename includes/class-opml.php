@@ -123,8 +123,9 @@ class Opml {
 		foreach ( $well_known as $path => $value ) {
 			// WordPress matches rewrite rules with "#" as the delimiter.
 			$regex = \sprintf( '^%s$', \preg_quote( $path, '#' ) );
-			// With SocialSpec, its following.opml lists the blogroll feeds.
-			$rules[ $regex ] = ( self::FOLLOWING === $value && self::has_socialspec_following() )
+			// With the SocialSpec plugin (https://socialspec.org/), its
+			// following.opml lists the blogroll feeds.
+			$rules[ $regex ] = ( self::FOLLOWING === $value && \defined( 'SOCIALSPEC_VERSION' ) )
 				? null
 				: \sprintf( 'index.php?%s=%s', self::QUERY_VAR, $value );
 		}
@@ -512,21 +513,6 @@ class Opml {
 			}
 		}
 		return \array_values( $links );
-	}
-
-	/**
-	 * Whether the SocialSpec plugin serves /.well-known/following.opml.
-	 *
-	 * The blogroll feeds then go into its list, and this plugin serves
-	 * no file of its own there.
-	 *
-	 * See https://socialspec.org/
-	 *
-	 * @return bool True if SocialSpec has a following.opml.
-	 */
-	private static function has_socialspec_following() {
-		return \class_exists( 'Socialspec\Socialspec' )
-			&& isset( \Socialspec\Socialspec::get_documents()['following.opml'] );
 	}
 
 	/**

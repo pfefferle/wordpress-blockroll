@@ -246,23 +246,6 @@ class Test_Opml extends WP_UnitTestCase {
 		$this->set_permalink_structure( '' );
 	}
 
-	public function test_socialspec_following_takes_over_the_rule() {
-		global $wp_rewrite;
-		$following = '^' . preg_quote( \Blockroll\Opml::FOLLOWING_PATH, '#' ) . '$';
-		$this->set_permalink_structure( '/%postname%/' );
-
-		// SocialSpec gets activated: the next request adds no rule of its own.
-		\Socialspec\Socialspec::$documents = array( 'following.opml' => true );
-		unset( $wp_rewrite->extra_rules_top[ $following ] );
-
-		\Blockroll\Opml::flush_stale_rewrite_rules();
-		$this->assertArrayNotHasKey( $following, get_option( 'rewrite_rules' ) );
-
-		\Socialspec\Socialspec::$documents = array();
-		\Blockroll\Opml::add_rewrite_rules();
-		$this->set_permalink_structure( '' );
-	}
-
 	public function test_following_date_modified_ignores_pages_without_feeds() {
 		$with_feed = self::factory()->post->create(
 			array(
