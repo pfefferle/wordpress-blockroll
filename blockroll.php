@@ -74,12 +74,23 @@ function activate() {
 		$vars[] = 'blockroll-page';
 		// OPML output. A query var rather than a rewrite endpoint: no rewrite
 		// flush, and when the plugin is disabled the URL falls back to the
-		// page itself instead of a 404. Only the well-known URL, which has
-		// no page behind it, gets a rewrite rule of its own.
+		// page itself instead of a 404. Only the well-known URLs, which have
+		// no page behind them, get rewrite rules of their own.
 		$vars[] = Opml::QUERY_VAR;
 		// One blogroll of a page, picked by its HTML anchor.
 		$vars[] = Opml::GROUP;
 		return $vars;
+	}
+);
+
+// The SocialSpec plugin serves a following.opml of its own, and it answers
+// before this one does. Its rewrite rule is built from this list on `init`.
+\add_filter(
+	'socialspec_documents',
+	function ( array $documents ): array {
+		unset( $documents['following.opml'] );
+
+		return $documents;
 	}
 );
 

@@ -189,12 +189,45 @@ class Test_Opml extends WP_UnitTestCase {
 		$this->assertInstanceOf( SimpleXMLElement::class, new SimpleXMLElement( $xml ) );
 	}
 
-	public function test_well_known_url_asks_for_the_directory() {
+	public function test_recommendations_url_asks_for_the_directory() {
 		$this->set_permalink_structure( '/%postname%/' );
-		$this->go_to( home_url( '/' . \Blockroll\Opml::WELL_KNOWN ) );
+		$this->go_to( home_url( '/' . \Blockroll\Opml::RECOMMENDATIONS_PATH ) );
 		$this->assertSame( \Blockroll\Opml::DIRECTORY, get_query_var( 'opml' ) );
 		$this->assertFalse( is_404() );
 		$this->set_permalink_structure( '' );
+	}
+
+	public function test_following_url_asks_for_the_following_list() {
+		$this->set_permalink_structure( '/%postname%/' );
+		$this->go_to( home_url( '/' . \Blockroll\Opml::FOLLOWING_PATH ) );
+		$this->assertSame( \Blockroll\Opml::FOLLOWING, get_query_var( 'opml' ) );
+		$this->assertFalse( is_404() );
+		$this->set_permalink_structure( '' );
+	}
+
+	public function test_following_lists_the_feeds_of_listed_blogrolls_once() {
+		self::factory()->post->create( array( 'post_content' => self::TWO_NAMED_BLOCKS ) );
+		self::factory()->post->create(
+			array(
+				// The same feed again, a link without a feed and an unlisted list.
+				'post_content' => self::BLOCK
+					. '<!-- wp:blockroll/blogroll {"links":[{"url":"https://c.example/","name":"C"}]} /-->'
+					. '<!-- wp:blockroll/blogroll {"listed":false,"links":[{"url":"https://d.example/","name":"D","feedUrl":"https://d.example/feed/"}]} /-->',
+			)
+		);
+		ob_start();
+		\Blockroll\Opml::following();
+		$xml = ob_get_clean();
+		$doc = new SimpleXMLElement( $xml );
+
+		$feeds = array();
+		foreach ( $doc->body->outline as $outline ) {
+			$this->assertCount( 0, $outline->outline, 'The list is flat.' );
+			$feeds[] = (string) $outline['xmlUrl'];
+		}
+		sort( $feeds );
+		$this->assertSame( array( 'https://a.example/feed/', 'https://b.example/feed/' ), $feeds );
+		$this->assertSame( get_bloginfo( 'name' ), (string) $doc->head->ownerName );
 	}
 
 	public function test_opml_suffix_is_an_alias_for_the_query_var() {

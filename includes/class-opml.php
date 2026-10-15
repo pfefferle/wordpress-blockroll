@@ -9,7 +9,8 @@ namespace Blockroll;
 
 /**
  * Serve OPML for blogroll pages and a directory of them at the site root
- * and at /.well-known/recommendations.opml.
+ * and at /.well-known/recommendations.opml, and their feeds at
+ * /.well-known/following.opml.
  */
 class Opml {
 	/**
@@ -17,7 +18,14 @@ class Opml {
 	 *
 	 * See https://opml.org/
 	 */
-	const WELL_KNOWN = '.well-known/recommendations.opml';
+	const RECOMMENDATIONS_PATH = '.well-known/recommendations.opml';
+
+	/**
+	 * Path of the well-known following list, without the leading slash.
+	 *
+	 * See https://followspec.org/
+	 */
+	const FOLLOWING_PATH = '.well-known/following.opml';
 
 	/**
 	 * Query var that asks for the OPML of a page instead of its HTML.
@@ -30,6 +38,11 @@ class Opml {
 	 * Value of the `opml` query var that always asks for the directory.
 	 */
 	const DIRECTORY = 'directory';
+
+	/**
+	 * Value of the `opml` query var that always asks for the following list.
+	 */
+	const FOLLOWING = 'following';
 
 	/**
 	 * Query var that picks one blogroll of a page by its HTML anchor.
@@ -55,8 +68,8 @@ class Opml {
 	 */
 	public static function register() {
 		self::add_rewrite_rules();
-		// Before redirect_canonical, which would send the well-known URL to a
-		// trailing-slash version of itself.
+		// Before redirect_canonical, which would send the well-known URLs to
+		// a trailing-slash version of themselves.
 		\add_action( 'template_redirect', array( self::class, 'render' ), 9 );
 		\add_action( 'wp_head', array( self::class, 'discovery_link' ) );
 		foreach ( array( 'rss2', 'atom' ) as $feed ) {
@@ -67,25 +80,32 @@ class Opml {
 	}
 
 	/**
-	 * Map the well-known URL to the directory OPML and `.opml` to `?opml`.
+	 * Map the well-known URLs to the directory and the following list,
+	 * and `.opml` to `?opml`.
 	 *
 	 * Also called on activation, before the rules are flushed. Unlike the
-	 * `?opml` query var, the well-known path has no page to fall back to,
-	 * so it needs a rule of its own.
+	 * `?opml` query var, the well-known paths have no page to fall back
+	 * to, so they need rules of their own.
 	 */
 	public static function add_rewrite_rules() {
-		\add_rewrite_rule(
-			// WordPress matches rewrite rules with "#" as the delimiter.
-			\sprintf( '^%s$', \preg_quote( self::WELL_KNOWN, '#' ) ),
-			\sprintf( 'index.php?%s=%s', self::QUERY_VAR, self::DIRECTORY ),
-			'top'
+		$well_known = array(
+			self::RECOMMENDATIONS_PATH => self::DIRECTORY,
+			self::FOLLOWING_PATH       => self::FOLLOWING,
 		);
+		foreach ( $well_known as $path => $value ) {
+			\add_rewrite_rule(
+				// WordPress matches rewrite rules with "#" as the delimiter.
+				\sprintf( '^%s$', \preg_quote( $path, '#' ) ),
+				\sprintf( 'index.php?%s=%s', self::QUERY_VAR, $value ),
+				'top'
+			);
+		}
 		// A `.opml` suffix as an alias for `?opml` on pages, so the URL
 		// looks like a file: /blogroll.opml. The query var stays the
 		// canonical form; it also works with plain permalinks.
 		// This rule matches the well-known path too. Rules keep the order
-		// they were added in, so the well-known rule above has to stay
-		// above; the well-known test covers that.
+		// they were added in, so the well-known rules above have to stay
+		// above; the well-known tests cover that.
 		\add_rewrite_rule(
 			'^(.+?)\\.opml$',
 			\sprintf( 'index.php?pagename=$matches[1]&%s=', self::QUERY_VAR ),
@@ -405,6 +425,36 @@ class Opml {
 	}
 
 	/**
+	 * Print the following list: the feeds of every listed blogroll in
+	 * one flat list, each feed once.
+	 *
+	 * See https://followspec.org/
+	 *
+	 * @param \WP_Post[]|null $posts Blogroll posts, or null to look them up.
+	 */
+	public static function following( $posts = null ) {
+		$posts = null === $posts ? Index::get_posts() : $posts;
+		$links = array();
+		foreach ( $posts as $post ) {
+			foreach ( self::page_links( $post ) as $link ) {
+				// Only a feed can be followed, and the same feed only once.
+				if ( $link['feedUrl'] && ! isset( $links[ $link['feedUrl'] ] ) ) {
+					$links[ $link['feedUrl'] ] = $link;
+				}
+			}
+		}
+
+		\load_template(
+			\dirname( BLOCKROLL_PLUGIN_FILE ) . '/templates/opml-following.php',
+			false,
+			array(
+				'posts' => $posts,
+				'links' => \array_values( $links ),
+			)
+		);
+	}
+
+	/**
 	 * Print the XML prolog and stylesheet line of an OPML document.
 	 */
 	public static function prolog() {
@@ -437,10 +487,12 @@ class Opml {
 			return;
 		}
 
-		// The well-known URL asks for the directory, whatever page it lands on.
+		// The well-known URLs ask for the directory or the following list,
+		// whatever page they land on.
 		$directory = self::DIRECTORY === $opml;
+		$following = self::FOLLOWING === $opml;
 		$anchor    = (string) \get_query_var( self::GROUP, '' );
-		$post      = $directory ? null : Index::queried_post();
+		$post      = ( $directory || $following ) ? null : Index::queried_post();
 		// A page whose lists are all unlisted has no file of its own, and
 		// neither has one that is asked for a list it does not hold. It is
 		// then a page without a blogroll: the root still answers with the
@@ -448,10 +500,19 @@ class Opml {
 		if ( $post && ! self::requested_groups( $post, $anchor ) ) {
 			$post = null;
 		}
-		$posts = ( ! $post && ( $directory || self::is_blogroll_root() ) ) ? Index::get_posts() : array();
+		$posts = ( ! $post && ( $directory || $following || self::is_blogroll_root() ) ) ? Index::get_posts() : array();
 
 		if ( ! $post && ! $posts ) {
 			return;
+		}
+
+		if ( $following ) {
+			// FollowSpec asks for the OPML media type, and for other sites
+			// to be allowed to read the list from the browser.
+			\header( 'Content-Type: text/x-opml; charset=' . \get_option( 'blog_charset' ) );
+			\header( 'Access-Control-Allow-Origin: *' );
+			self::following( $posts );
+			exit;
 		}
 
 		\header( 'Content-Type: text/xml; charset=' . \get_option( 'blog_charset' ) );
