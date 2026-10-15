@@ -5,7 +5,7 @@
 - Tags: blogroll, podroll, opml, links, feeds
 - Requires at least: 6.8
 - Tested up to: 7.1
-- Stable tag: 2.1.1
+- Stable tag: 2.2.0
 - Requires PHP: 7.4
 - License: GPL-2.0-or-later
 - License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -135,7 +135,7 @@ routes are described in the
 
 Project and support maintained on github at [pfefferle/wordpress-blockroll](https://github.com/pfefferle/wordpress-blockroll).
 
-### Unreleased
+### 2.2.0
 
 * Apps that show who you follow can now find the feeds of your blogrolls at `/.well-known/following.opml`, as described in [FollowSpec](https://followspec.org/). If the SocialSpec plugin is active, the feeds are added to its list instead. See #47.
 * Without any blogroll, `/.well-known/recommendations.opml` now answers with an empty list instead of the home page.
@@ -143,6 +143,9 @@ Project and support maintained on github at [pfefferle/wordpress-blockroll](http
 * A blogroll on a page behind a password stays behind it: it is no longer in the lists of the site, and its file only opens once the password was entered.
 * Every list of the whole site also has an address that works without pretty permalinks: `?opml=directory`, `?opml=recommendations` and `?opml=following`.
 * The list of followed feeds opens as a readable page in the browser, like the other blogroll files. It is sent as XML for that, not as `text/x-opml` as FollowSpec suggests.
+* For developers: `Opml::directory()` and `Opml::DIRECTORY` are gone. Each list of the whole site has a class of its own now, `Directory`, `Recommendations` and `Following`, see the developer documentation.
+* Release archives no longer contain the ESLint configuration.
+* Updated development dependencies.
 
 ### 2.1.1
 
