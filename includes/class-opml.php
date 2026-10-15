@@ -78,29 +78,19 @@ class Opml {
 	 * to, so they need rules of their own.
 	 */
 	public static function add_rewrite_rules() {
-		foreach ( \array_filter( self::well_known_rules() ) as $regex => $query ) {
+		foreach ( \array_filter( self::rewrite_rules() ) as $regex => $query ) {
 			\add_rewrite_rule( $regex, $query, 'top' );
 		}
-		// A `.opml` suffix as an alias for `?opml` on pages, so the URL
-		// looks like a file: /blogroll.opml. The query var stays the
-		// canonical form; it also works with plain permalinks.
-		// This rule matches the well-known path too. Rules keep the order
-		// they were added in, so the well-known rules above have to stay
-		// above; the well-known tests cover that.
-		\add_rewrite_rule(
-			'^(.+?)\\.opml$',
-			\sprintf( 'index.php?pagename=$matches[1]&%s=', self::QUERY_VAR ),
-			'top'
-		);
 	}
 
 	/**
-	 * The rewrite rules of the well-known URLs.
+	 * The rewrite rules of the plugin: the well-known URLs and the `.opml`
+	 * suffix.
 	 *
 	 * @return array Regex => query, or => null for a URL this plugin
 	 *               does not serve on this site.
 	 */
-	private static function well_known_rules() {
+	private static function rewrite_rules() {
 		$rules = array();
 		foreach ( self::FILES as $value => $file ) {
 			// Only the files with a well-known path need a rule.
@@ -115,12 +105,21 @@ class Opml {
 				? null
 				: \sprintf( 'index.php?%s=%s', self::QUERY_VAR, $value );
 		}
+
+		// A `.opml` suffix as an alias for `?opml` on pages, so the URL
+		// looks like a file: /blogroll.opml. The query var stays the
+		// canonical form; it also works with plain permalinks. Nothing
+		// under /.well-known/ is a page, and the files there belong to
+		// whoever serves them, SocialSpec for example, whose rule comes
+		// after this one.
+		$rules['^(?!\\.well-known/)(.+?)\\.opml$'] = \sprintf( 'index.php?pagename=$matches[1]&%s=', self::QUERY_VAR );
+
 		return $rules;
 	}
 
 	/**
-	 * Flush the rewrite rules when the stored well-known rules are out of
-	 * date.
+	 * Flush the rewrite rules when the stored rules of the plugin are out
+	 * of date.
 	 *
 	 * Activation flushes, an update does not, so a new well-known URL
 	 * would stay a 404 on existing sites. The rules also change when
@@ -134,7 +133,7 @@ class Opml {
 			return;
 		}
 
-		foreach ( self::well_known_rules() as $regex => $query ) {
+		foreach ( self::rewrite_rules() as $regex => $query ) {
 			if ( ( $stored[ $regex ] ?? null ) !== $query ) {
 				\flush_rewrite_rules( false );
 				return;

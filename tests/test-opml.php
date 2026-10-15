@@ -317,6 +317,30 @@ class Test_Opml extends WP_UnitTestCase {
 		);
 	}
 
+	public function test_opml_suffix_leaves_well_known_files_of_others_alone() {
+		global $wp_rewrite;
+		$regex = '^\.well-known/(other\.opml)$';
+		add_filter(
+			'query_vars',
+			function ( $vars ) {
+				$vars[] = 'well-known';
+				return $vars;
+			}
+		);
+		// Not /%postname%/: that one makes WordPress check that a page
+		// exists before it takes a page rule, which hides the problem.
+		$this->set_permalink_structure( '/%year%/%monthnum%/%postname%/' );
+		// Added after this plugin's rules, the way SocialSpec adds its own.
+		add_rewrite_rule( $regex, 'index.php?well-known=$matches[1]', 'top' );
+		flush_rewrite_rules( false );
+
+		$this->go_to( home_url( '/.well-known/other.opml' ) );
+		$this->assertSame( 'other.opml', get_query_var( 'well-known' ) );
+
+		unset( $wp_rewrite->extra_rules_top[ $regex ] );
+		$this->set_permalink_structure( '' );
+	}
+
 	public function test_opml_suffix_is_an_alias_for_the_query_var() {
 		$id = self::factory()->post->create(
 			array(
