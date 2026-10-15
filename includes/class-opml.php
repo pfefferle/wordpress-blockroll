@@ -101,18 +101,17 @@ class Opml {
 	 *               does not serve on this site.
 	 */
 	private static function well_known_rules() {
-		$well_known = array(
-			Recommendations::PATH => Recommendations::QUERY_VALUE,
-			Following::PATH       => Following::QUERY_VALUE,
-		);
-
 		$rules = array();
-		foreach ( $well_known as $path => $value ) {
+		foreach ( self::FILES as $value => $file ) {
+			// Only the files with a well-known path need a rule.
+			if ( ! \defined( $file . '::PATH' ) ) {
+				continue;
+			}
 			// WordPress matches rewrite rules with "#" as the delimiter.
-			$regex = \sprintf( '^%s$', \preg_quote( $path, '#' ) );
+			$regex = \sprintf( '^%s$', \preg_quote( $file::PATH, '#' ) );
 			// With the SocialSpec plugin (https://socialspec.org/), its
 			// following.opml lists the blogroll feeds.
-			$rules[ $regex ] = ( Following::QUERY_VALUE === $value && \defined( 'SOCIALSPEC_VERSION' ) )
+			$rules[ $regex ] = ( Following::class === $file && \defined( 'SOCIALSPEC_VERSION' ) )
 				? null
 				: \sprintf( 'index.php?%s=%s', self::QUERY_VAR, $value );
 		}

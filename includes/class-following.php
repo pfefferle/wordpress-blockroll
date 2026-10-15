@@ -30,24 +30,22 @@ class Following {
 	 * @param \WP_Post[]|null $posts Blogroll posts, or null to look them up.
 	 */
 	public static function render( $posts = null ) {
-		$feed_posts = array();
-		$links      = array();
-		foreach ( ( null === $posts ? Index::get_posts() : $posts ) as $post ) {
-			$post_links = self::links( array( $post ) );
-			// Only pages with a feed in the list make it change.
-			if ( $post_links ) {
-				$feed_posts[] = $post;
-			}
-			// The first page that has a feed keeps it.
-			$links += \array_column( $post_links, null, 'feedUrl' );
-		}
+		$posts = null === $posts ? Index::get_posts() : $posts;
 
 		\load_template(
 			\dirname( BLOCKROLL_PLUGIN_FILE ) . '/templates/opml-following.php',
 			false,
 			array(
-				'posts' => $feed_posts,
-				'links' => \array_values( $links ),
+				// Only pages with a feed in the list make it change.
+				'posts' => \array_values(
+					\array_filter(
+						$posts,
+						function ( $post ) {
+							return (bool) self::links( array( $post ) );
+						}
+					)
+				),
+				'links' => self::links( $posts ),
 			)
 		);
 	}
@@ -104,12 +102,12 @@ class Following {
 	}
 
 	/**
-	 * Serve the following list the way FollowSpec readers expect it, and
-	 * exit.
+	 * Serve the following list, and exit.
 	 *
-	 * Sent as XML like every other file of the plugin, so a browser shows
-	 * it with the stylesheet, rather than `text/x-opml`, which browsers do
-	 * not read as XML. With an ETag, so a reader that asks again with
+	 * FollowSpec asks for `text/x-opml`, this sends `text/xml` on purpose:
+	 * browsers only apply the XSLT stylesheet to XML, and with it a visitor
+	 * sees a page instead of raw OPML, like with every other file of the
+	 * plugin. With an ETag, so a reader that asks again with
 	 * If-None-Match gets a 304 while nothing changed. A browser on
 	 * another site asks with OPTIONS first before it sends that header.
 	 *

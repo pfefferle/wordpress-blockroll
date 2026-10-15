@@ -39,7 +39,8 @@ class Directory {
 	 */
 	public static function serve( $posts ) {
 		\header( 'Content-Type: text/xml; charset=' . \get_option( 'blog_charset' ) );
-		self::render( $posts );
+		// static, so a file that extends this one serves its own render().
+		static::render( $posts );
 		exit;
 	}
 }

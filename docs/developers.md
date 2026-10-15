@@ -52,9 +52,11 @@ readers with a 404:
 * `/.well-known/recommendations.opml` is the same directory under a well-known address,
   served by `Recommendations`, so it can part from the one at the root later.
 * `/.well-known/following.opml` lists the feeds of all listed blogrolls in one flat list,
-  each feed once, as described in [FollowSpec](https://followspec.org/). It has an ETag
-  and answers `If-None-Match` with a 304. If the SocialSpec plugin is active, the feeds go
-  into its `following.opml` through the `socialspec_following` filter instead.
+  each feed once, as described in [FollowSpec](https://followspec.org/). Unlike the spec,
+  it is sent as `text/xml` instead of `text/x-opml`, because browsers only apply the XSLT
+  stylesheet to XML. It has an ETag and answers `If-None-Match` with a 304. If the
+  SocialSpec plugin is active, the feeds go into its `following.opml` through the
+  `socialspec_following` filter instead.
 
 The files of the whole site also answer to a value of `opml` on any URL, which works with
 plain permalinks too, where the well-known paths do not: `?opml=directory`,
