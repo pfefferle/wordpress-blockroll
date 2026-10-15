@@ -230,6 +230,28 @@ class Test_Opml extends WP_UnitTestCase {
 		$this->assertSame( get_bloginfo( 'name' ), (string) $doc->head->ownerName );
 	}
 
+	public function test_socialspec_following_adds_the_blogroll_feeds_once() {
+		self::factory()->post->create( array( 'post_content' => self::TWO_NAMED_BLOCKS ) );
+		$bookmark = array(
+			'type'   => 'rss',
+			'text'   => 'Bookmark',
+			'xmlUrl' => 'https://a.example/feed/',
+		);
+		$outlines = \Blockroll\Opml::socialspec_following( array( $bookmark ) );
+
+		$this->assertCount( 2, $outlines );
+		$this->assertSame( $bookmark, $outlines[0], 'A feed SocialSpec lists stays as it is.' );
+		$this->assertSame(
+			array(
+				'type'    => 'rss',
+				'text'    => 'B',
+				'htmlUrl' => 'https://b.example/',
+				'xmlUrl'  => 'https://b.example/feed/',
+			),
+			$outlines[1]
+		);
+	}
+
 	public function test_opml_suffix_is_an_alias_for_the_query_var() {
 		$id = self::factory()->post->create(
 			array(

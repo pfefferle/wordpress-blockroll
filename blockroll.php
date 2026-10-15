@@ -83,17 +83,6 @@ function activate() {
 	}
 );
 
-// The SocialSpec plugin serves a following.opml of its own, and it answers
-// before this one does. Its rewrite rule is built from this list on `init`.
-\add_filter(
-	'socialspec_documents',
-	function ( array $documents ): array {
-		unset( $documents['following.opml'] );
-
-		return $documents;
-	}
-);
-
 \add_action(
 	'rest_api_init',
 	function () {

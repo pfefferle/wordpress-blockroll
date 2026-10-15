@@ -72,6 +72,7 @@ class Opml {
 		// a trailing-slash version of themselves.
 		\add_action( 'template_redirect', array( self::class, 'render' ), 9 );
 		\add_action( 'wp_head', array( self::class, 'discovery_link' ) );
+		\add_filter( 'socialspec_following', array( self::class, 'socialspec_following' ) );
 		foreach ( array( 'rss2', 'atom' ) as $feed ) {
 			\add_action( $feed . '_ns', array( self::class, 'feed_namespace_start' ), 1 );
 			\add_action( $feed . '_ns', array( self::class, 'feed_namespace' ), PHP_INT_MAX );
@@ -88,10 +89,11 @@ class Opml {
 	 * to, so they need rules of their own.
 	 */
 	public static function add_rewrite_rules() {
-		$well_known = array(
-			self::RECOMMENDATIONS_PATH => self::DIRECTORY,
-			self::FOLLOWING_PATH       => self::FOLLOWING,
-		);
+		$well_known = array( self::RECOMMENDATIONS_PATH => self::DIRECTORY );
+		// With SocialSpec, its following.opml lists the blogroll feeds.
+		if ( ! self::has_socialspec_following() ) {
+			$well_known[ self::FOLLOWING_PATH ] = self::FOLLOWING;
+		}
 		foreach ( $well_known as $path => $value ) {
 			\add_rewrite_rule(
 				// WordPress matches rewrite rules with "#" as the delimiter.
@@ -434,8 +436,26 @@ class Opml {
 	 */
 	public static function following( $posts = null ) {
 		$posts = null === $posts ? Index::get_posts() : $posts;
+
+		\load_template(
+			\dirname( BLOCKROLL_PLUGIN_FILE ) . '/templates/opml-following.php',
+			false,
+			array(
+				'posts' => $posts,
+				'links' => self::following_links( $posts ),
+			)
+		);
+	}
+
+	/**
+	 * The links of every listed blogroll that have a feed, each feed once.
+	 *
+	 * @param \WP_Post[]|null $posts Blogroll posts, or null to look them up.
+	 * @return array Normalized links.
+	 */
+	public static function following_links( $posts = null ) {
 		$links = array();
-		foreach ( $posts as $post ) {
+		foreach ( ( null === $posts ? Index::get_posts() : $posts ) as $post ) {
 			foreach ( self::page_links( $post ) as $link ) {
 				// Only a feed can be followed, and the same feed only once.
 				if ( $link['feedUrl'] && ! isset( $links[ $link['feedUrl'] ] ) ) {
@@ -443,15 +463,54 @@ class Opml {
 				}
 			}
 		}
+		return \array_values( $links );
+	}
 
-		\load_template(
-			\dirname( BLOCKROLL_PLUGIN_FILE ) . '/templates/opml-following.php',
-			false,
-			array(
-				'posts' => $posts,
-				'links' => \array_values( $links ),
-			)
-		);
+	/**
+	 * Whether the SocialSpec plugin serves /.well-known/following.opml.
+	 *
+	 * The blogroll feeds then go into its list, and this plugin serves
+	 * no file of its own there.
+	 *
+	 * See https://socialspec.org/
+	 *
+	 * @return bool True if SocialSpec has a following.opml.
+	 */
+	private static function has_socialspec_following() {
+		return \class_exists( '\Socialspec\Socialspec' )
+			&& isset( \Socialspec\Socialspec::get_documents()['following.opml'] );
+	}
+
+	/**
+	 * Add the blogroll feeds to the following list of SocialSpec.
+	 *
+	 * Feeds SocialSpec already lists, from the Link Manager or another
+	 * plugin, are not added again.
+	 *
+	 * @param array $outlines OPML outline attributes, each with an `xmlUrl`.
+	 * @return array The outlines.
+	 */
+	public static function socialspec_following( $outlines ) {
+		$outlines = (array) $outlines;
+		$feeds    = \array_column( $outlines, 'xmlUrl' );
+
+		foreach ( self::following_links() as $link ) {
+			if ( \in_array( $link['feedUrl'], $feeds, true ) ) {
+				continue;
+			}
+
+			$outlines[] = \array_filter(
+				array(
+					'type'        => 'rss',
+					'text'        => $link['name'] ? $link['name'] : $link['url'],
+					'description' => $link['description'],
+					'htmlUrl'     => $link['url'],
+					'xmlUrl'      => $link['feedUrl'],
+				)
+			);
+		}
+
+		return $outlines;
 	}
 
 	/**
