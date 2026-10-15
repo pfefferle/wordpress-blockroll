@@ -7,7 +7,7 @@
  * @var array $args {
  *     Template arguments.
  *
- *     @type \WP_Post[] $posts Posts that contain a blogroll block.
+ *     @type \WP_Post[] $posts Posts with a blogroll that adds a feed to the list.
  *     @type array      $links Normalized links with a feed, each feed once.
  * }
  */

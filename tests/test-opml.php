@@ -231,18 +231,65 @@ class Test_Opml extends WP_UnitTestCase {
 	}
 
 	public function test_missing_well_known_rules_are_flushed() {
+		$following = '^' . preg_quote( \Blockroll\Opml::FOLLOWING_PATH, '#' ) . '$';
 		$this->set_permalink_structure( '/%postname%/' );
 		// Rules stored by a version without the following list.
 		$rules = get_option( 'rewrite_rules' );
-		unset( $rules['^\.well-known/following\.opml$'] );
+		unset( $rules[ $following ] );
 		update_option( 'rewrite_rules', $rules );
 
 		\Blockroll\Opml::flush_stale_rewrite_rules();
 
 		$rules = get_option( 'rewrite_rules' );
-		$this->assertSame( 'index.php?opml=following', $rules['^\.well-known/following\.opml$'] );
-		$this->assertSame( 'index.php?opml=directory', $rules['^\.well-known/recommendations\.opml$'] );
+		$this->assertSame( 'index.php?opml=following', $rules[ $following ] );
+		$this->assertSame( 'index.php?opml=directory', $rules[ '^' . preg_quote( \Blockroll\Opml::RECOMMENDATIONS_PATH, '#' ) . '$' ] );
 		$this->set_permalink_structure( '' );
+	}
+
+	public function test_socialspec_following_takes_over_the_rule() {
+		global $wp_rewrite;
+		$following = '^' . preg_quote( \Blockroll\Opml::FOLLOWING_PATH, '#' ) . '$';
+		$this->set_permalink_structure( '/%postname%/' );
+
+		// SocialSpec gets activated: the next request adds no rule of its own.
+		\Socialspec\Socialspec::$documents = array( 'following.opml' => true );
+		unset( $wp_rewrite->extra_rules_top[ $following ] );
+
+		\Blockroll\Opml::flush_stale_rewrite_rules();
+		$this->assertArrayNotHasKey( $following, get_option( 'rewrite_rules' ) );
+
+		\Socialspec\Socialspec::$documents = array();
+		\Blockroll\Opml::add_rewrite_rules();
+		$this->set_permalink_structure( '' );
+	}
+
+	public function test_following_date_modified_ignores_pages_without_feeds() {
+		$with_feed = self::factory()->post->create(
+			array(
+				'post_content' => self::BLOCK,
+				'post_date'    => '2026-01-01 00:00:00',
+			)
+		);
+		self::factory()->post->create(
+			array(
+				'post_content' => '<!-- wp:blockroll/blogroll {"links":[{"url":"https://c.example/","name":"C"}]} /-->',
+				'post_date'    => '2026-06-01 00:00:00',
+			)
+		);
+		ob_start();
+		\Blockroll\Opml::following();
+		$doc = new SimpleXMLElement( ob_get_clean() );
+		$this->assertSame( get_post_modified_time( 'r', true, $with_feed ), (string) $doc->head->dateModified );
+	}
+
+	public function test_etag_matches_weak_and_listed_tags() {
+		$etag = '"abc"';
+		$this->assertTrue( \Blockroll\Opml::etag_matches( $etag, '"abc"' ) );
+		$this->assertTrue( \Blockroll\Opml::etag_matches( $etag, 'W/"abc"' ) );
+		$this->assertTrue( \Blockroll\Opml::etag_matches( $etag, '"x", "abc"' ) );
+		$this->assertTrue( \Blockroll\Opml::etag_matches( $etag, '*' ) );
+		$this->assertFalse( \Blockroll\Opml::etag_matches( $etag, '"x"' ) );
+		$this->assertFalse( \Blockroll\Opml::etag_matches( $etag, '' ) );
 	}
 
 	public function test_well_known_lists_without_blogrolls_are_empty_opml() {

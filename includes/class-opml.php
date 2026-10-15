@@ -481,7 +481,15 @@ class Opml {
 			\dirname( BLOCKROLL_PLUGIN_FILE ) . '/templates/opml-following.php',
 			false,
 			array(
-				'posts' => $posts,
+				// Only pages with a feed in the list make it change.
+				'posts' => \array_values(
+					\array_filter(
+						$posts,
+						function ( $post ) {
+							return (bool) self::following_links( array( $post ) );
+						}
+					)
+				),
 				'links' => self::following_links( $posts ),
 			)
 		);
@@ -517,7 +525,7 @@ class Opml {
 	 * @return bool True if SocialSpec has a following.opml.
 	 */
 	private static function has_socialspec_following() {
-		return \class_exists( '\Socialspec\Socialspec' )
+		return \class_exists( 'Socialspec\Socialspec' )
 			&& isset( \Socialspec\Socialspec::get_documents()['following.opml'] );
 	}
 
@@ -608,12 +616,7 @@ class Opml {
 		}
 
 		if ( $following ) {
-			// FollowSpec asks for the OPML media type, and for other sites
-			// to be allowed to read the list from the browser.
-			\header( 'Content-Type: text/x-opml; charset=' . \get_option( 'blog_charset' ) );
-			\header( 'Access-Control-Allow-Origin: *' );
-			self::following( $posts );
-			exit;
+			self::serve_following( $posts );
 		}
 
 		\header( 'Content-Type: text/xml; charset=' . \get_option( 'blog_charset' ) );
@@ -623,6 +626,79 @@ class Opml {
 			self::directory( $posts );
 		}
 		exit;
+	}
+
+	/**
+	 * Serve the following list the way FollowSpec readers expect it, and
+	 * exit.
+	 *
+	 * The OPML media type, open to other sites in the browser, and with
+	 * an ETag, so a reader that asks again with If-None-Match gets a 304
+	 * while nothing changed. Such a request from another site asks first
+	 * with OPTIONS.
+	 *
+	 * See https://followspec.org/
+	 *
+	 * @param \WP_Post[] $posts Blogroll posts.
+	 */
+	private static function serve_following( $posts ) {
+		\header( 'Access-Control-Allow-Origin: *' );
+
+		$method = \strtoupper( \sanitize_text_field( \wp_unslash( $_SERVER['REQUEST_METHOD'] ?? 'GET' ) ) );
+		if ( 'OPTIONS' === $method ) {
+			\status_header( 204 );
+			\header( 'Access-Control-Allow-Methods: GET, HEAD, OPTIONS' );
+			\header( 'Access-Control-Allow-Headers: If-None-Match' );
+			\header( 'Access-Control-Max-Age: 86400' );
+			exit;
+		}
+
+		\ob_start();
+		self::following( $posts );
+		$body = (string) \ob_get_clean();
+		$etag = '"' . \md5( $body ) . '"';
+
+		\header( 'Content-Type: text/x-opml; charset=' . \get_option( 'blog_charset' ) );
+		\header( 'ETag: ' . $etag );
+		\header( 'Access-Control-Expose-Headers: ETag' );
+		\header( 'X-Content-Type-Options: nosniff' );
+
+		if ( self::etag_matches( $etag, \wp_unslash( $_SERVER['HTTP_IF_NONE_MATCH'] ?? '' ) ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Only compared.
+			\status_header( 304 );
+			exit;
+		}
+
+		echo $body; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by the template.
+		exit;
+	}
+
+	/**
+	 * Whether an If-None-Match header matches an ETag.
+	 *
+	 * The weak comparison of RFC 9110, section 13.1.2: a `W/` in front
+	 * of a tag is ignored.
+	 *
+	 * @param string $etag   ETag of the response.
+	 * @param string $header If-None-Match request header.
+	 * @return bool True if the reader has the current version.
+	 */
+	public static function etag_matches( $etag, $header ) {
+		$header = \trim( (string) $header );
+		if ( '*' === $header ) {
+			return true;
+		}
+
+		foreach ( \explode( ',', $header ) as $candidate ) {
+			$candidate = \trim( $candidate );
+			if ( 0 === \strpos( $candidate, 'W/' ) ) {
+				$candidate = \substr( $candidate, 2 );
+			}
+			if ( '' !== $candidate && $candidate === $etag ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
