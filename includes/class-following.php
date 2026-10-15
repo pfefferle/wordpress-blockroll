@@ -107,7 +107,9 @@ class Following {
 	 * Serve the following list the way FollowSpec readers expect it, and
 	 * exit.
 	 *
-	 * The OPML media type and an ETag, so a reader that asks again with
+	 * Sent as XML like every other file of the plugin, so a browser shows
+	 * it with the stylesheet, rather than `text/x-opml`, which browsers do
+	 * not read as XML. With an ETag, so a reader that asks again with
 	 * If-None-Match gets a 304 while nothing changed. A browser on
 	 * another site asks with OPTIONS first before it sends that header.
 	 *
@@ -128,7 +130,7 @@ class Following {
 		$body = (string) \ob_get_clean();
 		$etag = '"' . \md5( $body ) . '"';
 
-		\header( 'Content-Type: text/x-opml; charset=' . \get_option( 'blog_charset' ) );
+		\header( 'Content-Type: text/xml; charset=' . \get_option( 'blog_charset' ) );
 		\header( 'ETag: ' . $etag );
 		\header( 'Access-Control-Expose-Headers: ETag' );
 		\header( 'X-Content-Type-Options: nosniff' );
