@@ -49,8 +49,19 @@ readers with a 404:
   so a reader references it instead of keeping a copy. On pages with several listed
   blogrolls, each entry uses its group OPML URL and its name followed by the page title.
   A single listed blogroll keeps the page OPML URL and title. Unlisted blogrolls are excluded.
-* `/.well-known/recommendations.opml` is the same directory under a well-known address.
-  That path has no page behind it, so it does get a rewrite rule, flushed on activation.
+* `/.well-known/recommendations.opml` is the same directory under a well-known address,
+  served by `Recommendations`, so it can part from the one at the root later.
+* `/.well-known/following.opml` lists the feeds of all listed blogrolls in one flat list,
+  each feed once, as described in [FollowSpec](https://followspec.org/). It has an ETag
+  and answers `If-None-Match` with a 304. If the SocialSpec plugin is active, the feeds go
+  into its `following.opml` through the `socialspec_following` filter instead.
+
+The files of the whole site also answer to a value of `opml` on any URL, which works with
+plain permalinks too, where the well-known paths do not: `?opml=directory`,
+`?opml=recommendations` and `?opml=following`. `Opml::FILES` maps each value to its class.
+
+The well-known paths have no page behind them, so they do get rewrite rules. They are
+flushed on activation, and on the first request after an update that changed them.
 
 A page with more than one blogroll groups them, one `<outline>` per block with the
 links nested inside it. The group name is the one WordPress keeps when a block is
@@ -184,7 +195,10 @@ wordpress-blockroll/
 │   ├── class-discovery.php    # extracts feed, name, description, photo from HTML
 │   ├── class-import.php       # OPML parsing
 │   ├── class-links.php        # link normalizing and sorting
-│   ├── class-opml.php         # opml output + head discovery links
+│   ├── class-opml.php         # page opml, head discovery links, routing of all opml
+│   ├── class-directory.php    # directory of all blogrolls at /?opml
+│   ├── class-recommendations.php # /.well-known/recommendations.opml
+│   ├── class-following.php    # /.well-known/following.opml
 │   ├── class-anchors.php      # anchor of each list, added on read, written once
 │   ├── class-index.php        # private taxonomy, kept in sync on save
 │   ├── class-xfn.php          # XFN vocabulary and rel helper
@@ -193,7 +207,9 @@ wordpress-blockroll/
 │       └── class-import-controller.php      # POST blockroll/v1/import
 ├── templates/
 │   ├── opml.php               # OPML of one blogroll page
-│   └── opml-directory.php     # directory of all listed blogrolls
+│   ├── opml-directory.php     # directory of all listed blogrolls
+│   ├── opml-following.php     # feeds of all listed blogrolls
+│   └── opml-site-head.php     # head of the directory and the following list
 ├── src/blogroll/
 │   ├── block.json             # block metadata and attributes
 │   ├── render.php             # PHP frontend rendering
