@@ -93,7 +93,8 @@ You do not have to tell anyone about it. Pages with a blogroll announce it in th
 HTML, and so does your homepage, so a reader that looks for it will find it. Sites that
 collect blogrolls look at `https://example.com/.well-known/recommendations.opml`, which
 lists all blogrolls on your site. Apps that show who you follow look at
-`https://example.com/.well-known/following.opml`, one list of all the feeds in them.
+`https://example.com/.well-known/following.opml`, one list of all the feeds in them, as
+described in [FollowSpec](https://followspec.org/), part of [SocialSpec](https://socialspec.org/).
 
 There is also a download link under the list, for people who prefer a file.
 
