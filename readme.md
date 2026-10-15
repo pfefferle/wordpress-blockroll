@@ -135,6 +135,11 @@ routes are described in the
 
 Project and support maintained on github at [pfefferle/wordpress-blockroll](https://github.com/pfefferle/wordpress-blockroll).
 
+### Unreleased
+
+* Apps that show who you follow can now find the feeds of your blogrolls at `/.well-known/following.opml`, as described in [FollowSpec](https://followspec.org/). If the SocialSpec plugin is active, the feeds are added to its list instead. See #47.
+* Without any blogroll, `/.well-known/recommendations.opml` now answers with an empty list instead of the home page.
+
 ### 2.1.1
 
 * The site-wide OPML index now lists each listed blogroll separately, with its own name and subscription address, instead of combining all lists on a page into one entry. Unlisted blogrolls stay out of the index.
