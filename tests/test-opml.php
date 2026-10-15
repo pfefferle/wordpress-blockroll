@@ -494,6 +494,19 @@ class Test_Opml extends WP_UnitTestCase {
 		$this->assertSame( '', ob_get_clean() );
 	}
 
+	public function test_password_protected_page_has_no_discovery_link() {
+		$id = self::factory()->post->create(
+			array(
+				'post_content'  => self::BLOCK,
+				'post_password' => 'secret',
+			)
+		);
+		$this->go_to( get_permalink( $id ) );
+		ob_start();
+		\Blockroll\Opml::discovery_link();
+		$this->assertSame( '', ob_get_clean() );
+	}
+
 	const TWO_ANCHORED_BLOCKS = '<!-- wp:blockroll/blogroll {"anchor":"blogs","metadata":{"name":"Blogs"},"links":[{"url":"https://a.example/","name":"A","feedUrl":"https://a.example/feed/"}]} /--><!-- wp:blockroll/blogroll {"anchor":"podcasts","metadata":{"name":"Podcasts"},"links":[{"url":"https://b.example/","name":"B","feedUrl":"https://b.example/feed/"}]} /-->';
 
 	public function test_directory_lists_individual_blogrolls_instead_of_the_page_file() {

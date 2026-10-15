@@ -40,6 +40,17 @@ class Test_Index extends WP_UnitTestCase {
 		$this->assertSame( array( $id ), $found );
 	}
 
+	public function test_get_posts_leaves_out_password_protected_posts() {
+		$id = self::factory()->post->create( array( 'post_content' => self::BLOCK ) );
+		self::factory()->post->create(
+			array(
+				'post_content'  => self::BLOCK,
+				'post_password' => 'secret',
+			)
+		);
+		$this->assertSame( array( $id ), wp_list_pluck( \Blockroll\Index::get_posts(), 'ID' ) );
+	}
+
 	public function test_has_blogroll_reads_the_content() {
 		$id = self::factory()->post->create( array( 'post_content' => self::BLOCK ) );
 		// Simulate content that was never synced: drop the term.

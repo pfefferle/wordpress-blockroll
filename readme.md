@@ -140,6 +140,7 @@ Project and support maintained on github at [pfefferle/wordpress-blockroll](http
 * Apps that show who you follow can now find the feeds of your blogrolls at `/.well-known/following.opml`, as described in [FollowSpec](https://followspec.org/). If the SocialSpec plugin is active, the feeds are added to its list instead. See #47.
 * Without any blogroll, `/.well-known/recommendations.opml` now answers with an empty list instead of the home page.
 * Apps on other sites can now read every blogroll file in the browser, not only the list of followed feeds.
+* A blogroll on a page behind a password stays behind it: it is no longer in the lists of the site, and its file only opens once the password was entered.
 
 ### 2.1.1
 
