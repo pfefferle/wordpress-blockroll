@@ -21,6 +21,7 @@ $blockroll_owner = get_the_author_meta( 'display_name', $args['post']->post_auth
 \Blockroll\Opml::prolog();
 ?>
 <opml version="2.0">
+<?php \Blockroll\Opml::script(); ?>
 	<head>
 		<title><?php echo esc_xml( $args['title'] ); ?></title>
 		<dateModified><?php echo esc_xml( get_post_modified_time( 'r', true, $args['post'] ) ); ?></dateModified>

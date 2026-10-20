@@ -17,20 +17,23 @@ Please test and contribute to the discussion:
 				<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 				<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
 				<style type="text/css">
+					:root { color-scheme: light dark; --accent: #2271b1; --muted: #646970; --line: #dcdcde; --intro: #f0f6fc; }
+					@media (prefers-color-scheme: dark) { :root { --accent: #72aee6; --muted: #a7aaad; --line: #3c434a; --intro: #1d2327; } }
 					* { box-sizing: border-box; }
 					svg { max-width: 100%; }
+					a { color: var(--accent); }
 					body { --gap: 5vw; margin: 0; font-family: system-ui; line-height: 1.7; }
 					h1,h2,h3 { margin-block-start: 0; margin-block-end: 0; }
 					.pb-5 { padding-bottom: calc(var(--gap) / 3); }
-					.meta { color: #676767; }
+					.meta { color: var(--muted); }
 					.group {
 						font-size: 0.9rem;
 						text-transform: uppercase;
 						letter-spacing: 0.08em;
-						color: #676767;
+						color: var(--muted);
 						padding-block-end: 0.4rem;
 						margin-block-end: 1rem;
-						border-block-end: 1px solid #e5e5e5;
+						border-block-end: 1px solid var(--line);
 					}
 					.container {
 						display: grid;
@@ -40,7 +43,7 @@ Please test and contribute to the discussion:
 						margin: auto;
 					}
 					.intro {
-						background-color: #F0F8FF;
+						background-color: var(--intro);
 						margin-block-end: var(--gap);
 						padding-block: calc(var(--gap) / 2);
 					}
@@ -55,6 +58,7 @@ Please test and contribute to the discussion:
 						align-items: center;
 						}
 					}
+					.intro svg { width: 5rem; height: auto; justify-self: end; }
 					.recent {
 						padding-block-end: var(--gap);
 					}
@@ -74,7 +78,7 @@ Please test and contribute to the discussion:
 					.feeds .format {
 						font-weight: 600;
 						font-size: 0.8rem;
-						color: #264fa1;
+						color: var(--accent);
 					}
 					.feeds .url {
 						min-width: 0;
@@ -84,14 +88,14 @@ Please test and contribute to the discussion:
 					}
 					.feeds .subscribe {
 						padding: 0.15em 0.7em;
-						border: 1px solid #d0d7de;
+						border: 1px solid var(--line);
 						border-radius: 6px;
 						font-size: 0.8rem;
 						text-decoration: none;
 						white-space: nowrap;
 					}
 					.feeds .subscribe:hover {
-						border-color: #264fa1;
+						border-color: var(--accent);
 					}
 					@media (max-width: 32rem) {
 						.feeds li {
