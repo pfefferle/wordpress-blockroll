@@ -17,6 +17,7 @@ defined( 'ABSPATH' ) || exit;
 \Blockroll\Opml::prolog();
 ?>
 <opml version="2.0">
+<?php \Blockroll\Opml::script(); ?>
 <?php
 load_template(
 	dirname( BLOCKROLL_PLUGIN_FILE ) . '/templates/opml-site-head.php',

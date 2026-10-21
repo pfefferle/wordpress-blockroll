@@ -451,6 +451,46 @@ class Opml {
 	}
 
 	/**
+	 * Print the script that shows an OPML document in browsers without XSLT.
+	 *
+	 * Browsers with XSLT apply the stylesheet and do not run the script. The
+	 * labels are translated here and passed to the script in a JSON script
+	 * element. Both have to be inside the root element.
+	 */
+	public static function script() {
+		$l10n = array(
+			'intro'       => \sprintf(
+				/* translators: %1$s: opening strong tag; %2$s: closing strong tag. */
+				\esc_html__( '%1$sThis is an OPML subscription list.%2$s OPML lets you move a collection of subscriptions between feed readers.', 'blockroll' ),
+				'<strong>',
+				'</strong>'
+			),
+			'import'      => \__( 'Copy this page’s URL and use your feed reader’s import feature to add the whole list at once.', 'blockroll' ),
+			'learnMore'   => \sprintf(
+				/* translators: %1$s: opening link tag to opml.org; %2$s: closing link tag. */
+				\esc_html__( 'Learn more about OPML and compatible apps at %1$sOPML.org%2$s.', 'blockroll' ),
+				'<a href="https://opml.org/">',
+				'</a>'
+			),
+			'icon'        => \__( 'OPML icon', 'blockroll' ),
+			/* translators: %s: Date the list was last modified. */
+			'lastUpdated' => \__( 'Last updated %s', 'blockroll' ),
+			'subscribe'   => \__( 'Subscribe', 'blockroll' ),
+			'subscribeIn' => \__( 'Subscribe in your feed reader', 'blockroll' ),
+		);
+
+		\printf(
+			"\t" . '<script xmlns="http://www.w3.org/1999/xhtml" type="application/json" id="blockroll-opml-l10n">%s</script>' . "\n",
+			\htmlspecialchars( \wp_json_encode( $l10n ), ENT_XML1 | ENT_NOQUOTES | ENT_SUBSTITUTE, 'UTF-8' ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped for XML.
+		);
+
+		\printf(
+			"\t" . '<script xmlns="http://www.w3.org/1999/xhtml" src="%s" defer=""/>' . "\n", // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedScript -- An OPML document has no wp_head().
+			\esc_url( \add_query_arg( 'ver', \filemtime( \dirname( BLOCKROLL_PLUGIN_FILE ) . '/templates/opml.js' ), \plugins_url( 'templates/opml.js', BLOCKROLL_PLUGIN_FILE ) ) )
+		);
+	}
+
+	/**
 	 * Whether this request is the site root, where the directory lives.
 	 *
 	 * @return bool True on the front page or the blog home.
