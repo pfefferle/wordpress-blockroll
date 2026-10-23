@@ -20,6 +20,14 @@ class Opml {
 	const QUERY_VAR = 'opml';
 
 	/**
+	 * The stylesheet "version".
+	 *
+	 * Used as the value of the version query argument of the stylesheet and the
+	 * script, so that browsers re-fetch them when the markup or translations change.
+	 */
+	const STYLESHEET_VERSION = '1';
+
+	/**
 	 * The files of the whole site, by their value of the `opml` query var.
 	 *
 	 * Each one answers on any URL, so `?opml=following` works with plain
@@ -446,7 +454,7 @@ class Opml {
 		echo '<?xml version="1.0" encoding="' . \esc_attr( \get_option( 'blog_charset' ) ) . '"?>' . "\n";
 		\printf(
 			'<?xml-stylesheet type="text/xsl" href="%s"?>' . "\n",
-			\esc_url( \plugins_url( 'templates/opml.xsl', BLOCKROLL_PLUGIN_FILE ) )
+			\esc_url( \add_query_arg( 'ver', self::STYLESHEET_VERSION, \plugins_url( 'templates/opml.xsl', BLOCKROLL_PLUGIN_FILE ) ) )
 		);
 	}
 
@@ -486,7 +494,7 @@ class Opml {
 
 		\printf(
 			"\t" . '<script xmlns="http://www.w3.org/1999/xhtml" src="%s" defer=""/>' . "\n", // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedScript -- An OPML document has no wp_head().
-			\esc_url( \add_query_arg( 'ver', \filemtime( \dirname( BLOCKROLL_PLUGIN_FILE ) . '/templates/opml.js' ), \plugins_url( 'templates/opml.js', BLOCKROLL_PLUGIN_FILE ) ) )
+			\esc_url( \add_query_arg( 'ver', self::STYLESHEET_VERSION, \plugins_url( 'templates/opml.js', BLOCKROLL_PLUGIN_FILE ) ) )
 		);
 	}
 
