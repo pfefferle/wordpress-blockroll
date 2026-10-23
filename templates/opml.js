@@ -1,17 +1,44 @@
 /**
- * Shows an OPML document of the plugin as a page in browsers without XSLT.
+ * Shows an OPML document of the plugin as a page in the browser.
  *
- * Browsers with XSLT apply opml.xsl and never run this script. The others
- * run it, because the OPML has an XHTML script element in it, and it
- * replaces the XML with the same page as the stylesheet, see
+ * Browsers run this script when they get the OPML as XML with an XHTML
+ * script element in it. It replaces the XML with HTML, see
  * https://jakearchibald.com/2025/making-xml-human-readable-without-xslt/
  *
- * The translated labels are passed in a JSON script element with the id
- * "blockroll-opml-l10n".
+ * Translations are loaded the WordPress way: the JSON of the script is
+ * passed in a script element with the id "blockroll-opml-translations".
  */
 ( function () {
 	const XHTML = 'http://www.w3.org/1999/xhtml';
+	const DOMAIN = 'blockroll';
+	const i18n = window.wp && window.wp.i18n;
+	const __ = i18n ? i18n.__ : ( text ) => text;
+	const sprintf = i18n
+		? i18n.sprintf
+		: ( text, ...args ) =>
+				text.replace(
+					/%(?:(\d)\$)?s/g,
+					( match, index ) => args[ index ? index - 1 : 0 ] ?? ''
+				);
 	const opml = document.documentElement;
+	let lang = '';
+
+	// Before anything is translated.
+	const translations = document.getElementById(
+		'blockroll-opml-translations'
+	);
+	if ( i18n && translations ) {
+		try {
+			const data = JSON.parse( translations.textContent );
+			const localeData =
+				data.locale_data[ DOMAIN ] || data.locale_data.messages;
+			localeData[ '' ].domain = DOMAIN;
+			lang = ( localeData[ '' ].lang || '' ).replace( '_', '-' );
+			i18n.setLocaleData( localeData, DOMAIN );
+		} catch {
+			// Untranslated then.
+		}
+	}
 
 	/**
 	 * Creates an HTML element. Text is added as text, never as markup.
@@ -101,9 +128,6 @@
 	// Chrome ignores defer in XML documents and runs the script before the
 	// rest of the document is parsed.
 	document.addEventListener( 'DOMContentLoaded', () => {
-		const l10n = JSON.parse(
-			document.getElementById( 'blockroll-opml-l10n' ).textContent
-		);
 		const title = opml.querySelector( 'head > title' )?.textContent || '';
 		const modified = opml.querySelector(
 			'head > dateModified'
@@ -146,12 +170,15 @@
 									'a',
 									{
 										class: 'subscribe',
-										title: l10n.subscribeIn,
+										title: __(
+											'Subscribe in your feed reader',
+											'blockroll'
+										),
 										...( href
 											? { href: 'feed:' + href }
 											: {} ),
 									},
-									l10n.subscribe
+									__( 'Subscribe', 'blockroll' )
 								)
 							)
 					  )
@@ -276,11 +303,14 @@
 				<path fill="#fff" d="M128 35a93 93 0 1 0 93 93A93 93 0 0 0 128 35Zm0 158a65 65 0 1 1 65-65A65 65 0 0 1 128 193Z"/>
 			</svg>
 		` ).find( ( node ) => 'svg' === node.localName );
-		icon.querySelector( 'title' ).textContent = l10n.icon;
+		icon.querySelector( 'title' ).textContent = __(
+			'OPML icon',
+			'blockroll'
+		);
 
 		const html = el(
 			'html',
-			{},
+			lang ? { lang } : {},
 			el(
 				'head',
 				{},
@@ -304,12 +334,51 @@
 						el(
 							'div',
 							{},
-							el( 'p', {}, ...markup( l10n.intro ) ),
-							el( 'p', {}, el( 'small', {}, l10n.import ) ),
 							el(
 								'p',
 								{},
-								el( 'small', {}, ...markup( l10n.learnMore ) )
+								...markup(
+									sprintf(
+										/* translators: %1$s: opening strong tag; %2$s: closing strong tag. */
+										__(
+											'%1$sThis is an OPML subscription list.%2$s OPML lets you move a collection of subscriptions between feed readers.',
+											'blockroll'
+										),
+										'<strong>',
+										'</strong>'
+									)
+								)
+							),
+							el(
+								'p',
+								{},
+								el(
+									'small',
+									{},
+									__(
+										'Copy this page’s URL and use your feed reader’s import feature to add the whole list at once.',
+										'blockroll'
+									)
+								)
+							),
+							el(
+								'p',
+								{},
+								el(
+									'small',
+									{},
+									...markup(
+										sprintf(
+											/* translators: %1$s: opening link tag to opml.org; %2$s: closing link tag. */
+											__(
+												'Learn more about OPML and compatible apps at %1$sOPML.org%2$s.',
+												'blockroll'
+											),
+											'<a href="https://opml.org/">',
+											'</a>'
+										)
+									)
+								)
 							)
 						),
 						icon
@@ -326,7 +395,11 @@
 							? el(
 									'p',
 									{ class: 'meta' },
-									l10n.lastUpdated.replace( '%s', modified )
+									sprintf(
+										/* translators: %s: Date the list was last modified. */
+										__( 'Last updated %s', 'blockroll' ),
+										modified
+									)
 							  )
 							: null
 					),

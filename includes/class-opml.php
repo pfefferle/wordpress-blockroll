@@ -20,12 +20,9 @@ class Opml {
 	const QUERY_VAR = 'opml';
 
 	/**
-	 * The stylesheet "version".
-	 *
-	 * Used as the value of the version query argument of the stylesheet and the
-	 * script, so that browsers re-fetch them when the markup or translations change.
+	 * The handle of the script that shows OPML documents in the browser.
 	 */
-	const STYLESHEET_VERSION = '1';
+	const SCRIPT = 'blockroll-opml';
 
 	/**
 	 * The files of the whole site, by their value of the `opml` query var.
@@ -448,54 +445,89 @@ class Opml {
 	}
 
 	/**
-	 * Print the XML prolog and stylesheet line of an OPML document.
+	 * Print the XML prolog of an OPML document.
 	 */
 	public static function prolog() {
 		echo '<?xml version="1.0" encoding="' . \esc_attr( \get_option( 'blog_charset' ) ) . '"?>' . "\n";
-		\printf(
-			'<?xml-stylesheet type="text/xsl" href="%s"?>' . "\n",
-			\esc_url( \add_query_arg( 'ver', self::STYLESHEET_VERSION, \plugins_url( 'templates/opml.xsl', BLOCKROLL_PLUGIN_FILE ) ) )
-		);
 	}
 
 	/**
-	 * Print the script that shows an OPML document in browsers without XSLT.
+	 * Print the script that shows an OPML document as a page in the browser.
 	 *
-	 * Browsers with XSLT apply the stylesheet and do not run the script. The
-	 * labels are translated here and passed to the script in a JSON script
-	 * element. Both have to be inside the root element.
+	 * Translations are loaded the WordPress way: the JSON of the script is
+	 * passed in a script element with the id "blockroll-opml-translations".
+	 * Both have to be inside the root element.
 	 */
 	public static function script() {
-		$l10n = array(
-			'intro'       => \sprintf(
-				/* translators: %1$s: opening strong tag; %2$s: closing strong tag. */
-				\esc_html__( '%1$sThis is an OPML subscription list.%2$s OPML lets you move a collection of subscriptions between feed readers.', 'blockroll' ),
-				'<strong>',
-				'</strong>'
-			),
-			'import'      => \__( 'Copy this page’s URL and use your feed reader’s import feature to add the whole list at once.', 'blockroll' ),
-			'learnMore'   => \sprintf(
-				/* translators: %1$s: opening link tag to opml.org; %2$s: closing link tag. */
-				\esc_html__( 'Learn more about OPML and compatible apps at %1$sOPML.org%2$s.', 'blockroll' ),
-				'<a href="https://opml.org/">',
-				'</a>'
-			),
-			'icon'        => \__( 'OPML icon', 'blockroll' ),
-			/* translators: %s: Date the list was last modified. */
-			'lastUpdated' => \__( 'Last updated %s', 'blockroll' ),
-			'subscribe'   => \__( 'Subscribe', 'blockroll' ),
-			'subscribeIn' => \__( 'Subscribe in your feed reader', 'blockroll' ),
-		);
+		$urls         = self::get_script_urls();
+		$translations = \load_script_textdomain( self::SCRIPT, 'blockroll' );
 
-		\printf(
-			"\t" . '<script xmlns="http://www.w3.org/1999/xhtml" type="application/json" id="blockroll-opml-l10n">%s</script>' . "\n",
-			\htmlspecialchars( \wp_json_encode( $l10n ), ENT_XML1 | ENT_NOQUOTES | ENT_SUBSTITUTE, 'UTF-8' ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped for XML.
-		);
+		if ( $translations ) {
+			\printf(
+				"\t" . '<script xmlns="http://www.w3.org/1999/xhtml" type="application/json" id="blockroll-opml-translations">%s</script>' . "\n",
+				\htmlspecialchars( $translations, ENT_XML1 | ENT_NOQUOTES | ENT_SUBSTITUTE, 'UTF-8' ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped for XML.
+			);
+		}
 
-		\printf(
-			"\t" . '<script xmlns="http://www.w3.org/1999/xhtml" src="%s" defer=""/>' . "\n", // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedScript -- An OPML document has no wp_head().
-			\esc_url( \add_query_arg( 'ver', self::STYLESHEET_VERSION, \plugins_url( 'templates/opml.js', BLOCKROLL_PLUGIN_FILE ) ) )
-		);
+		foreach ( $urls as $src ) {
+			\printf(
+				"\t" . '<script xmlns="http://www.w3.org/1999/xhtml" src="%s" defer=""/>' . "\n", // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedScript -- An OPML document has no wp_head().
+				\htmlspecialchars( $src, ENT_XML1 | ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8' ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped for XML.
+			);
+		}
+	}
+
+	/**
+	 * The URLs of the script that shows an OPML document in the browser and
+	 * of its dependencies, in load order.
+	 *
+	 * The script is registered like any other, with wp-i18n for the
+	 * translations. An XML document has no wp_head(), so the URLs are built
+	 * from the registry like WP_Scripts does.
+	 *
+	 * @return string[] The script URLs.
+	 */
+	private static function get_script_urls() {
+		$scripts = \wp_scripts();
+
+		if ( ! $scripts->query( self::SCRIPT ) ) {
+			\wp_register_script(
+				self::SCRIPT,
+				\plugins_url( 'templates/opml.js', BLOCKROLL_PLUGIN_FILE ),
+				array( 'wp-i18n' ),
+				BLOCKROLL_VERSION,
+				array( 'strategy' => 'defer' )
+			);
+		}
+
+		$scripts->all_deps( self::SCRIPT );
+		$handles        = $scripts->to_do;
+		$scripts->to_do = array();
+		$urls           = array();
+
+		foreach ( $handles as $handle ) {
+			$script = $scripts->registered[ $handle ];
+
+			// Aliases like "jquery" have no source of their own.
+			if ( ! $script->src ) {
+				continue;
+			}
+
+			$src = $script->src;
+
+			if ( ! \preg_match( '|^(https?:)?//|', $src ) && ! ( $scripts->content_url && 0 === \strpos( $src, $scripts->content_url ) ) ) {
+				$src = $scripts->base_url . $src;
+			}
+
+			if ( null !== $script->ver ) {
+				$src = \add_query_arg( 'ver', $script->ver ? $script->ver : $scripts->default_version, $src );
+			}
+
+			/** This filter is documented in wp-includes/class-wp-scripts.php */
+			$urls[] = (string) \apply_filters( 'script_loader_src', $src, $handle ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- A core filter.
+		}
+
+		return $urls;
 	}
 
 	/**

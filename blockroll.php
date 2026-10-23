@@ -19,6 +19,7 @@ namespace Blockroll;
 
 defined( 'ABSPATH' ) || exit;
 
+define( 'BLOCKROLL_VERSION', '2.2.0' );
 define( 'BLOCKROLL_PLUGIN_FILE', __FILE__ );
 
 \spl_autoload_register(
