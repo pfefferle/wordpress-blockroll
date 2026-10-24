@@ -5,7 +5,7 @@
 - Tags: blogroll, podroll, opml, links, feeds
 - Requires at least: 6.8
 - Tested up to: 7.1
-- Stable tag: 2.2.0
+- Stable tag: 2.3.0
 - Requires PHP: 7.4
 - License: GPL-2.0-or-later
 - License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -134,6 +134,15 @@ routes are described in the
 ## Changelog
 
 Project and support maintained on github at [pfefferle/wordpress-blockroll](https://github.com/pfefferle/wordpress-blockroll).
+
+### 2.3.0
+
+* Blogroll files now also open as a readable page in browsers without XSLT. A small script builds the page instead of the XSL stylesheet. See #52.
+* The readable page follows the dark mode of the system, and its icon is centered on small screens.
+* The text of the readable page can be translated now, like the rest of the plugin.
+* For developers: `templates/opml.xsl` is gone. The files load `templates/opml.js` instead, registered as the `blockroll-opml` script.
+* The plugin has an icon and banners for the plugin directory now.
+* Updated development dependencies.
 
 ### 2.2.0
 

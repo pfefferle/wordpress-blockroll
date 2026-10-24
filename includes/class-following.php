@@ -105,7 +105,7 @@ class Following {
 	 * Serve the following list, and exit.
 	 *
 	 * FollowSpec asks for `text/x-opml`, this sends `text/xml` on purpose:
-	 * browsers only apply the XSLT stylesheet to XML, and with it a visitor
+	 * browsers only run the script of the file in XML, and with it a visitor
 	 * sees a page instead of raw OPML, like with every other file of the
 	 * plugin. With an ETag, so a reader that asks again with
 	 * If-None-Match gets a 304 while nothing changed. A browser on
