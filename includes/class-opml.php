@@ -62,9 +62,10 @@ class Opml {
 		self::add_rewrite_rules();
 		// After `init`, when every plugin has added its rules.
 		\add_action( 'wp_loaded', array( self::class, 'flush_stale_rewrite_rules' ) );
-		// Before redirect_canonical, which would send the well-known URLs to
-		// a trailing-slash version of themselves.
-		\add_action( 'template_redirect', array( self::class, 'render' ), 9 );
+		// Last, after every gate that keeps a site or page closed, like a
+		// Coming Soon or a private site.
+		\add_filter( 'template_include', array( self::class, 'render' ), PHP_INT_MAX );
+		\add_filter( 'redirect_canonical', array( self::class, 'redirect_canonical' ) );
 		\add_action( 'wp_head', array( self::class, 'discovery_link' ) );
 		\add_filter( 'socialspec_following', array( Following::class, 'add_to_socialspec' ) );
 		foreach ( array( 'rss2', 'atom' ) as $feed ) {
@@ -544,12 +545,15 @@ class Opml {
 	 *
 	 * Without a blogroll the query var is simply ignored and the normal
 	 * page loads, just like when the plugin is disabled.
+	 *
+	 * @param string $template Template to load.
+	 * @return string Template to load, when there is no file to serve.
 	 */
-	public static function render() {
+	public static function render( $template = '' ) {
 		// A bare ?opml parses to an empty string, so test presence, not value.
 		$opml = \get_query_var( self::QUERY_VAR, null );
 		if ( null === $opml ) {
-			return;
+			return $template;
 		}
 
 		// A file of the whole site answers whatever page it lands on.
@@ -571,7 +575,7 @@ class Opml {
 		// fall back to, so it answers with an empty list instead.
 		if ( ! $file && ! $post ) {
 			if ( ! $posts ) {
-				return;
+				return $template;
 			}
 			$file = Directory::class;
 		}
@@ -587,6 +591,19 @@ class Opml {
 		\header( 'Content-Type: text/xml; charset=' . \get_option( 'blog_charset' ) );
 		self::for_post( $post, $anchor );
 		exit;
+	}
+
+	/**
+	 * Keep the canonical redirect away from opml requests.
+	 *
+	 * It would send the well-known URLs and the `.opml` page addresses to
+	 * a trailing-slash version of themselves.
+	 *
+	 * @param string|false $redirect_url The redirect URL, or false for none.
+	 * @return string|false The redirect URL, or false for an opml request.
+	 */
+	public static function redirect_canonical( $redirect_url ) {
+		return null === \get_query_var( self::QUERY_VAR, null ) ? $redirect_url : false;
 	}
 
 	/**

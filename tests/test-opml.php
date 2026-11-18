@@ -515,10 +515,38 @@ class Test_Opml extends WP_UnitTestCase {
 		$id = self::factory()->post->create( array( 'post_content' => 'plain' ) );
 		$this->go_to( add_query_arg( 'opml', '', get_permalink( $id ) ) );
 		ob_start();
-		\Blockroll\Opml::render();
+		$template = \Blockroll\Opml::render( 'single.php' );
 		// No OPML, no exit: the normal page loads.
 		$this->assertSame( '', ob_get_clean() );
+		$this->assertSame( 'single.php', $template );
 		$this->assertFalse( is_404() );
+	}
+
+	public function test_render_runs_after_every_gate() {
+		$this->assertSame( PHP_INT_MAX, has_filter( 'template_include', array( \Blockroll\Opml::class, 'render' ) ) );
+		$this->assertFalse( has_action( 'template_redirect', array( \Blockroll\Opml::class, 'render' ) ) );
+	}
+
+	public function test_opml_requests_skip_the_canonical_redirect() {
+		self::factory()->post->create(
+			array(
+				'post_type'    => 'page',
+				'post_name'    => 'blogroll',
+				'post_content' => self::BLOCK,
+			)
+		);
+		$this->set_permalink_structure( '/%postname%/' );
+
+		foreach ( array( '/' . \Blockroll\Following::PATH, '/blogroll.opml' ) as $path ) {
+			$this->go_to( home_url( $path ) );
+			$this->assertNull( redirect_canonical( home_url( $path ), false ), $path );
+		}
+
+		// Other requests keep it.
+		$this->go_to( home_url( '/blogroll' ) );
+		$this->assertSame( home_url( '/blogroll/' ), redirect_canonical( home_url( '/blogroll' ), false ) );
+
+		$this->set_permalink_structure( '' );
 	}
 
 	public function test_singular_without_block_has_no_discovery_link() {
